@@ -17,11 +17,13 @@ pub fn ab_glob_alignement(
 
     for j in (ampl / 2 + 1) as usize..ampl as usize {
         // prima riga
-        a[0][j] = a[0][j - 1]
-            + score_matrix
-                .get(&('-', s2[j - (ampl / 2) as usize]))
-                .unwrap();
-        path[0][j] = 'L';
+        if j as i32 - (ampl / 2) < s2_len as i32 {
+            a[0][j] = a[0][j - 1]
+                + score_matrix
+                    .get(&('-', s2[j - (ampl / 2) as usize]))
+                    .unwrap();
+            path[0][j] = 'L';
+        }
     }
 
     for i in 1..s1_len {
