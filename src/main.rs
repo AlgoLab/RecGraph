@@ -3,6 +3,7 @@ use ab_mk_edit_distance as abmked;
 
 mod ab_global_alignement;
 mod args_parser;
+mod basic_output;
 mod matrix;
 
 use std::cmp;
@@ -12,8 +13,8 @@ use std::io::{prelude::*, BufReader};
 fn main() {
     let sequences = get_sequences();
 
-    let mut s1: Vec<char> = sequences[0].chars().collect();
-    let mut s2: Vec<char> = sequences[1].chars().collect();
+    let mut s1: Vec<char> = sequences[3].chars().collect();
+    let mut s2: Vec<char> = sequences[4].chars().collect();
     s1.insert(0, '$');
     s2.insert(0, '$');
 

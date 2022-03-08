@@ -1,3 +1,4 @@
+use crate::basic_output;
 use std::{cmp, collections::HashMap};
 
 pub fn ab_glob_alignement(
@@ -118,6 +119,12 @@ pub fn ab_glob_alignement(
                 "Global Alignement: {}",
                 a[s1_len - 1][s2_len - 1 + (ampl / 2) as usize - (s1_len - 1)]
             );
+            basic_output::write_alignment(
+                &path,
+                s2_len - 1 + (ampl / 2) as usize - (s1_len - 1),
+                s1,
+                s2,
+            )
         }
         false => ab_glob_alignement(s1, s2, score_matrix, ampl * 2 + 1),
     }
@@ -127,10 +134,8 @@ fn ampl_is_enough_iterative(path: &[Vec<char>], start_col: usize) -> bool {
     let mut row = path.len() - 1;
     let mut col = start_col;
     let col_number = path[0].len();
-    //println!("{:?}", path[0]);
-    while path[row][col] != 'O' {
-        //println!("{} {} {}", row, col, path[row][col]);
 
+    while path[row][col] != 'O' {
         if col == 0 || col == col_number - 1 {
             if path[row][col] == 'D' {
                 row -= 1; // finchè ho match posso continuare anche se sul margine
