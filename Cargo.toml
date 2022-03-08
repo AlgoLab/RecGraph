@@ -8,3 +8,5 @@ edition = "2021"
 [dependencies]
 ndarray = "0.15.4"
 clap = { version = "3.1.5", features = ["derive"] }
+project-root = "0.2.2"
+

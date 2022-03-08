@@ -5,9 +5,9 @@ mod ab_global_alignement;
 mod args_parser;
 mod matrix;
 
+use std::cmp;
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
-use std::cmp;
 
 fn main() {
     let sequences = get_sequences();
@@ -22,8 +22,7 @@ fn main() {
         _ => s1.len() - s2.len(),
     };
 
-    let (match_score, mismatch_score) = args_parser::get_match_mismatch();
-    let score_matrix = matrix::create_score_matrix(match_score, mismatch_score);
+    let score_matrix = matrix::create_score_matrix();
 
     //edit distance con banda su matrice m*k
     abmked::ab_ed_km(&s1, &s2, cmp::max((ampl * 2 + 1) as i32, 3));
@@ -34,12 +33,16 @@ fn main() {
         &s2,
         &score_matrix,
         cmp::max((ampl * 2 + 1) as i32, 3),
-    )
+    );
 }
 
 fn get_sequences() -> Vec<String> {
     let mut sequences: Vec<String> = Vec::new();
-    let file = File::open("./sequences.txt").unwrap();
+    let file_path = project_root::get_project_root()
+        .unwrap()
+        .join("sequences.txt");
+
+    let file = File::open(file_path).unwrap();
     let reader = BufReader::new(file);
 
     for line in reader.lines().flatten() {
