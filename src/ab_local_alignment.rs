@@ -1,5 +1,5 @@
-use std::{cmp, collections::HashMap};
 use crate::basic_output;
+use std::{cmp, collections::HashMap};
 
 pub fn ab_loc_alignment(
     s1: &[char],
@@ -101,11 +101,11 @@ pub fn ab_loc_alignment(
                                     a[i][j] = u;
                                     path[i][j] = 'U'
                                 }
-                            _ => {
-                                a[i][j] = l;
-                                path[i][j] = 'L'
-                            }
-                        },
+                                _ => {
+                                    a[i][j] = l;
+                                    path[i][j] = 'L'
+                                }
+                            },
                             _ => match d.cmp(&u) {
                                 cmp::Ordering::Less => {
                                     a[i][j] = u;
@@ -130,25 +130,15 @@ pub fn ab_loc_alignment(
     let (row, col) = get_max(&a);
     match ampl_is_enough_iterative(&path, row, col) {
         true => {
-            println!(
-                "Local Alignement: {}",
-                a[row][col]
-            );
-            
-            basic_output::write_alignment(
-                &path,
-                row,
-                col,
-                s1,
-                s2,
-                "local"
-            )
+            println!("Local Alignement: {}", a[row][col]);
+
+            basic_output::write_alignment(&path, row, col, s1, s2, "local")
         }
         false => ab_loc_alignment(s1, s2, score_matrix, ampl * 2 + 1),
     }
 }
 
-fn ampl_is_enough_iterative(path: &[Vec<char>],mut row: usize, mut col: usize) -> bool {
+fn ampl_is_enough_iterative(path: &[Vec<char>], mut row: usize, mut col: usize) -> bool {
     let col_number = path[0].len();
 
     while path[row][col] != 'O' {
@@ -180,7 +170,7 @@ fn ampl_is_enough_iterative(path: &[Vec<char>],mut row: usize, mut col: usize) -
 fn get_max(a: &[Vec<i32>]) -> (usize, usize) {
     let mut max_row = 0;
     let mut max_col = 0;
-    
+
     for i in 0..a.len() {
         for j in 0..a[0].len() {
             if a[i][j] >= a[max_row][max_col] {
