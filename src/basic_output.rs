@@ -1,9 +1,7 @@
 use std::fs::File;
 use std::io::{prelude::*, BufWriter};
 
-pub fn write_alignment(path: &[Vec<char>], start_col: usize, s1: &[char], s2: &[char]) {
-    let mut row = path.len() - 1;
-    let mut col = start_col;
+pub fn write_alignment(path: &[Vec<char>], mut row: usize, mut col: usize, s1: &[char], s2: &[char], align_type: &str) {
     let col_number = path[0].len();
 
     let mut s1_align = String::new();
@@ -45,10 +43,11 @@ pub fn write_alignment(path: &[Vec<char>], start_col: usize, s1: &[char], s2: &[
     s1_align = s1_align.chars().rev().collect();
     alignment_moves = alignment_moves.chars().rev().collect();
     s2_align = s2_align.chars().rev().collect();
+    let file_name = String::from(align_type)+"_alignment.txt";
 
     let path = project_root::get_project_root()
         .unwrap()
-        .join("alignment.txt");
+        .join(file_name);
     let f = File::create(path).expect("unable to create file");
     let mut f = BufWriter::new(f);
 

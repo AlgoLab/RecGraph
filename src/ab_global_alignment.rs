@@ -121,9 +121,11 @@ pub fn ab_glob_alignement(
             );
             basic_output::write_alignment(
                 &path,
+                s1_len-1,
                 s2_len - 1 + (ampl / 2) as usize - (s1_len - 1),
                 s1,
                 s2,
+                "global"
             )
         }
         false => ab_glob_alignement(s1, s2, score_matrix, ampl * 2 + 1),

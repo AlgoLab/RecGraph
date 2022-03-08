@@ -1,7 +1,9 @@
 mod ab_mk_edit_distance;
+use ab_local_alignment::ab_loc_alignment;
 use ab_mk_edit_distance as abmked;
 
-mod ab_global_alignement;
+mod ab_global_alignment;
+mod ab_local_alignment;
 mod args_parser;
 mod basic_output;
 mod matrix;
@@ -24,17 +26,20 @@ fn main() {
     };
 
     let score_matrix = matrix::create_score_matrix();
-
+    // TODO gestione tipologia alignment da linea di comando
     //edit distance con banda su matrice m*k
     abmked::ab_ed_km(&s1, &s2, cmp::max((ampl * 2 + 1) as i32, 3));
 
     //glob alignment
-    ab_global_alignement::ab_glob_alignement(
+    ab_global_alignment::ab_glob_alignement(
         &s1,
         &s2,
         &score_matrix,
         cmp::max((ampl * 2 + 1) as i32, 3),
     );
+
+    //local alignment
+    ab_loc_alignment(&s1, &s2, &score_matrix, cmp::max((ampl * 2 + 1) as i32, 3))
 }
 
 fn get_sequences() -> Vec<String> {
