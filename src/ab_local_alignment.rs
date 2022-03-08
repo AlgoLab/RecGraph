@@ -7,8 +7,10 @@ pub fn ab_loc_alignment(
     score_matrix: &HashMap<(char, char), i32>,
     ampl: i32,
 ) {
+    
     let s1_len = s1.len();
     let s2_len = s2.len();
+    
     let mut a = vec![vec![0; ampl as usize]; s1_len];
     let mut path = vec![vec!['x'; ampl as usize]; s1_len];
 
@@ -132,7 +134,7 @@ pub fn ab_loc_alignment(
         true => {
             println!("Local Alignement: {}", a[row][col]);
 
-            basic_output::write_alignment(&path, row, col, s1, s2, "local")
+            basic_output::write_alignment(&path, row, col, s1, s2, "local_ab")
         }
         false => ab_loc_alignment(s1, s2, score_matrix, ampl * 2 + 1),
     }
