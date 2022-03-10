@@ -12,8 +12,14 @@ struct Args {
     #[structopt(allow_hyphen_values = true)]
     mismatch_score: i32,
 
+    // Matrix type
     #[clap(short = 't', long = "matrix", default_value = "none")]
     matrix: String,
+
+    // Alignment mode
+    #[clap(short = 'm', long = "aln-mode", default_value_t = 0)]
+    alignment_mode: i32,
+
 }
 
 pub fn get_match_mismatch() -> (i32, i32) {
@@ -24,4 +30,9 @@ pub fn get_match_mismatch() -> (i32, i32) {
 pub fn get_matrix_type() -> String {
     let args = Args::parse();
     args.matrix
+}
+
+pub fn get_align_mode() -> i32 {
+    let args = Args::parse();
+    args.alignment_mode
 }

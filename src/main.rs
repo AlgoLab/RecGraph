@@ -1,11 +1,9 @@
-mod ab_mk_edit_distance;
-use ab_mk_edit_distance as abmked;
-
 mod ab_global_alignment;
 mod ab_local_alignment;
-mod local_alignment;
+mod ab_mk_edit_distance;
 mod args_parser;
 mod basic_output;
+mod local_alignment;
 mod matrix;
 
 use std::cmp;
@@ -20,31 +18,24 @@ fn main() {
     s1.insert(0, '$');
     s2.insert(0, '$');
 
+    let score_matrix = matrix::create_score_matrix();
     let ampl = match s1.len() < s2.len() {
         true => s2.len() - s1.len(),
         _ => s1.len() - s2.len(),
     };
-    
-    let score_matrix = matrix::create_score_matrix();
-    // TODO gestione tipologia alignment da linea di comando
 
-    //edit distance con banda su matrice m*k
-    abmked::ab_ed_km(&s1, &s2, cmp::max((ampl * 2 + 1) as i32, 3));
-
-    
-    //glob alignment
-    ab_global_alignment::ab_glob_alignement(
-        &s1,
-        &s2,
-        &score_matrix,
-        cmp::max((ampl * 2 + 1) as i32, 3),
-    );
-
-    //local alignment
-    if ampl*2+1  > cmp::min(s1.len(), s2.len()) {
-        local_alignment::local_alignment(&s1, &s2, &score_matrix)
-    } else {
-        ab_local_alignment::ab_loc_alignment(&s1, &s2, &score_matrix, cmp::max((ampl * 2 + 1) as i32, 3))
+    let align_mode = args_parser::get_align_mode();
+    match align_mode {
+        0 => ab_global_alignment::exec(&s1, &s2, &score_matrix, cmp::max((ampl * 2 + 1) as i32, 3)),
+        1 => {
+            if ampl * 2 + 1 > cmp::min(s1.len(), s2.len()) {
+                local_alignment::exec(&s1, &s2, &score_matrix)
+            } else {
+                ab_local_alignment::exec(&s1, &s2, &score_matrix, cmp::max((ampl * 2 + 1) as i32, 3))
+            }
+        },
+        2 => ab_mk_edit_distance::exec(&s1, &s2, cmp::max((ampl * 2 + 1) as i32, 3)), 
+        _ => panic!("alignment mode must be 0, 1 or 2")
     }
 }
 
@@ -62,3 +53,5 @@ fn get_sequences() -> Vec<String> {
     }
     sequences
 }
+
+

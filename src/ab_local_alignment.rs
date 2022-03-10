@@ -1,21 +1,18 @@
 use crate::basic_output;
 use std::{cmp, collections::HashMap};
 
-pub fn ab_loc_alignment(
-    s1: &[char],
-    s2: &[char],
-    score_matrix: &HashMap<(char, char), i32>,
-    ampl: i32,
-) {
-    
+pub fn exec(s1: &[char], s2: &[char], score_matrix: &HashMap<(char, char), i32>, ampl: i32) {
     let s1_len = s1.len();
     let s2_len = s2.len();
-    
+
     let mut a = vec![vec![0; ampl as usize]; s1_len];
     let mut path = vec![vec!['x'; ampl as usize]; s1_len];
 
     a[0][(ampl / 2) as usize] = 0;
     path[0][(ampl / 2) as usize] = 'O';
+
+    let mut max_row = 0;
+    let mut max_col = 0;
 
     for j in (ampl / 2 + 1) as usize..ampl as usize {
         // prima riga
@@ -126,17 +123,19 @@ pub fn ab_loc_alignment(
                     }
                 }
             }
+            if a[i][j] >= a[max_row][max_col] {
+                max_row = i;
+                max_col = j;
+            }
         }
     }
-    // ampl is enough deve andare da valore max a primo 'o'
-    let (row, col) = get_max(&a);
-    match ampl_is_enough_iterative(&path, row, col) {
+    match ampl_is_enough_iterative(&path, max_row, max_col) {
         true => {
-            println!("Local Alignement: {}", a[row][col]);
+            println!("Local Alignement: {}", a[max_row][max_col]);
 
-            basic_output::write_alignment(&path, row, col, s1, s2, "local_ab")
+            basic_output::write_alignment(&path, max_row, max_col, s1, s2, "local_ab")
         }
-        false => ab_loc_alignment(s1, s2, score_matrix, ampl * 2 + 1),
+        false => exec(s1, s2, score_matrix, ampl * 2 + 1),
     }
 }
 
@@ -167,19 +166,4 @@ fn ampl_is_enough_iterative(path: &[Vec<char>], mut row: usize, mut col: usize) 
         }
     }
     true
-}
-
-fn get_max(a: &[Vec<i32>]) -> (usize, usize) {
-    let mut max_row = 0;
-    let mut max_col = 0;
-
-    for i in 0..a.len() {
-        for j in 0..a[0].len() {
-            if a[i][j] >= a[max_row][max_col] {
-                max_row = i;
-                max_col = j;
-            }
-        }
-    }
-    (max_row, max_col)
 }

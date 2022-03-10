@@ -1,6 +1,6 @@
 use std::cmp;
 
-pub fn ab_ed_km(s1: &[char], s2: &[char], ampl: i32) {
+pub fn exec(s1: &[char], s2: &[char], ampl: i32) {
     let s1_len = s1.len();
     let s2_len = s2.len();
     let mut a = vec![vec![(s1_len + s2_len) as i32; ampl as usize]; s1_len];
@@ -83,7 +83,7 @@ pub fn ab_ed_km(s1: &[char], s2: &[char], ampl: i32) {
                 a[s1_len - 1][s2_len - 1 + (ampl / 2) as usize - (s1_len - 1)]
             );
         }
-        false => ab_ed_km(s1, s2, ampl * 2 + 1),
+        false => exec(s1, s2, ampl * 2 + 1),
     }
 }
 

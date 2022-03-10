@@ -1,12 +1,7 @@
 use crate::basic_output;
 use std::{cmp, collections::HashMap};
 
-pub fn ab_glob_alignement(
-    s1: &[char],
-    s2: &[char],
-    score_matrix: &HashMap<(char, char), i32>,
-    ampl: i32,
-) {
+pub fn exec(s1: &[char], s2: &[char], score_matrix: &HashMap<(char, char), i32>, ampl: i32) {
     let s1_len = s1.len();
     let s2_len = s2.len();
     let mut a = vec![vec![0; ampl as usize]; s1_len];
@@ -130,7 +125,7 @@ pub fn ab_glob_alignement(
                 "global",
             )
         }
-        false => ab_glob_alignement(s1, s2, score_matrix, ampl * 2 + 1),
+        false => exec(s1, s2, score_matrix, ampl * 2 + 1),
     }
 }
 
