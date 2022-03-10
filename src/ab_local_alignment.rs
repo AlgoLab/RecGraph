@@ -1,7 +1,7 @@
 use crate::basic_output;
 use std::{cmp, collections::HashMap};
 
-pub fn exec(s1: &[char], s2: &[char], score_matrix: &HashMap<(char, char), i32>, ampl: i32) {
+pub fn exec(s1: &[char], s2: &[char], score_matrix: &HashMap<(char, char), i32>, ampl: usize) {
     let s1_len = s1.len();
     let s2_len = s2.len();
 
@@ -22,17 +22,14 @@ pub fn exec(s1: &[char], s2: &[char], score_matrix: &HashMap<(char, char), i32>,
 
     for i in 1..s1_len {
         for j in 0..ampl as usize {
-            let i_32 = i as i32;
-            let j_32 = j as i32;
-
-            if i_32 + j_32 - ampl / 2 < s2_len as i32 && i_32 + j_32 >= ampl / 2 {
-                if i_32 + j_32 == ampl / 2 {
+            if i + j < s2_len + ampl / 2 && i + j >= ampl / 2 {
+                if i + j == ampl / 2 {
                     // elementi con j = 0 matrice mn
                     a[i][j] = 0;
                     path[i][j] = 'O';
                 } else if j == 0 {
                     // bordo inf banda
-                    let index_of_s2 = i + j - (ampl / 2) as usize;
+                    let index_of_s2 = i + j - ampl / 2;
 
                     let d = a[i - 1][j] + score_matrix.get(&(s2[index_of_s2], s1[i])).unwrap();
                     let u = a[i - 1][j + 1] + score_matrix.get(&(s1[i], '-')).unwrap();
@@ -56,7 +53,7 @@ pub fn exec(s1: &[char], s2: &[char], score_matrix: &HashMap<(char, char), i32>,
                             }
                         }
                     }
-                } else if j_32 == ampl - 1 {
+                } else if j == ampl - 1 {
                     // bordo sup banda
                     let index_of_s2 = i + j - (ampl / 2) as usize;
 

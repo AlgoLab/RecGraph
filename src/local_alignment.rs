@@ -8,17 +8,18 @@ pub fn exec(s1: &[char], s2: &[char], matrix: &HashMap<(char, char), i32>) {
     let mut path = vec![vec!['x'; s2.len()]; s1.len()];
     let mut max_row = 0;
     let mut max_col = 0;
-    for row in 0..s1.len() {
-        for col in 0..s2.len() {
+
+    for (row, char_s1) in s1.iter().enumerate() {
+        for (col, char_s2) in s2.iter().enumerate() {
             match (row, col) {
                 (_, 0) | (0, _) => {
                     a[row][col] = 0;
                     path[row][col] = 'O';
                 }
                 _ => {
-                    let d = a[row - 1][col - 1] + matrix.get(&(s1[row], s2[col])).unwrap();
-                    let l = a[row - 1][col] + matrix.get(&(s1[row], '-')).unwrap();
-                    let u = a[row][col - 1] + matrix.get(&('-', s2[col])).unwrap();
+                    let d = a[row - 1][col - 1] + matrix.get(&(*char_s1, *char_s2)).unwrap();
+                    let l = a[row - 1][col] + matrix.get(&(*char_s1, '-')).unwrap();
+                    let u = a[row][col - 1] + matrix.get(&('-', *char_s2)).unwrap();
 
                     if d < 0 && l < 0 && u < 0 {
                         a[row][col] = 0;

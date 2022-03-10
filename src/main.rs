@@ -14,7 +14,7 @@ fn main() {
     let sequences = get_sequences();
 
     let mut s1: Vec<char> = sequences[0].chars().collect();
-    let mut s2: Vec<char> = sequences[1].chars().collect();
+    let mut s2: Vec<char> = sequences[4].chars().collect();
     s1.insert(0, '$');
     s2.insert(0, '$');
 
@@ -26,16 +26,16 @@ fn main() {
 
     let align_mode = args_parser::get_align_mode();
     match align_mode {
-        0 => ab_global_alignment::exec(&s1, &s2, &score_matrix, cmp::max((ampl * 2 + 1) as i32, 3)),
+        0 => ab_global_alignment::exec(&s1, &s2, &score_matrix, cmp::max(ampl * 2 + 1, 3)),
         1 => {
             if ampl * 2 + 1 > cmp::min(s1.len(), s2.len()) {
                 local_alignment::exec(&s1, &s2, &score_matrix)
             } else {
-                ab_local_alignment::exec(&s1, &s2, &score_matrix, cmp::max((ampl * 2 + 1) as i32, 3))
+                ab_local_alignment::exec(&s1, &s2, &score_matrix, cmp::max(ampl * 2 + 1, 3))
             }
-        },
-        2 => ab_mk_edit_distance::exec(&s1, &s2, cmp::max((ampl * 2 + 1) as i32, 3)), 
-        _ => panic!("alignment mode must be 0, 1 or 2")
+        }
+        2 => ab_mk_edit_distance::exec(&s1, &s2, cmp::max((ampl * 2 + 1) as i32, 3)),
+        _ => panic!("alignment mode must be 0, 1 or 2"),
     }
 }
 
@@ -53,5 +53,3 @@ fn get_sequences() -> Vec<String> {
     }
     sequences
 }
-
-

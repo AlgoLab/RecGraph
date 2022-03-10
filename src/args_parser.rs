@@ -19,7 +19,6 @@ struct Args {
     // Alignment mode
     #[clap(short = 'm', long = "aln-mode", default_value_t = 0)]
     alignment_mode: i32,
-
 }
 
 pub fn get_match_mismatch() -> (i32, i32) {
