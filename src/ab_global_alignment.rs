@@ -110,7 +110,7 @@ pub fn exec(s1: &[char], s2: &[char], score_matrix: &HashMap<(char, char), i32>,
                 "Global Alignement: {}",
                 a[s1_len - 1][s2_len - 1 + (ampl / 2) - (s1_len - 1)]
             );
-            basic_output::write_alignment(
+            basic_output::write_alignment_ab(
                 &path,
                 s1_len - 1,
                 s2_len - 1 + (ampl / 2) - (s1_len - 1),

@@ -130,7 +130,7 @@ pub fn exec(s1: &[char], s2: &[char], score_matrix: &HashMap<(char, char), i32>,
         true => {
             println!("Local Alignement: {}", a[max_row][max_col]);
 
-            basic_output::write_alignment(&path, max_row, max_col, s1, s2, "local_ab")
+            basic_output::write_alignment_ab(&path, max_row, max_col, s1, s2, "local_ab")
         }
         false => exec(s1, s2, score_matrix, ampl * 2 + 1),
     }

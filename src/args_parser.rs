@@ -29,7 +29,6 @@ struct Args {
     #[clap(short = 'E', long = "gap-ext", default_value_t = -2)]
     #[structopt(allow_hyphen_values = true)]
     gap_extension: i32,
-
 }
 
 pub fn get_match_mismatch() -> (i32, i32) {
