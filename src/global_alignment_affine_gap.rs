@@ -71,5 +71,5 @@ pub fn exec(s1: &[char], s2: &[char], matrix: &HashMap<(char, char), i32>, o: i3
         }
     }
     println!("gap alignment: {}", m[s1.len() - 1][s2.len() - 1]);
-    basic_output::write_alignment_no_ab(&path, s1.len() - 1, s2.len() - 1, s1, s2)
+    basic_output::write_alignment_no_ab(&path, s1.len() - 1, s2.len() - 1, s1, s2, "gap")
 }

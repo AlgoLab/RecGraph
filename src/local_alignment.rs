@@ -58,5 +58,5 @@ pub fn exec(s1: &[char], s2: &[char], matrix: &HashMap<(char, char), i32>) {
         }
     }
     println!("Local Alignement: {}", a[max_row][max_col]);
-    basic_output::write_alignment_no_ab(&path, max_row, max_col, s1, s2)
+    basic_output::write_alignment_no_ab(&path, max_row, max_col, s1, s2, "local")
 }

@@ -67,6 +67,7 @@ pub fn write_alignment_no_ab(
     mut col: usize,
     s1: &[char],
     s2: &[char],
+    align_type: &str
 ) {
     let mut s1_align = String::new();
     let mut s2_align = String::new();
@@ -107,7 +108,7 @@ pub fn write_alignment_no_ab(
     s1_align = s1_align.chars().rev().collect();
     alignment_moves = alignment_moves.chars().rev().collect();
     s2_align = s2_align.chars().rev().collect();
-    let file_name = "local_alignment.txt";
+    let file_name = String::from(align_type) + "_alignment.txt";
 
     let path = project_root::get_project_root().unwrap().join(file_name);
     let f = File::create(path).expect("unable to create file");

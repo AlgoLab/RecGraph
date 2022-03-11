@@ -15,8 +15,8 @@ use std::io::{prelude::*, BufReader};
 fn main() {
     let sequences = get_sequences();
 
-    let mut s1: Vec<char> = sequences[10].chars().collect();
-    let mut s2: Vec<char> = sequences[11].chars().collect();
+    let mut s1: Vec<char> = sequences[0].chars().collect();
+    let mut s2: Vec<char> = sequences[1].chars().collect();
     s1.insert(0, '$');
     s2.insert(0, '$');
 
