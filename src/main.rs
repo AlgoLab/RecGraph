@@ -40,8 +40,11 @@ fn main() {
             local_alignment::exec(&s1, &s2, &score_matrix)
         }
         2 => ab_mk_edit_distance::exec(&s1, &s2, cmp::max((ampl * 2 + 1) as i32, 3)),
-        3 => global_alignment_affine_gap::exec(&s1, &s2, &score_matrix, -10, -1),
-        _ => panic!("alignment mode must be 0, 1 or 2"),
+        3 => {
+            let (g_open, g_ext) = args_parser::get_gap_open_gap_ext();
+            global_alignment_affine_gap::exec(&s1, &s2, &score_matrix, g_open, g_ext)
+        },
+        _ => panic!("alignment mode must be 0, 1, 2 or 3"),
     }
 }
 
