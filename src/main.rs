@@ -1,9 +1,11 @@
 mod ab_global_alignment;
 mod ab_local_alignment;
 mod ab_mk_edit_distance;
+mod local_alignment;
+mod global_alignment_affine_gap;
+
 mod args_parser;
 mod basic_output;
-mod local_alignment;
 mod matrix;
 
 use std::cmp;
@@ -12,9 +14,9 @@ use std::io::{prelude::*, BufReader};
 
 fn main() {
     let sequences = get_sequences();
-
-    let mut s1: Vec<char> = sequences[0].chars().collect();
-    let mut s2: Vec<char> = sequences[4].chars().collect();
+    
+    let mut s1: Vec<char> = sequences[10].chars().collect();
+    let mut s2: Vec<char> = sequences[11].chars().collect();
     s1.insert(0, '$');
     s2.insert(0, '$');
 
@@ -28,13 +30,17 @@ fn main() {
     match align_mode {
         0 => ab_global_alignment::exec(&s1, &s2, &score_matrix, cmp::max(ampl * 2 + 1, 3)),
         1 => {
+            /* 
             if ampl * 2 + 1 > cmp::min(s1.len(), s2.len()) {
                 local_alignment::exec(&s1, &s2, &score_matrix)
             } else {
                 ab_local_alignment::exec(&s1, &s2, &score_matrix, cmp::max(ampl * 2 + 1, 3))
             }
+            */
+            local_alignment::exec(&s1, &s2, &score_matrix)
         }
         2 => ab_mk_edit_distance::exec(&s1, &s2, cmp::max((ampl * 2 + 1) as i32, 3)),
+        3 => global_alignment_affine_gap::exec(&s1, &s2, &score_matrix, -10, -1),
         _ => panic!("alignment mode must be 0, 1 or 2"),
     }
 }
