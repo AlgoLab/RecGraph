@@ -150,36 +150,35 @@ pub fn write_alignment_gap(
                 row -= 1;
             }
             'U' => {
-                if path_x[row][col] == 'X'{
-                    while path_y[row][col-1]!='M'{
+                if path_y[row][col] == 'M'{
+                    s1_align.push(s1[row]);
+                    s2_align.push('-');
+                    alignment_moves.push(' ');
+                    row -= 1;
+                } else {
+                    while path_y[row][col] == 'Y'{
                         s1_align.push(s1[row]);
                         s2_align.push('-');
                         alignment_moves.push(' ');
                         row -= 1;
                     }
-                } else {
-                    s1_align.push(s1[row]);
-                    s2_align.push('-');
-                    alignment_moves.push(' ');
-                    row -= 1;
                 }
                 
             }
             'L' => {
-                if path_y[row][col] == 'Y'{
-                    while path_y[row][col-1]!='M'{
+                if path_x[row][col] == 'M'{
+                    s1_align.push('-');
+                    s2_align.push(s2[col]);
+                    alignment_moves.push(' ');
+                    col -= 1;
+                } else {
+                    while path_x[row][col] == 'X'{
                         s1_align.push('-');
                         s2_align.push(s2[col]);
                         alignment_moves.push(' ');
                         col -= 1;
                     }
-                } else {
-                    s1_align.push('-');
-                    s2_align.push(s2[col]);
-                    alignment_moves.push(' ');
-                    col -= 1;
                 }
-                
             }
             _ => panic!("ampl_is_enough panic"),
         }
