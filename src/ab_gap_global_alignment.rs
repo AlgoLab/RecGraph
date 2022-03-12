@@ -1,6 +1,6 @@
 use crate::basic_output;
 use std::{cmp, collections::HashMap};
-
+// FIXME: ampl_is_enough and write_alignment not working correctly
 pub fn exec(
     s1: &[char],
     s2: &[char],

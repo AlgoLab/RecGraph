@@ -1,4 +1,4 @@
-mod ab_gap_global_alignment;
+//mod ab_gap_global_alignment;
 mod ab_global_alignment;
 mod ab_mk_edit_distance;
 mod args_parser;
@@ -42,14 +42,14 @@ fn main() {
         3 => {
             let (g_open, g_ext) = args_parser::get_gap_open_gap_ext();
             global_alignment_affine_gap::exec(&s1, &s2, &score_matrix, g_open, g_ext);
-            ab_gap_global_alignment::exec(
+            /*ab_gap_global_alignment::exec(
                 &s1,
                 &s2,
                 &score_matrix,
                 cmp::max(ampl * 2 + 1, 3),
                 g_open,
                 g_ext,
-            );
+            );*/
         }
         _ => panic!("alignment mode must be 0, 1, 2 or 3"),
     }
