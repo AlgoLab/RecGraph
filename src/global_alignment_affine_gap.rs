@@ -11,7 +11,7 @@ pub fn exec(s1: &[char], s2: &[char], matrix: &HashMap<(char, char), i32>, o: i3
     let mut path = vec![vec!['x'; s2.len()]; s1.len()];
     let mut path_x = vec![vec!['M'; s2.len()]; s1.len()];
     let mut path_y = vec![vec!['M'; s2.len()]; s1.len()];
-    
+
     for (i, char_1) in s1.iter().enumerate() {
         for (j, char_2) in s2.iter().enumerate() {
             match (i, j) {
@@ -34,13 +34,13 @@ pub fn exec(s1: &[char], s2: &[char], matrix: &HashMap<(char, char), i32>, o: i3
                     // set x
                     x[i][j] = cmp::max(x[i][j - 1] + e, m[i][j - 1] + o + e);
                     if x[i][j] != m[i][j - 1] + o + e {
-                        path_x[i][j-1] = 'X'
+                        path_x[i][j - 1] = 'X'
                     }
 
                     // set y
                     y[i][j] = cmp::max(y[i - 1][j] + e, m[i - 1][j] + o + e);
-                    if y[i][j] != m[i-1][j] + o + e {
-                        path_y[i-1][j] = 'Y'
+                    if y[i][j] != m[i - 1][j] + o + e {
+                        path_y[i - 1][j] = 'Y'
                     }
                     // set m
                     let d = m[i - 1][j - 1] + matrix.get(&(*char_1, *char_2)).unwrap();
@@ -78,5 +78,14 @@ pub fn exec(s1: &[char], s2: &[char], matrix: &HashMap<(char, char), i32>, o: i3
         }
     }
     println!("gap alignment: {}", m[s1.len() - 1][s2.len() - 1]);
-    basic_output::write_alignment_gap(&path, &path_x, &path_y, s1.len() - 1, s2.len() - 1, s1, s2, "gap")
+    basic_output::write_alignment_gap(
+        &path,
+        &path_x,
+        &path_y,
+        s1.len() - 1,
+        s2.len() - 1,
+        s1,
+        s2,
+        "gap",
+    )
 }

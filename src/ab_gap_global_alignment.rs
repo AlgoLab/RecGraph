@@ -46,7 +46,7 @@ pub fn exec(
                     // set y
                     y[i][j] = cmp::max(y[i - 1][j + 1] + e, m[i - 1][j + 1] + o + e);
                     if y[i][j] != m[i - 1][j + 1] + o + e {
-                        path_y[i-1][j+1] = 'Y'
+                        path_y[i - 1][j + 1] = 'Y'
                     }
 
                     //set m
@@ -73,9 +73,8 @@ pub fn exec(
                     // set x
                     x[i][j] = cmp::max(x[i][j - 1] + e, m[i][j - 1] + o + e);
                     if x[i][j] != m[i][j - 1] + o + e {
-                        path_x[i][j-1] = 'X'
+                        path_x[i][j - 1] = 'X'
                     }
-
 
                     // set m
                     let index_of_s2 = i + j - ampl / 2;
@@ -101,14 +100,13 @@ pub fn exec(
                     // set x
                     x[i][j] = cmp::max(x[i][j - 1] + e, m[i][j - 1] + o + e);
                     if x[i][j] != m[i][j - 1] + o + e {
-                        path_x[i][j-1] = 'X'
+                        path_x[i][j - 1] = 'X'
                     }
-
 
                     // set y
                     y[i][j] = cmp::max(y[i - 1][j + 1] + e, m[i - 1][j + 1] + o + e);
                     if y[i][j] != m[i - 1][j + 1] + o + e {
-                        path_y[i-1][j+1] = 'Y'
+                        path_y[i - 1][j + 1] = 'Y'
                     }
 
                     // set m
@@ -149,15 +147,22 @@ pub fn exec(
         }
     }
 
-    match ampl_is_enough_iterative(&path, &path_x, &path_y, s2_len - 1 + (ampl / 2) - (s1_len - 1)) {
+    match ampl_is_enough_iterative(
+        &path,
+        &path_x,
+        &path_y,
+        s2_len - 1 + (ampl / 2) - (s1_len - 1),
+    ) {
         true => {
             println!(
                 "Ab Gap Alignement: {}",
                 m[s1_len - 1][s2_len - 1 + (ampl / 2) - (s1_len - 1)]
             );
-            // FIXME: 
-            basic_output::write_alignment_ab(
+            // FIXME:
+            basic_output::write_alignment_ab_gap(
                 &path,
+                &path_x,
+                &path_y,
                 s1_len - 1,
                 s2_len - 1 + (ampl / 2) - (s1_len - 1),
                 s1,
@@ -169,11 +174,15 @@ pub fn exec(
     }
 }
 
-fn ampl_is_enough_iterative(path: &[Vec<char>], path_x: &[Vec<char>], path_y: &[Vec<char>], start_col: usize) -> bool {
+fn ampl_is_enough_iterative(
+    path: &[Vec<char>],
+    path_x: &[Vec<char>],
+    path_y: &[Vec<char>],
+    start_col: usize,
+) -> bool {
     let mut row = path.len() - 1;
     let mut col = start_col;
     let col_number = path[0].len();
-    println!("{}", &col_number);
     while path[row][col] != 'O' {
         if col == 0 || col == col_number - 1 {
             if path[row][col] == 'D' {
@@ -187,13 +196,13 @@ fn ampl_is_enough_iterative(path: &[Vec<char>], path_x: &[Vec<char>], path_y: &[
                     row -= 1;
                 }
                 'U' => {
-                    if path_y[row][col] == 'M'{
+                    if path_y[row][col] == 'M' {
                         row -= 1;
                         col += 1;
                     } else {
-                        while path_y[row][col] == 'Y'{
+                        while path_y[row][col] == 'Y' {
                             if col == 0 || col == col_number - 1 {
-                                return false
+                                return false;
                             }
                             row -= 1;
                             col -= 1;
@@ -201,12 +210,12 @@ fn ampl_is_enough_iterative(path: &[Vec<char>], path_x: &[Vec<char>], path_y: &[
                     }
                 }
                 'L' => {
-                    if path_x[row][col] == 'M'{
+                    if path_x[row][col] == 'M' {
                         col -= 1;
                     } else {
-                        while path_x[row][col] == 'X'{
+                        while path_x[row][col] == 'X' {
                             if col == 0 || col == col_number - 1 {
-                                return false
+                                return false;
                             }
                             col -= 1;
                         }
