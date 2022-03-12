@@ -4,7 +4,12 @@ use clap::Parser;
 #[clap(author = "Davide Monti <d.monti11@campus.unimib.it>", version, about = "POA in rust", long_about = None)]
 struct Args {
     // Alignment mode
-    #[clap(short = 'm', long = "aln-mode", default_value_t = 0, help = "0: global, 1: local, 2: edit distance, 3: affine gap")]
+    #[clap(
+        short = 'm',
+        long = "aln-mode",
+        default_value_t = 0,
+        help = "0: global, 1: local, 2: edit distance, 3: affine gap"
+    )]
     alignment_mode: i32,
 
     /// Match score
@@ -12,19 +17,39 @@ struct Args {
     match_score: i32,
 
     /// Mismatch score
-    #[clap(short = 'X', long = "mismatch", default_value_t = 4, help = "Mismatch penalty")]
+    #[clap(
+        short = 'X',
+        long = "mismatch",
+        default_value_t = 4,
+        help = "Mismatch penalty"
+    )]
     mismatch_score: i32,
 
     // Matrix type
-    #[clap(short = 't', long = "matrix", default_value = "none", help = "Scoring matrix file, if '-t' is used '-M' and '-X' are not used")]
+    #[clap(
+        short = 't',
+        long = "matrix",
+        default_value = "none",
+        help = "Scoring matrix file, if '-t' is used '-M' and '-X' are not used"
+    )]
     matrix: String,
-    
+
     // Gap open
-    #[clap(short = 'O', long = "gap-open", default_value_t = 4, help = "Gap opening penalty")]
+    #[clap(
+        short = 'O',
+        long = "gap-open",
+        default_value_t = 4,
+        help = "Gap opening penalty"
+    )]
     gap_open: i32,
 
     //Gap extension
-    #[clap(short = 'E', long = "gap-ext", default_value_t = 2, help = "Gap extension penalty")]
+    #[clap(
+        short = 'E',
+        long = "gap-ext",
+        default_value_t = 2,
+        help = "Gap extension penalty"
+    )]
     gap_extension: i32,
 }
 

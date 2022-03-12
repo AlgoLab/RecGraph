@@ -67,7 +67,7 @@ pub fn write_alignment_no_ab(
     mut col: usize,
     s1: &[char],
     s2: &[char],
-    align_type: &str
+    align_type: &str,
 ) {
     let mut s1_align = String::new();
     let mut s2_align = String::new();
