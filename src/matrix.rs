@@ -8,7 +8,8 @@ use std::{
 pub fn create_score_matrix() -> HashMap<(char, char), i32> {
     let matrix_type = args_parser::get_matrix_type();
     match matrix_type.as_str() {
-        "HOXD70.mtx" => create_score_matrix_hoxd70(),
+        "HOXD70.mtx" | "HOXD70" => create_score_matrix_from_matrix_file("HOXD70.mtx"),
+        "HOXD55.mtx" | "HOXD55" => create_score_matrix_from_matrix_file("HOXD55.mtx"),
         "none" => {
             let (match_score, mismatch_score) = args_parser::get_match_mismatch();
             create_score_matrix_match_mis(match_score, mismatch_score)
@@ -33,9 +34,9 @@ fn create_score_matrix_match_mis(m: i32, x: i32) -> HashMap<(char, char), i32> {
     score_matrix
 }
 
-fn create_score_matrix_hoxd70() -> HashMap<(char, char), i32> {
+fn create_score_matrix_from_matrix_file(matrix_file: &str) -> HashMap<(char, char), i32> {
     let mut matrix: Vec<Vec<String>> = Vec::new();
-    let file_path = project_root::get_project_root().unwrap().join("HOXD70.mtx");
+    let file_path = project_root::get_project_root().unwrap().join(matrix_file);
 
     let file = File::open(file_path).unwrap();
     let reader = BufReader::new(file);

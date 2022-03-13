@@ -35,8 +35,9 @@ pub fn exec(
     for i in 1..s1_len {
         for j in 0..ampl {
             if i + j < s2_len + ampl / 2 && i + j >= ampl / 2 {
+                // else out of band
                 if i + j == ampl / 2 {
-                    // elementi con j = 0 matrice mn
+                    // j = 0 in mn
                     x[i][j] = o + e * i as i32;
                     m[i][j] = x[i][j];
 
