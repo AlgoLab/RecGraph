@@ -170,13 +170,13 @@ pub fn write_alignment_ab_gap(
             'L' => {
                 if path_x[row][col] == 'M' {
                     s1_align.push('-');
-                    s2_align.push(s2[col]);
+                    s2_align.push(s2[row + col - col_number / 2]);
                     alignment_moves.push(' ');
                     col -= 1;
                 } else {
                     while path_x[row][col] == 'X' {
                         s1_align.push('-');
-                        s2_align.push(s2[col]);
+                        s2_align.push(s2[row + col - col_number / 2]);
                         alignment_moves.push(' ');
                         col -= 1;
                     }

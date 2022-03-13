@@ -158,7 +158,6 @@ pub fn exec(
                 "Ab Gap Alignement: {}",
                 m[s1_len - 1][s2_len - 1 + (ampl / 2) - (s1_len - 1)]
             );
-            // FIXME:
             basic_output::write_alignment_ab_gap(
                 &path,
                 &path_x,
@@ -205,7 +204,7 @@ fn ampl_is_enough_iterative(
                                 return false;
                             }
                             row -= 1;
-                            col -= 1;
+                            col += 1;
                         }
                     }
                 }
@@ -221,7 +220,7 @@ fn ampl_is_enough_iterative(
                         }
                     }
                 }
-                _ => panic!("ampl_is_enough panic"),
+                _ => panic!("ampl_is_enough panic "),
             }
         }
     }
