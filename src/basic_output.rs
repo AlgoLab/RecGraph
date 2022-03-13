@@ -46,19 +46,7 @@ pub fn write_alignment_ab(
             _ => panic!("ampl_is_enough panic"),
         }
     }
-
-    s1_align = s1_align.chars().rev().collect();
-    alignment_moves = alignment_moves.chars().rev().collect();
-    s2_align = s2_align.chars().rev().collect();
-    let file_name = String::from(align_type) + "_alignment.txt";
-
-    let path = project_root::get_project_root().unwrap().join(file_name);
-    let f = File::create(path).expect("unable to create file");
-    let mut f = BufWriter::new(f);
-
-    writeln!(f, "{}", s1_align).expect("unable to write");
-    writeln!(f, "{}", alignment_moves).expect("unable to write");
-    writeln!(f, "{}", s2_align).expect("unable to write");
+    reverse_and_write(s1_align, s2_align, alignment_moves, align_type);
 }
 
 pub fn write_alignment_no_ab(
@@ -104,27 +92,13 @@ pub fn write_alignment_no_ab(
             _ => panic!("ampl_is_enough panic"),
         }
     }
-
-    s1_align = s1_align.chars().rev().collect();
-    alignment_moves = alignment_moves.chars().rev().collect();
-    s2_align = s2_align.chars().rev().collect();
-    let file_name = String::from(align_type) + "_alignment.txt";
-
-    let path = project_root::get_project_root().unwrap().join(file_name);
-    let f = File::create(path).expect("unable to create file");
-    let mut f = BufWriter::new(f);
-
-    writeln!(f, "{}", s1_align).expect("unable to write");
-    writeln!(f, "{}", alignment_moves).expect("unable to write");
-    writeln!(f, "{}", s2_align).expect("unable to write");
+    reverse_and_write(s1_align, s2_align, alignment_moves, align_type);
 }
 
 pub fn write_alignment_ab_gap(
     path: &[Vec<char>],
     path_x: &[Vec<char>],
     path_y: &[Vec<char>],
-    mut row: usize,
-    mut col: usize,
     s1: &[char],
     s2: &[char],
     align_type: &str,
@@ -134,6 +108,9 @@ pub fn write_alignment_ab_gap(
     let mut s1_align = String::new();
     let mut s2_align = String::new();
     let mut alignment_moves = String::new();
+
+    let mut row = s1.len() - 1;
+    let mut col = s2.len() - 1 + (col_number / 2) - (s1.len() - 1);
 
     while path[row][col] != 'O' {
         let index_of_s2 = row + col - col_number / 2;
@@ -185,31 +162,19 @@ pub fn write_alignment_ab_gap(
             _ => panic!("ampl_is_enough panic"),
         }
     }
-
-    s1_align = s1_align.chars().rev().collect();
-    alignment_moves = alignment_moves.chars().rev().collect();
-    s2_align = s2_align.chars().rev().collect();
-    let file_name = String::from(align_type) + "_alignment.txt";
-
-    let path = project_root::get_project_root().unwrap().join(file_name);
-    let f = File::create(path).expect("unable to create file");
-    let mut f = BufWriter::new(f);
-
-    writeln!(f, "{}", s1_align).expect("unable to write");
-    writeln!(f, "{}", alignment_moves).expect("unable to write");
-    writeln!(f, "{}", s2_align).expect("unable to write");
+    reverse_and_write(s1_align, s2_align, alignment_moves, align_type);
 }
 
 pub fn write_alignment_gap(
     path: &[Vec<char>],
     path_x: &[Vec<char>],
     path_y: &[Vec<char>],
-    mut row: usize,
-    mut col: usize,
     s1: &[char],
     s2: &[char],
     align_type: &str,
 ) {
+    let mut row = s1.len() - 1;
+    let mut col = s2.len() - 1;
     let mut s1_align = String::new();
     let mut s2_align = String::new();
     let mut alignment_moves = String::new();
@@ -263,17 +228,20 @@ pub fn write_alignment_gap(
             _ => panic!("ampl_is_enough panic"),
         }
     }
+    reverse_and_write(s1_align, s2_align, alignment_moves, align_type);
+}
 
-    s1_align = s1_align.chars().rev().collect();
-    alignment_moves = alignment_moves.chars().rev().collect();
-    s2_align = s2_align.chars().rev().collect();
+fn reverse_and_write(mut s1_al: String, mut s2_al: String, mut al_moves: String, align_type: &str) {
+    s1_al = s1_al.chars().rev().collect();
+    al_moves = al_moves.chars().rev().collect();
+    s2_al = s2_al.chars().rev().collect();
     let file_name = String::from(align_type) + "_alignment.txt";
 
     let path = project_root::get_project_root().unwrap().join(file_name);
     let f = File::create(path).expect("unable to create file");
     let mut f = BufWriter::new(f);
 
-    writeln!(f, "{}", s1_align).expect("unable to write");
-    writeln!(f, "{}", alignment_moves).expect("unable to write");
-    writeln!(f, "{}", s2_align).expect("unable to write");
+    writeln!(f, "{}", s1_al).expect("unable to write");
+    writeln!(f, "{}", al_moves).expect("unable to write");
+    writeln!(f, "{}", s2_al).expect("unable to write");
 }

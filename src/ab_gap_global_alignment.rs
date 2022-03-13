@@ -158,16 +158,7 @@ pub fn exec(
                 "Ab Gap Alignement: {}",
                 m[s1_len - 1][s2_len - 1 + (ampl / 2) - (s1_len - 1)]
             );
-            basic_output::write_alignment_ab_gap(
-                &path,
-                &path_x,
-                &path_y,
-                s1_len - 1,
-                s2_len - 1 + (ampl / 2) - (s1_len - 1),
-                s1,
-                s2,
-                "ab_gap",
-            )
+            basic_output::write_alignment_ab_gap(&path, &path_x, &path_y, s1, s2, "ab_gap")
         }
         false => exec(s1, s2, score_matrix, ampl * 2 + 1, o, e),
     }
