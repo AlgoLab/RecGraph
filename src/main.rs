@@ -24,7 +24,6 @@ fn main() {
         true => s2.len() - s1.len(),
         _ => s1.len() - s2.len(),
     };
-
     let align_mode = args_parser::get_align_mode();
     match align_mode {
         0 => ab_global_alignment::exec(&s1, &s2, &score_matrix, cmp::max(ampl * 2 + 1, 3)),
@@ -57,10 +56,10 @@ fn main() {
 
 fn get_sequences() -> Vec<String> {
     let mut sequences: Vec<String> = Vec::new();
-    let file_path = project_root::get_project_root()
-        .unwrap()
-        .join("sequences.txt");
-
+    /*let file_path = project_root::get_project_root()
+    .unwrap()
+    .join("sequences.txt");*/
+    let file_path = args_parser::get_file_name();
     let file = File::open(file_path).unwrap();
     let reader = BufReader::new(file);
 

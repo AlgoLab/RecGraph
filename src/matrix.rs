@@ -18,7 +18,7 @@ pub fn create_score_matrix() -> HashMap<(char, char), i32> {
         }
     }
 }
-
+// TODO: remove '-' after local_alignment with gap O/E
 fn create_score_matrix_match_mis(m: i32, x: i32) -> HashMap<(char, char), i32> {
     let mut score_matrix: HashMap<(char, char), i32> = HashMap::new();
     for i in ['A', 'C', 'G', 'T', '-'].iter() {
@@ -65,6 +65,7 @@ fn create_score_matrix_hoxd70() -> HashMap<(char, char), i32> {
             matrix_score.insert((c1, c2), matrix[i][j].parse().unwrap());
         }
     }
+    // TODO: remove after local_alignment with gap O/E
     for ch in ['A', 'C', 'G', 'T', 'N'].iter() {
         matrix_score.insert((*ch, '-'), -200);
         matrix_score.insert(('-', *ch), -200);

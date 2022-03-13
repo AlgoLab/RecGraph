@@ -3,8 +3,11 @@ use clap::Parser;
 #[derive(Parser, Debug)]
 #[clap(author = "Davide Monti <d.monti11@campus.unimib.it>", version, about = "POA in rust", long_about = None)]
 struct Args {
+    #[clap(help = "Path file to align")]
+    file_name: String,
     // Alignment mode
     #[clap(
+        help_heading = "Alignment",
         short = 'm',
         long = "aln-mode",
         default_value_t = 0,
@@ -13,11 +16,18 @@ struct Args {
     alignment_mode: i32,
 
     /// Match score
-    #[clap(short = 'M', long = "match", default_value_t = 2, help = "Match score")]
+    #[clap(
+        help_heading = "Alignment",
+        short = 'M',
+        long = "match",
+        default_value_t = 2,
+        help = "Match score"
+    )]
     match_score: i32,
 
     /// Mismatch score
     #[clap(
+        help_heading = "Alignment",
         short = 'X',
         long = "mismatch",
         default_value_t = 4,
@@ -27,6 +37,7 @@ struct Args {
 
     // Matrix type
     #[clap(
+        help_heading = "Alignment",
         short = 't',
         long = "matrix",
         default_value = "none",
@@ -36,6 +47,7 @@ struct Args {
 
     // Gap open
     #[clap(
+        help_heading = "Alignment",
         short = 'O',
         long = "gap-open",
         default_value_t = 4,
@@ -45,6 +57,7 @@ struct Args {
 
     //Gap extension
     #[clap(
+        help_heading = "Alignment",
         short = 'E',
         long = "gap-ext",
         default_value_t = 2,
@@ -71,4 +84,9 @@ pub fn get_gap_open_gap_ext() -> (i32, i32) {
 pub fn get_align_mode() -> i32 {
     let args = Args::parse();
     args.alignment_mode
+}
+
+pub fn get_file_name() -> String {
+    let args = Args::parse();
+    args.file_name
 }

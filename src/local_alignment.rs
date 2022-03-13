@@ -1,7 +1,6 @@
 use crate::basic_output;
 use std::{cmp, collections::HashMap};
 pub fn exec(s1: &[char], s2: &[char], matrix: &HashMap<(char, char), i32>) {
-    // usato se differenza lunghezze sequenze > lunghezza sequenza più corta
     let mut a = vec![vec![0; s2.len()]; s1.len()];
     let mut path = vec![vec!['x'; s2.len()]; s1.len()];
     let mut max_row = 0;
