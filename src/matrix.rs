@@ -73,3 +73,24 @@ fn create_score_matrix_from_matrix_file(matrix_file: &str) -> HashMap<(char, cha
     }
     matrix_score
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn match_miss_matrix_correct() {
+        let score_matrix = super::create_score_matrix_match_mis(10, -10);
+        assert_eq!(*score_matrix.get(&('A', 'A')).unwrap(), 10);
+        assert_eq!(*score_matrix.get(&('A', 'C')).unwrap(), -10);
+    }
+    #[test]
+    fn hoxd_correct() {
+        let score_matrix_d70 = super::create_score_matrix_from_matrix_file("HOXD70.mtx");
+        let score_matrix_d55 = super::create_score_matrix_from_matrix_file("HOXD55.mtx");
+
+        assert_eq!(*score_matrix_d70.get(&('A', 'A')).unwrap(), 91);
+        assert_eq!(*score_matrix_d70.get(&('T', 'G')).unwrap(), -144);
+
+        assert_eq!(*score_matrix_d55.get(&('A', 'A')).unwrap(), 91);
+        assert_eq!(*score_matrix_d55.get(&('T', 'G')).unwrap(), -90);
+    }
+}
