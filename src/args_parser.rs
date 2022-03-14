@@ -3,7 +3,6 @@ use clap::Parser;
 #[derive(Parser, Debug)]
 #[clap(author = "Davide Monti <d.monti11@campus.unimib.it>", version, about = "POA in rust", long_about = None)]
 struct Args {
-    
     #[clap(help = "Path file to align", default_value = "sequences.txt")]
     file_name: String,
     // Alignment mode
@@ -17,7 +16,13 @@ struct Args {
     alignment_mode: i32,
 
     /// Match score
-    #[clap(help_heading = "Alignment", short = 'M', long = "match", default_value_t = 2, help = "Match score")]
+    #[clap(
+        help_heading = "Alignment",
+        short = 'M',
+        long = "match",
+        default_value_t = 2,
+        help = "Match score"
+    )]
     match_score: i32,
 
     /// Mismatch score
@@ -43,7 +48,6 @@ struct Args {
     // Gap open
     #[clap(
         help_heading = "Alignment",
-
         short = 'O',
         long = "gap-open",
         default_value_t = 4,
@@ -91,7 +95,6 @@ struct Args {
         help = "Second adaptive banding par, number of basis added to both side of the band = b+f*L, l = length of the sequence"
     )]
     extra_f: f32,
-
 }
 
 pub fn get_match_mismatch() -> (i32, i32) {
