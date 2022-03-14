@@ -8,7 +8,7 @@ pub fn exec(
     ampl: usize,
     o: i32,
     e: i32,
-) {
+) -> i32 {
     let s1_len = s1.len();
     let s2_len = s2.len();
 
@@ -159,7 +159,8 @@ pub fn exec(
                 "Ab Gap Alignement: {}",
                 m[s1_len - 1][s2_len - 1 + (ampl / 2) - (s1_len - 1)]
             );
-            basic_output::write_alignment_ab_gap(&path, &path_x, &path_y, s1, s2, "ab_gap")
+            basic_output::write_alignment_ab_gap(&path, &path_x, &path_y, s1, s2, "ab_gap");
+            m[s1_len - 1][s2_len - 1 + (ampl / 2) - (s1_len - 1)]
         }
         false => exec(s1, s2, score_matrix, ampl * 2 + 1, o, e),
     }
@@ -217,4 +218,61 @@ fn ampl_is_enough_iterative(
         }
     }
     true
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+    #[test]
+    fn correct_score_from_ab_gap_align() {
+        let s1: Vec<char> = "$AATTAACTTTCGC".chars().collect();
+        let s2: Vec<char> = "$AACCC".chars().collect();
+
+        let mut score_matrix: HashMap<(char, char), i32> = HashMap::new();
+        for c1 in ['A', 'C', 'G', 'T'].iter() {
+            for c2 in ['A', 'C', 'G', 'T'].iter() {
+                if c1 == c2 {
+                score_matrix.insert((*c1, *c2), 1);
+                } else {
+                score_matrix.insert((*c1, *c2), -1);
+                }
+            }
+        }
+        let align_score = super::exec(&s1, &s2, &score_matrix, (s1.len()-s2.len())*2+1, -10, -1);
+        assert_eq!(align_score, -15);
+    }
+    #[test]
+    fn same_string_align_best_possible_score() {
+        let s1: Vec<char> = "$AATTAACTTTCGC".chars().collect();
+        
+        let mut score_matrix: HashMap<(char, char), i32> = HashMap::new();
+        for c1 in ['A', 'C', 'G', 'T'].iter() {
+            for c2 in ['A', 'C', 'G', 'T'].iter() {
+                if c1 == c2 {
+                score_matrix.insert((*c1, *c2), 1);
+                } else {
+                score_matrix.insert((*c1, *c2), -1);
+                }
+            }
+        }
+        let align_score = super::exec(&s1, &s1, &score_matrix, 3, -10, -1);
+        assert_eq!(align_score, (s1.len()-1) as i32);
+    }
+    #[test]
+    fn empty_string_align_zero() {
+        let s1: Vec<char> = "$".chars().collect();
+        
+        let mut score_matrix: HashMap<(char, char), i32> = HashMap::new();
+        for c1 in ['A', 'C', 'G', 'T'].iter() {
+            for c2 in ['A', 'C', 'G', 'T'].iter() {
+                if c1 == c2 {
+                score_matrix.insert((*c1, *c2), 1);
+                } else {
+                score_matrix.insert((*c1, *c2), -1);
+                }
+            }
+        }
+        let align_score = super::exec(&s1, &s1, &score_matrix, 3, -10, -1);
+        assert_eq!(align_score, 0);
+    }
 }
