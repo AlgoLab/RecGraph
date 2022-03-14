@@ -20,11 +20,16 @@ fn main() {
     s2.insert(0, '$');
 
     let score_matrix = matrix::create_score_matrix();
-    let ampl = match s1.len() < s2.len() {
-        true => s2.len() - s1.len(),
-        _ => s1.len() - s2.len(),
-    };
     let align_mode = args_parser::get_align_mode();
+
+    // set band ampl
+    let (b , f) = args_parser::get_b_f();
+    let bases_to_add =( b + f*s1.len() as f32) as usize;
+    let ampl = match s1.len() < s2.len() {
+        true => s2.len() - s1.len() + bases_to_add,
+        _ => s1.len() - s2.len() + bases_to_add,
+    };
+    
     match align_mode {
         0 => ab_global_alignment::exec(&s1, &s2, &score_matrix, cmp::max(ampl * 2 + 1, 3)),
         1 => {

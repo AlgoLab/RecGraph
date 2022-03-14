@@ -3,7 +3,8 @@ use clap::Parser;
 #[derive(Parser, Debug)]
 #[clap(author = "Davide Monti <d.monti11@campus.unimib.it>", version, about = "POA in rust", long_about = None)]
 struct Args {
-    #[clap(help = "Path file to align")]
+    
+    #[clap(help = "Path file to align", default_value = "sequences.txt")]
     file_name: String,
     // Alignment mode
     #[clap(
@@ -16,13 +17,7 @@ struct Args {
     alignment_mode: i32,
 
     /// Match score
-    #[clap(
-        help_heading = "Alignment",
-        short = 'M',
-        long = "match",
-        default_value_t = 2,
-        help = "Match score"
-    )]
+    #[clap(help_heading = "Alignment", short = 'M', long = "match", default_value_t = 2, help = "Match score")]
     match_score: i32,
 
     /// Mismatch score
@@ -48,6 +43,7 @@ struct Args {
     // Gap open
     #[clap(
         help_heading = "Alignment",
+
         short = 'O',
         long = "gap-open",
         default_value_t = 4,
@@ -64,6 +60,38 @@ struct Args {
         help = "Gap extension penalty"
     )]
     gap_extension: i32,
+
+    //TODO: command below yet to implement
+    //Ambigous strand mode
+    #[clap(
+        help_heading = "Alignment",
+        possible_values = &["true", "false"],
+        default_value = "false",
+        short = 's',
+        long = "amb-strand",
+        help = "[DISABLED] Ambigous strand mode, try reverse complement if alignment score is too low"
+    )]
+    amb_strand: String,
+
+    //set banding parameter, with f set the number of extra bases added (b+f*L)
+    #[clap(
+        help_heading = "Adaptive banded",
+        default_value_t = 0,
+        short = 'b',
+        long = "extra-b",
+        help = "First adaptive banding par, set < 0 to disable adaptive banded"
+    )]
+    extra_b: i32,
+
+    #[clap(
+        help_heading = "Adaptive banded",
+        default_value_t = 0.0,
+        short = 'f',
+        long = "extra-f",
+        help = "Second adaptive banding par, number of basis added to both side of the band = b+f*L, l = length of the sequence"
+    )]
+    extra_f: f32,
+
 }
 
 pub fn get_match_mismatch() -> (i32, i32) {
@@ -89,4 +117,9 @@ pub fn get_align_mode() -> i32 {
 pub fn get_file_name() -> String {
     let args = Args::parse();
     args.file_name
+}
+
+pub fn get_b_f() -> (f32, f32) {
+    let args = Args::parse();
+    (args.extra_b as f32, args.extra_f)
 }
