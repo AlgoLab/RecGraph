@@ -6,6 +6,7 @@ mod basic_output;
 mod global_alignment_affine_gap;
 mod local_alignment;
 mod matrix;
+mod graph;
 
 use std::cmp;
 use std::fs::File;
@@ -13,9 +14,9 @@ use std::io::{prelude::*, BufReader};
 
 fn main() {
     let sequences = get_sequences();
-
-    let mut s1: Vec<char> = sequences[3].chars().collect();
-    let mut s2: Vec<char> = sequences[4].chars().collect();
+    graph::read_graph("prova.gfa");
+    let mut s1: Vec<char> = sequences[10].chars().collect();
+    let mut s2: Vec<char> = sequences[11].chars().collect();
     s1.insert(0, '$');
     s2.insert(0, '$');
 
