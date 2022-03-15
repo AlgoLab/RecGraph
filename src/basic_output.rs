@@ -231,6 +231,52 @@ pub fn write_alignment_gap(
     reverse_and_write(s1_align, s2_align, alignment_moves, align_type);
 }
 
+pub fn write_align_poa(
+    path: &Vec<Vec<(char, i32)>>,
+    sequence: &[char],
+    graph: &[(char, Vec<usize>)],
+) {
+    let mut row = path.len() - 1;
+    let mut col = path[0].len() - 1;
+    let mut sequence_align = String::new();
+    let mut graph_align = String::new();
+    let mut alignment_moves = String::new();
+
+    while path[row][col] != ('O', 0) {
+        match path[row][col] {
+            ('D', _) => {
+                sequence_align.push(sequence[row]);
+                graph_align.push(graph[col].0);
+                alignment_moves.push('|');
+                row -= 1;
+                col = path[row][col].1 as usize;
+            }
+            ('d', _) => {
+                sequence_align.push(sequence[row]);
+                graph_align.push(graph[col].0);
+                alignment_moves.push('.');
+                row -= 1;
+                col = path[row][col].1 as usize;
+            }
+            ('L', _) => {
+                sequence_align.push('-');
+                graph_align.push(graph[col].0);
+                alignment_moves.push(' ');
+                col = path[row][col].1 as usize;
+            }
+            ('U', _) => {
+                sequence_align.push(sequence[row]);
+                graph_align.push('-');
+                alignment_moves.push(' ');
+                row -= 1;
+            }
+            _ => {
+                panic!("impossible value in poa path")
+            }
+        }
+    }
+    reverse_and_write(sequence_align, graph_align, alignment_moves, "poa");
+}
 fn reverse_and_write(mut s1_al: String, mut s2_al: String, mut al_moves: String, align_type: &str) {
     s1_al = s1_al.chars().rev().collect();
     al_moves = al_moves.chars().rev().collect();
