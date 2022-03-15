@@ -4,9 +4,10 @@ mod ab_mk_edit_distance;
 mod args_parser;
 mod basic_output;
 mod global_alignment_affine_gap;
+mod graph;
 mod local_alignment;
 mod matrix;
-mod graph;
+mod partial_order_alignment_global;
 
 use std::cmp;
 use std::fs::File;
@@ -14,7 +15,7 @@ use std::io::{prelude::*, BufReader};
 
 fn main() {
     let sequences = get_sequences();
-    graph::read_graph("prova.gfa");
+    
     let mut s1: Vec<char> = sequences[10].chars().collect();
     let mut s2: Vec<char> = sequences[11].chars().collect();
     s1.insert(0, '$');
@@ -55,6 +56,10 @@ fn main() {
                 g_open,
                 g_ext,
             );
+        }
+        4 => {
+            let linearization = graph::get_linearization("prova.gfa");
+            partial_order_alignment_global::exec(&s2, &linearization, &score_matrix);
         }
         _ => panic!("alignment mode must be 0, 1, 2 or 3"),
     }

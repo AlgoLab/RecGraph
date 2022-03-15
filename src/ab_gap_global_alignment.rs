@@ -232,43 +232,50 @@ mod tests {
         for c1 in ['A', 'C', 'G', 'T'].iter() {
             for c2 in ['A', 'C', 'G', 'T'].iter() {
                 if c1 == c2 {
-                score_matrix.insert((*c1, *c2), 1);
+                    score_matrix.insert((*c1, *c2), 1);
                 } else {
-                score_matrix.insert((*c1, *c2), -1);
+                    score_matrix.insert((*c1, *c2), -1);
                 }
             }
         }
-        let align_score = super::exec(&s1, &s2, &score_matrix, (s1.len()-s2.len())*2+1, -10, -1);
+        let align_score = super::exec(
+            &s1,
+            &s2,
+            &score_matrix,
+            (s1.len() - s2.len()) * 2 + 1,
+            -10,
+            -1,
+        );
         assert_eq!(align_score, -15);
     }
     #[test]
     fn same_string_align_best_possible_score() {
         let s1: Vec<char> = "$AATTAACTTTCGC".chars().collect();
-        
+
         let mut score_matrix: HashMap<(char, char), i32> = HashMap::new();
         for c1 in ['A', 'C', 'G', 'T'].iter() {
             for c2 in ['A', 'C', 'G', 'T'].iter() {
                 if c1 == c2 {
-                score_matrix.insert((*c1, *c2), 1);
+                    score_matrix.insert((*c1, *c2), 1);
                 } else {
-                score_matrix.insert((*c1, *c2), -1);
+                    score_matrix.insert((*c1, *c2), -1);
                 }
             }
         }
         let align_score = super::exec(&s1, &s1, &score_matrix, 3, -10, -1);
-        assert_eq!(align_score, (s1.len()-1) as i32);
+        assert_eq!(align_score, (s1.len() - 1) as i32);
     }
     #[test]
     fn empty_string_align_zero() {
         let s1: Vec<char> = "$".chars().collect();
-        
+
         let mut score_matrix: HashMap<(char, char), i32> = HashMap::new();
         for c1 in ['A', 'C', 'G', 'T'].iter() {
             for c2 in ['A', 'C', 'G', 'T'].iter() {
                 if c1 == c2 {
-                score_matrix.insert((*c1, *c2), 1);
+                    score_matrix.insert((*c1, *c2), 1);
                 } else {
-                score_matrix.insert((*c1, *c2), -1);
+                    score_matrix.insert((*c1, *c2), -1);
                 }
             }
         }
