@@ -9,7 +9,7 @@ pub fn exec(
     ampl: usize
 ) {
     //colonne caratteri di sequence, righe caratteri di graph
-    let mut m = vec![vec![0; ampl]; graph.len()];
+    let mut m = vec![vec![-10000; ampl]; graph.len()];
     let mut path = vec![vec![('x', 0 as i32); ampl]; graph.len()];
 
     m[0][(ampl / 2) as usize] = 0;
@@ -35,7 +35,8 @@ pub fn exec(
                         let mut best_al = 0;
                         let mut first = true;
                         for p in graph[i].1.iter() {
-                            let p_align = m[*p][j+1];
+                            
+                            let p_align = m[*p][j+(i-p)]; // not j + 1 because +1 for every line up
                             if first {
                                 best_al = p_align;
                                 path[i][j] = ('U', *p as i32);
@@ -69,11 +70,13 @@ pub fn exec(
                     } else { // diversi predecessori
                         let mut d_best = 0;
                         let mut u_best = 0;
+
                         let mut d_idx = 0;
                         let mut u_idx = 0;
+                        
                         let mut first = true;
                         for p in graph[i].1.iter() {
-                            let u_align = m[*p][j+1]+ score_matrix.get(&('-', graph[i].0)).unwrap();
+                            let u_align = m[*p][j+(i-p)]+ score_matrix.get(&('-', graph[i].0)).unwrap();
                             let d_align = m[*p][j] + score_matrix.get(&(sequence[index_of_seq], graph[i].0)).unwrap();
                             if first {
                                 d_best = d_align;
@@ -207,7 +210,7 @@ pub fn exec(
 
                         let mut first = true;
                         for p in graph[i].1.iter() {
-                            let u_align = m[*p][j+1]+ score_matrix.get(&('-', graph[i].0)).unwrap();
+                            let u_align = m[*p][j+(i-p)]+ score_matrix.get(&('-', graph[i].0)).unwrap();
                             let d_align = m[*p][j] + score_matrix.get(&(sequence[index_of_seq], graph[i].0)).unwrap();
                             if first {
                                 d_best = d_align;
@@ -256,9 +259,48 @@ pub fn exec(
             }
         }
     }
+    match ampl_is_enough(&path, (sequence.len() - 1) + (ampl/2) - (graph.len()-1)) {
+        true => {
+            println!("AB Best alignment: {}", m[graph.len()-1][(sequence.len() - 1) + (ampl/2) - (graph.len()-1)]);
+        },
+        false => {
+            exec(sequence, graph, score_matrix, ampl*2+1);
+        }
+    }
     
+   
+    
+    //basic_output::write_align_ab_poa(&path, sequence, graph);
+}
 
-    println!("Best alignment: {}", m[graph.len()-1][(sequence.len() - 1) + (ampl/2) - (graph.len()-1)]);
-    
-    //basic_output::write_align_poa(&path, sequence, graph);
+fn ampl_is_enough(path: &Vec<Vec<(char, i32)>>, start_col: usize) -> bool {
+    let mut row = path.len() - 1;
+    let mut col = start_col;
+    let col_number = path[0].len();
+
+    while path[row][col].0 != 'O' {
+        if col == 0 || col == col_number - 1 {
+            if path[row][col].0 == 'D' {
+                row -= 1; // finchè ho match posso continuare anche se sul margine
+            } else {
+                return false;
+            }
+        } else {
+            match path[row][col].0 {
+                'D' | 'd' => {
+                    row = path[row][col].1 as usize;
+                }
+                'U' => {
+                    let delta = row - path[row][col].1 as usize;
+                    row = path[row][col].1 as usize;
+                    col = col + delta;
+                }
+                'L' => {
+                    col -= 1;
+                }
+                _ => panic!("ampl_is_enough panic"),
+            }
+        }
+    }
+    true
 }
