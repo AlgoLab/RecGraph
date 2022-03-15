@@ -8,6 +8,7 @@ mod graph;
 mod local_alignment;
 mod matrix;
 mod partial_order_alignment_global;
+mod ab_partial_order_alignment;
 
 use std::cmp;
 use std::fs::File;
@@ -63,6 +64,7 @@ fn main() {
             let graph_path = args_parser::get_graph_path();
             let linearization = graph::get_linearization(&graph_path);
             partial_order_alignment_global::exec(&sequence, &linearization, &score_matrix);
+            ab_partial_order_alignment::exec(&sequence, &linearization, &score_matrix, cmp::max(  (linearization.len()-sequence.len())*4+1, 3))
         }
         _ => panic!("alignment mode must be 0, 1, 2 or 3"),
     }

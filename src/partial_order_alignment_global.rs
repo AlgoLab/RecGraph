@@ -15,6 +15,7 @@ pub fn exec(
             match (i, j) {
                 (0, 0) => path[i][j] = ('O', 0),
                 (0, _) => {
+                    // internal node in gfa
                     if graph[j].1.len() == 0 {
                         m[i][j] = m[i][j - 1] + scores_matrix.get(&('-', graph[j].0)).unwrap();
                         path[i][j] = ('L', j as i32 - 1);
@@ -42,6 +43,7 @@ pub fn exec(
                     path[i][j] = ('U', 0)
                 }
                 _ => {
+                    // same as (0, _)
                     if graph[j].1.len() == 0 {
                         let best_d = m[i - 1][j - 1]
                             + scores_matrix.get(&(graph[j].0, sequence[i])).unwrap();
@@ -137,6 +139,7 @@ pub fn exec(
             }
         }
     }
+    
     println!("Best alignment: {}", m[sequence.len() - 1][graph.len() - 1]);
     
     basic_output::write_align_poa(&path, sequence, graph);
