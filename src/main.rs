@@ -60,7 +60,8 @@ fn main() {
         4 => {
             let mut sequence: Vec<char> = sequences[13].chars().collect();
             sequence.insert(0, '$');
-            let linearization = graph::get_linearization("prova.gfa");
+            let graph_path = args_parser::get_graph_path();
+            let linearization = graph::get_linearization(&graph_path);
             partial_order_alignment_global::exec(&sequence, &linearization, &score_matrix);
         }
         _ => panic!("alignment mode must be 0, 1, 2 or 3"),
@@ -72,7 +73,7 @@ fn get_sequences() -> Vec<String> {
     /*let file_path = project_root::get_project_root()
     .unwrap()
     .join("sequences.txt");*/
-    let file_path = args_parser::get_file_name();
+    let file_path = args_parser::get_sequence_path();
     let file = File::open(file_path).unwrap();
     let reader = BufReader::new(file);
 

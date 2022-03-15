@@ -3,8 +3,10 @@ use clap::Parser;
 #[derive(Parser, Debug)]
 #[clap(author = "Davide Monti <d.monti11@campus.unimib.it>", version, about = "POA in rust", long_about = None)]
 struct Args {
-    #[clap(help = "Path file to align", default_value = "sequences.txt")]
-    file_name: String,
+    #[clap(help = "Sequence to align file path", default_value = "sequences.txt")]
+    sequence_path: String,
+    #[clap(help = "Graph file path", default_value = "prova.gfa")]
+    graph_path: String,
     // Alignment mode
     #[clap(
         help_heading = "Alignment",
@@ -117,12 +119,17 @@ pub fn get_align_mode() -> i32 {
     args.alignment_mode
 }
 
-pub fn get_file_name() -> String {
+pub fn get_sequence_path() -> String {
     let args = Args::parse();
-    args.file_name
+    args.sequence_path
 }
 
 pub fn get_b_f() -> (f32, f32) {
     let args = Args::parse();
     (args.extra_b as f32, args.extra_f)
+}
+
+pub fn get_graph_path() -> String {
+    let args = Args::parse();
+    args.graph_path
 }
