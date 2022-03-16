@@ -230,7 +230,7 @@ pub fn exec(
         }
     }
 
-    //basic_output::write_align_ab_poa(&path, sequence, graph);
+    basic_output::write_align_ab_poa(&path, sequence, graph);
 }
 
 fn get_best_d_pred(
