@@ -139,8 +139,8 @@ pub fn exec(
             }
         }
     }
-    
+
     println!("Best alignment: {}", m[sequence.len() - 1][graph.len() - 1]);
-    
+
     basic_output::write_align_poa(&path, sequence, graph);
 }
