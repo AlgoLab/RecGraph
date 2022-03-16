@@ -69,7 +69,7 @@ fn main() {
                 &linearization,
                 &score_matrix,
                 cmp::max((linearization.len() - sequence.len()) * 2 + 1, 3),
-            )
+            );
         }
         _ => panic!("alignment mode must be 0, 1, 2 or 3"),
     }

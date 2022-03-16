@@ -7,7 +7,7 @@ pub fn exec(
     graph: &[(char, Vec<usize>)],
     score_matrix: &HashMap<(char, char), i32>,
     ampl: usize,
-) {
+) -> i32 {
     //colonne caratteri di sequence, righe caratteri di graph
     let mut m = vec![vec![-10000; ampl]; graph.len()];
     let mut path = vec![vec![('x', 0); ampl]; graph.len()];
@@ -231,6 +231,7 @@ pub fn exec(
     }
 
     basic_output::write_align_ab_poa(&path, sequence, graph);
+    m[graph.len() - 1][(sequence.len() - 1) + (ampl / 2) - (graph.len() - 1)]
 }
 
 fn get_best_d_pred(graph: &[(char, Vec<usize>)], m: &[Vec<i32>], i: usize, j: usize) -> (i32, i32) {
@@ -303,4 +304,33 @@ fn ampl_is_enough(path: &[Vec<(char, i32)>], start_col: usize) -> bool {
         }
     }
     true
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+    use crate::graph;
+    #[test]
+    fn correct_score_from_ab_gap_align() {
+        let graph = graph::get_linearization("./prova.gfa");
+        let seq: Vec<char> = "$CAAATAAG".chars().collect();
+
+        let mut score_matrix: HashMap<(char, char), i32> = HashMap::new();
+        for c1 in ['A', 'C', 'G', 'T', '-'].iter() {
+            for c2 in ['A', 'C', 'G', 'T', '-'].iter() {
+                if c1 == c2 {
+                    score_matrix.insert((*c1, *c2), 2);
+                } else {
+                    score_matrix.insert((*c1, *c2), -4);
+                }
+            }
+        }
+        let align_score = super::exec(
+            &seq,
+            &graph,
+            &score_matrix,
+            (graph.len() - seq.len()) * 2 + 1,
+        );
+        assert_eq!(align_score, -144);
+    }
 }
