@@ -231,11 +231,7 @@ pub fn write_alignment_gap(
     reverse_and_write(s1_align, s2_align, alignment_moves, align_type);
 }
 
-pub fn write_align_poa(
-    path: &Vec<Vec<(char, i32)>>,
-    sequence: &[char],
-    graph: &[(char, Vec<usize>)],
-) {
+pub fn write_align_poa(path: &[Vec<(char, i32)>], sequence: &[char], graph: &[(char, Vec<usize>)]) {
     let mut row = path.len() - 1;
     let mut col = path[0].len() - 1;
     let mut sequence_align = String::new();
@@ -279,7 +275,7 @@ pub fn write_align_poa(
 }
 
 pub fn write_align_ab_poa(
-    path: &Vec<Vec<(char, i32)>>,
+    path: &[Vec<(char, i32)>],
     sequence: &[char],
     graph: &[(char, Vec<usize>)],
 ) {
@@ -310,7 +306,7 @@ pub fn write_align_ab_poa(
                 sequence_align.push(sequence[index_of_seq]);
                 graph_align.push('-');
                 alignment_moves.push(' ');
-                
+
                 col -= 1;
             }
             ('U', _) => {

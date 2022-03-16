@@ -8,7 +8,7 @@ pub fn exec(
     scores_matrix: &HashMap<(char, char), i32>,
 ) {
     let mut m = vec![vec![0; graph.len()]; sequence.len()];
-    let mut path = vec![vec![('x', 0 as i32); graph.len()]; sequence.len()];
+    let mut path = vec![vec![('x', 0); graph.len()]; sequence.len()];
 
     for i in 0..sequence.len() {
         for j in 0..graph.len() {
@@ -16,7 +16,7 @@ pub fn exec(
                 (0, 0) => path[i][j] = ('O', 0),
                 (0, _) => {
                     // internal node in gfa
-                    if graph[j].1.len() == 0 {
+                    if graph[j].1.is_empty() {
                         m[i][j] = m[i][j - 1] + scores_matrix.get(&('-', graph[j].0)).unwrap();
                         path[i][j] = ('L', j as i32 - 1);
                     } else {
@@ -44,7 +44,7 @@ pub fn exec(
                 }
                 _ => {
                     // same as (0, _)
-                    if graph[j].1.len() == 0 {
+                    if graph[j].1.is_empty() {
                         let best_d = m[i - 1][j - 1]
                             + scores_matrix.get(&(graph[j].0, sequence[i])).unwrap();
                         let best_u = m[i - 1][j] + scores_matrix.get(&('-', sequence[i])).unwrap();

@@ -233,12 +233,7 @@ pub fn exec(
     basic_output::write_align_ab_poa(&path, sequence, graph);
 }
 
-fn get_best_d_pred(
-    graph: &[(char, Vec<usize>)],
-    m: &[Vec<i32>],
-    i: usize,
-    j: usize,
-) -> (i32, i32) {
+fn get_best_d_pred(graph: &[(char, Vec<usize>)], m: &[Vec<i32>], i: usize, j: usize) -> (i32, i32) {
     let mut d_best = 0;
     let mut d_idx = 0;
 
@@ -258,12 +253,7 @@ fn get_best_d_pred(
     (d_best, d_idx as i32)
 }
 
-fn get_best_u_pred(
-    graph: &[(char, Vec<usize>)],
-    m: &[Vec<i32>],
-    i: usize,
-    j: usize,
-) -> (i32, i32) {
+fn get_best_u_pred(graph: &[(char, Vec<usize>)], m: &[Vec<i32>], i: usize, j: usize) -> (i32, i32) {
     let mut u_best = 0;
     let mut u_idx = 0;
 

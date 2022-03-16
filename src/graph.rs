@@ -10,8 +10,7 @@ pub fn get_linearization(file_path: &str) -> Vec<(char, Vec<usize>)> {
 
     let mut last_index = 1;
     let mut visited_node: Vec<(NodeId, i32)> = Vec::new();
-    let mut linearization: Vec<(char, Vec<usize>)> = Vec::new();
-    linearization.push(('$', vec![]));
+    let mut linearization: Vec<(char, Vec<usize>)> = vec![('$', vec![])];
 
     // concateno tutte le sequenze
     for handle in &sorted_handles {
@@ -34,7 +33,7 @@ pub fn get_linearization(file_path: &str) -> Vec<(char, Vec<usize>)> {
                 let h_last_idx = get_idx(&visited_node, handle.id());
                 linearization[h_last_idx as usize - graph.sequence(*handle).len() + 1]
                     .1
-                    .push(0 as usize);
+                    .push(0);
             }
             for predecessor in graph.handle_edges_iter(*handle, Direction::Left) {
                 let pred_last_idx = get_idx(&visited_node, predecessor.id());
@@ -48,7 +47,7 @@ pub fn get_linearization(file_path: &str) -> Vec<(char, Vec<usize>)> {
     linearization
 }
 
-fn get_idx(visited_node: &Vec<(NodeId, i32)>, pred_id: NodeId) -> i32 {
+fn get_idx(visited_node: &[(NodeId, i32)], pred_id: NodeId) -> i32 {
     for (node_id, idx) in visited_node.iter() {
         if *node_id == pred_id {
             return *idx;
