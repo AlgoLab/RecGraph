@@ -44,6 +44,7 @@ pub fn get_linearization(file_path: &str) -> Vec<(char, Vec<usize>)> {
             }
         }
     }
+    println!("{:?}", linearization);
     linearization
 }
 
