@@ -233,7 +233,7 @@ pub fn write_alignment_gap(
 
 pub fn write_align_poa(path: &[Vec<(char, i32)>], sequence: &[char], graph: &[(char, Vec<usize>)]) {
     let mut row = path.len() - 1;
-    let mut col = path[0].len() - 1;
+    let mut col = path[path.len() - 1][path[0].len() - 1].1 as usize;
     let mut sequence_align = String::new();
     let mut graph_align = String::new();
     let mut alignment_moves = String::new();
@@ -279,7 +279,9 @@ pub fn write_align_ab_poa(
     sequence: &[char],
     graph: &[(char, Vec<usize>)],
 ) {
-    let mut row = graph.len() - 1;
+    let mut row = path[graph.len() - 1]
+        [(sequence.len() - 1) + (path[0].len() / 2) - (graph.len() - 1)]
+        .1 as usize;
     let mut col = (sequence.len() - 1) + (path[0].len() / 2) - (graph.len() - 1);
 
     let mut sequence_align = String::new();

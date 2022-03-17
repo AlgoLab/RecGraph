@@ -63,7 +63,9 @@ fn main() {
             sequence.insert(0, '$');
             let graph_path = args_parser::get_graph_path();
             let linearization = graph::get_linearization(&graph_path);
+
             partial_order_alignment_global::exec(&sequence, &linearization, &score_matrix);
+
             ab_partial_order_alignment::exec(
                 &sequence,
                 &linearization,

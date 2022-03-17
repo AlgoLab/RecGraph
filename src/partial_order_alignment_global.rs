@@ -11,7 +11,7 @@ pub fn exec(
     let mut path = vec![vec![('x', 0); graph.len()]; sequence.len()];
 
     for i in 0..sequence.len() {
-        for j in 0..graph.len() {
+        for j in 0..graph.len() - 1 {
             match (i, j) {
                 (0, 0) => path[i][j] = ('O', 0),
                 (0, _) => {
@@ -139,8 +139,36 @@ pub fn exec(
             }
         }
     }
-
+    for i in 1..m.len() {
+        best_last_node(graph, &mut m, &mut path, i);
+    }
     println!("Best alignment: {}", m[sequence.len() - 1][graph.len() - 1]);
 
     basic_output::write_align_poa(&path, sequence, graph);
+}
+
+fn best_last_node(
+    graph: &[(char, Vec<usize>)],
+    m: &mut [Vec<i32>],
+    path: &mut [Vec<(char, i32)>],
+    i: usize,
+) {
+    let mut best_align = 0;
+    let mut best_idx = 0;
+    let mut first = true;
+    let m_len = m[0].len();
+
+    for p in graph[graph.len() - 1].1.iter() {
+        if first {
+            best_align = m[i][*p];
+            best_idx = *p;
+            first = false;
+        }
+        if m[i][*p] > best_align {
+            best_align = m[i][*p];
+            best_idx = *p;
+        }
+    }
+    m[i][m_len - 1] = best_align;
+    path[i][m_len - 1] = ('F', best_idx as i32);
 }

@@ -22,7 +22,7 @@ pub fn exec(
             path[0][j] = ('L', 0);
         }
     }
-    for i in 1..graph.len() {
+    for i in 1..graph.len() - 1 {
         for j in 0..ampl {
             if i + j < sequence.len() + ampl / 2 && i + j >= ampl / 2 {
                 if i + j == ampl / 2 {
@@ -218,6 +218,9 @@ pub fn exec(
             }
         }
     }
+    for j in 0..ampl / 2 {
+        best_last_node(graph, &mut m, &mut path, j);
+    }
     match ampl_is_enough(&path, (sequence.len() - 1) + (ampl / 2) - (graph.len() - 1)) {
         true => {
             println!(
@@ -274,9 +277,39 @@ fn get_best_u_pred(graph: &[(char, Vec<usize>)], m: &[Vec<i32>], i: usize, j: us
     (u_best, u_idx as i32)
 }
 
+fn best_last_node(
+    graph: &[(char, Vec<usize>)],
+    m: &mut [Vec<i32>],
+    path: &mut [Vec<(char, i32)>],
+    j: usize,
+) {
+    let mut best_align = 0;
+    let mut best_idx = 0;
+    let mut first = true;
+    let m_len = m.len();
+    let i = m.len() - 1;
+
+    for p in graph[graph.len() - 1].1.iter() {
+        let delta = i - p;
+        let current_align = m[*p][j + delta];
+        if first {
+            best_align = current_align;
+            best_idx = *p;
+            first = false;
+        }
+        if current_align > best_align {
+            best_align = current_align;
+            best_idx = *p;
+        }
+    }
+    m[m_len - 1][j] = best_align;
+    path[m_len - 1][j] = ('F', best_idx as i32);
+}
+
 fn ampl_is_enough(path: &[Vec<(char, i32)>], start_col: usize) -> bool {
-    let mut row = path.len() - 1;
     let mut col = start_col;
+    let mut row = path[path.len() - 1][start_col].1 as usize;
+
     let col_number = path[0].len();
 
     while path[row][col].0 != 'O' {
@@ -308,8 +341,8 @@ fn ampl_is_enough(path: &[Vec<(char, i32)>], start_col: usize) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
     use crate::graph;
+    use std::collections::HashMap;
     #[test]
     fn correct_score_from_ab_gap_align() {
         let graph = graph::get_linearization("./prova.gfa");
