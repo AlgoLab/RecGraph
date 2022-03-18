@@ -142,6 +142,7 @@ pub fn exec(
     for i in 1..m.len() {
         best_last_node(graph, &mut m, &mut path, i);
     }
+
     println!("Best alignment: {}", m[sequence.len() - 1][graph.len() - 1]);
 
     basic_output::write_align_poa(&path, sequence, graph);

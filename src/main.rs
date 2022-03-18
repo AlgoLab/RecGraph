@@ -1,4 +1,5 @@
 mod ab_gap_global_alignment;
+mod ab_gap_partial_order_alignment;
 mod ab_global_alignment;
 mod ab_mk_edit_distance;
 mod ab_partial_order_alignment;
@@ -71,6 +72,15 @@ fn main() {
                 &linearization,
                 &score_matrix,
                 cmp::max((linearization.len() - sequence.len()) * 2 + 1, 3),
+            );
+            let (g_open, g_ext) = args_parser::get_gap_open_gap_ext();
+            ab_gap_partial_order_alignment::exec(
+                &sequence,
+                &linearization,
+                &score_matrix,
+                cmp::max((linearization.len() - sequence.len()) * 2 + 1, 3),
+                g_open,
+                g_ext,
             );
         }
         _ => panic!("alignment mode must be 0, 1, 2 or 3"),
