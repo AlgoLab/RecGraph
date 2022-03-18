@@ -26,7 +26,7 @@ pub fn exec(
             y[0][j] = o + e * (j - ampl / 2) as i32;
             m[0][j] = y[0][j];
 
-            path[0][j] = ('L', 0);
+            path[0][j] = ('L', j-1);
         }
     }
     for i in 1..graph.len() - 1 {
@@ -38,14 +38,14 @@ pub fn exec(
                         x[i][j] = o + e * i as i32;
                         m[i][j] = x[i][j];
 
-                        path[i][j] = ('U', i as i32 - 1);
+                        path[i][j] = ('U', i - 1);
                     } else {
                         //take smallest predecessor of i
                         let min_p = *graph[i].1.iter().min().unwrap() as i32;
                         x[i][j] = o + e * (min_p + 1);
                         m[i][j] = x[i][j];
 
-                        path[i][j] = ('U', min_p);
+                        path[i][j] = ('U', min_p as usize);
                     }
                 } else if j == 0 {
                     // bordo inf banda, prendo da diag o da sopra
@@ -71,17 +71,16 @@ pub fn exec(
                             cmp::Ordering::Less => {
                                 m[i][j] = u;
 
-                                //path[i][j] = 'U'
+                                path[i][j] = ('U', i-1);
                             }
                             _ => {
                                 m[i][j] = d;
-                                /*
-                                if s1[i] == s2[index_of_s2] {
-                                    path[i][j] = 'D'
+                                if graph[i].0 == sequence[index_of_seq] {
+                                    path[i][j] = ('D', i-1);
                                 } else {
-                                    path[i][j] = 'd'
+                                    path[i][j] = ('d', i-1);
                                 }
-                                */
+                                
                             }
                         }
                     } else {
@@ -114,9 +113,18 @@ pub fn exec(
                                 u_y_idx = *p
                             }
                         }
-                        y[i][j] = cmp::max(u_m_best, u_y_best);
+                        let u_idx;
+                        y[i][j] = match u_m_best.cmp(&u_y_best) {
+                            Ordering::Less => {
+                                u_idx = u_y_idx;
+                                u_y_best
+                            }
+                            _ => {
+                                u_idx = u_m_idx;
+                                u_m_best
+                            }  
+                            };
 
-                        // path_y = ...
                         // set m
                         let (mut d_best, d_idx) = get_best_d_pred(graph, &m, i, j);
                         d_best += score_matrix
@@ -126,14 +134,14 @@ pub fn exec(
                         match d_best.cmp(&u_best) {
                             Ordering::Less => {
                                 m[i][j] = u_best;
-                                //path[i][j] = ('U', u_idx)
+                                path[i][j] = ('U', u_idx)
                             }
                             _ => {
                                 m[i][j] = d_best;
                                 if graph[i].0 == sequence[index_of_seq] {
-                                    path[i][j] = ('D', d_idx)
+                                    path[i][j] = ('D', d_idx as usize)
                                 } else {
-                                    path[i][j] = ('d', d_idx)
+                                    path[i][j] = ('d', d_idx as usize)
                                 }
                             }
                         }
@@ -156,14 +164,14 @@ pub fn exec(
                         match d.cmp(&l) {
                             Ordering::Less => {
                                 m[i][j] = l;
-                                path[i][j] = ('L', 0)
+                                path[i][j] = ('L', j-1);
                             }
                             _ => {
                                 m[i][j] = d;
                                 if graph[i].0 == sequence[index_of_seq] {
-                                    path[i][j] = ('D', i as i32 - 1)
+                                    path[i][j] = ('D', i - 1);
                                 } else {
-                                    path[i][j] = ('d', i as i32 - 1)
+                                    path[i][j] = ('d', i - 1);
                                 }
                             }
                         }
@@ -183,19 +191,18 @@ pub fn exec(
                         match d_best.cmp(&l_best) {
                             Ordering::Less => {
                                 m[i][j] = l_best;
-                                path[i][j] = ('L', 0)
+                                path[i][j] = ('L', j-1);
                             }
                             _ => {
                                 m[i][j] = d_best;
                                 if graph[i].0 == sequence[index_of_seq] {
-                                    path[i][j] = ('D', d_idx)
+                                    path[i][j] = ('D', d_idx as usize)
                                 } else {
-                                    path[i][j] = ('d', d_idx)
+                                    path[i][j] = ('d', d_idx as usize)
                                 }
                             }
                         }
                     }
-                // TODO:
                 } else {
                     // celle interne banda
                     let index_of_seq = i + j - ampl / 2;
@@ -219,24 +226,24 @@ pub fn exec(
                             Ordering::Less => match l.cmp(&u) {
                                 Ordering::Less => {
                                     m[i][j] = u;
-                                    path[i][j] = ('U', i as i32 - 1)
+                                    path[i][j] = ('U', i - 1)
                                 }
                                 _ => {
                                     m[i][j] = l;
-                                    path[i][j] = ('L', 0)
+                                    path[i][j] = ('L', j - 1)
                                 }
                             },
                             _ => match d.cmp(&u) {
                                 Ordering::Less => {
                                     m[i][j] = u;
-                                    path[i][j] = ('U', i as i32 - 1);
+                                    path[i][j] = ('U', i - 1);
                                 }
                                 _ => {
                                     m[i][j] = d;
                                     if graph[i].0 == sequence[index_of_seq] {
-                                        path[i][j] = ('D', i as i32 - 1);
+                                        path[i][j] = ('D', i - 1);
                                     } else {
-                                        path[i][j] = ('d', i as i32 - 1)
+                                        path[i][j] = ('d', i - 1)
                                     }
                                 }
                             },
@@ -270,9 +277,17 @@ pub fn exec(
                                 u_y_idx = *p
                             }
                         }
-                        y[i][j] = cmp::max(u_m_best, u_y_best);
-
-                        // path_y = ...
+                        let u_idx;
+                        y[i][j] = match u_m_best.cmp(&u_y_best) {
+                            Ordering::Less => {
+                                u_idx = u_y_idx;
+                                u_y_best
+                            }
+                            _ => {
+                                u_idx = u_m_idx;
+                                u_m_best
+                            }  
+                            };
 
                         // set x
                         x[i][j] = cmp::max(x[i][j - 1] + e, m[i][j - 1] + o + e);
@@ -292,24 +307,24 @@ pub fn exec(
                             Ordering::Less => match l_best.cmp(&u_best) {
                                 Ordering::Less => {
                                     m[i][j] = u_best;
-                                    // path[i][j] = ('U', u_idx)
+                                    path[i][j] = ('U', u_idx)
                                 }
                                 _ => {
                                     m[i][j] = l_best;
-                                    path[i][j] = ('L', 0)
+                                    path[i][j] = ('L', j-1)
                                 }
                             },
                             _ => match d_best.cmp(&u_best) {
                                 Ordering::Less => {
                                     m[i][j] = u_best;
-                                    //path[i][j] = ('U', u_idx);
+                                    path[i][j] = ('U', u_idx);
                                 }
                                 _ => {
                                     m[i][j] = d_best;
                                     if graph[i].0 == sequence[index_of_seq] {
-                                        path[i][j] = ('D', d_idx);
+                                        path[i][j] = ('D', d_idx as usize);
                                     } else {
-                                        path[i][j] = ('d', d_idx)
+                                        path[i][j] = ('d', d_idx as usize)
                                     }
                                 }
                             },
@@ -322,11 +337,11 @@ pub fn exec(
     for j in 0..ampl / 2 {
         best_last_node(graph, &mut m, &mut path, j);
     }
-    /* 
+    
     match ampl_is_enough(&path, (sequence.len() - 1) + (ampl / 2) - (graph.len() - 1)) {
         true => {
             println!(
-                "AB Best alignment: {}",
+                "AB GAP Best alignment: {}",
                 m[graph.len() - 1][(sequence.len() - 1) + (ampl / 2) - (graph.len() - 1)]
             );
         }
@@ -334,11 +349,7 @@ pub fn exec(
             exec(sequence, graph, score_matrix, ampl * 2 + 1, o, e);
         }
     }
-    */
-    println!(
-        "AB GAP Best alignment: {}",
-        m[graph.len() - 1][(sequence.len() - 1) + (ampl / 2) - (graph.len() - 1)]
-    );
+    
     //basic_output::write_align_ab_poa(&path, sequence, graph);
     m[graph.len() - 1][(sequence.len() - 1) + (ampl / 2) - (graph.len() - 1)]
 }
@@ -386,7 +397,7 @@ fn get_best_u_pred(graph: &[(char, Vec<usize>)], m: &[Vec<i32>], i: usize, j: us
 fn best_last_node(
     graph: &[(char, Vec<usize>)],
     m: &mut [Vec<i32>],
-    path: &mut [Vec<(char, i32)>],
+    path: &mut [Vec<(char, usize)>],
     j: usize,
 ) {
     let mut best_align = 0;
@@ -409,12 +420,12 @@ fn best_last_node(
         }
     }
     m[m_len - 1][j] = best_align;
-    path[m_len - 1][j] = ('F', best_idx as i32);
+    path[m_len - 1][j] = ('F', best_idx);
 }
 
-fn ampl_is_enough(path: &[Vec<(char, i32)>], start_col: usize) -> bool {
+fn ampl_is_enough(path: &[Vec<(char, usize)>], start_col: usize) -> bool {
     let mut col = start_col;
-    let mut row = path[path.len() - 1][start_col].1 as usize;
+    let mut row = path[path.len() - 1][start_col].1;
 
     let col_number = path[0].len();
 
