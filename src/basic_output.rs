@@ -296,13 +296,21 @@ pub fn write_align_ab_poa(
                 sequence_align.push(sequence[index_of_seq]);
                 graph_align.push(graph[row].0);
                 alignment_moves.push('|');
+
+                let delta = row - path[row][col].1 as usize;
                 row = path[row][col].1 as usize;
+                col += delta - 1;
+
             }
             ('d', _) => {
                 sequence_align.push(sequence[index_of_seq]);
                 graph_align.push(graph[row].0);
                 alignment_moves.push('.');
+
+                let delta = row - path[row][col].1 as usize;
                 row = path[row][col].1 as usize;
+                col += delta - 1;
+
             }
             ('L', _) => {
                 sequence_align.push(sequence[index_of_seq]);

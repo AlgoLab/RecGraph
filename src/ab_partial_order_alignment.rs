@@ -9,7 +9,7 @@ pub fn exec(
     ampl: usize,
 ) -> i32 {
     //colonne caratteri di sequence, righe caratteri di graph
-    let mut m = vec![vec![-10000; ampl]; graph.len()];
+    let mut m = vec![vec![0; ampl]; graph.len()];
     let mut path = vec![vec![('x', 0); ampl]; graph.len()];
 
     m[0][(ampl / 2) as usize] = 0;
@@ -243,7 +243,7 @@ fn get_best_d_pred(graph: &[(char, Vec<usize>)], m: &[Vec<i32>], i: usize, j: us
 
     let mut first = true;
     for p in graph[i].1.iter() {
-        let d_align = m[*p][j];
+        let d_align = m[*p][j + (i - p) - 1];
         if first {
             d_best = d_align;
             d_idx = *p;
@@ -311,18 +311,23 @@ fn ampl_is_enough(path: &[Vec<(char, i32)>], start_col: usize) -> bool {
     let mut row = path[path.len() - 1][start_col].1 as usize;
 
     let col_number = path[0].len();
-
+    
     while path[row][col].0 != 'O' {
         if col == 0 || col == col_number - 1 {
             if path[row][col].0 == 'D' {
-                row -= 1; // finchè ho match posso continuare anche se sul margine
+                let delta = row - path[row][col].1 as usize;
+                row = path[row][col].1 as usize;
+                col += delta - 1;
+                 // finchè ho match posso continuare anche se sul margine
             } else {
                 return false;
             }
         } else {
             match path[row][col].0 {
                 'D' | 'd' => {
+                    let delta = row - path[row][col].1 as usize;
                     row = path[row][col].1 as usize;
+                    col += delta - 1;
                 }
                 'U' => {
                     let delta = row - path[row][col].1 as usize;
@@ -332,7 +337,8 @@ fn ampl_is_enough(path: &[Vec<(char, i32)>], start_col: usize) -> bool {
                 'L' => {
                     col -= 1;
                 }
-                _ => panic!("ampl_is_enough panic"),
+                _ => {
+                    panic!("ampl_is_enough panic")},
             }
         }
     }
