@@ -272,14 +272,15 @@ pub fn exec(
                 "AB GAP Best alignment: {}",
                 m[graph.len() - 1][(sequence.len() - 1) + (ampl / 2) - (graph.len() - 1)]
             );
+            return m[graph.len() - 1][(sequence.len() - 1) + (ampl / 2) - (graph.len() - 1)]
         }
         false => {
-            exec(sequence, graph, score_matrix, ampl * 2 + 1, o, e);
+            exec(sequence, graph, score_matrix, ampl * 2 + 1, o, e)
         }
     }
 
     //basic_output::write_align_ab_poa(&path, sequence, graph);
-    m[graph.len() - 1][(sequence.len() - 1) + (ampl / 2) - (graph.len() - 1)]
+    
 }
 
 fn get_best_d_pred(graph: &[(char, Vec<usize>)], m: &[Vec<i32>], i: usize, j: usize) -> (i32, usize) {
@@ -410,4 +411,58 @@ fn ampl_is_enough(path: &[Vec<(char, usize)>], start_col: usize) -> bool {
         }
     }
     true
+}
+#[cfg(test)]
+mod tests {
+    use crate::graph;
+    use std::collections::HashMap;
+    #[test]
+    fn if_g_open_penalty_null_equal_to_normal_poa() {
+        let graph = graph::get_linearization("./prova.gfa");
+        let seq: Vec<char> = "$CAAATAAG".chars().collect();
+
+        let mut score_matrix: HashMap<(char, char), i32> = HashMap::new();
+        for c1 in ['A', 'C', 'G', 'T'].iter() {
+            for c2 in ['A', 'C', 'G', 'T'].iter() {
+                if c1 == c2 {
+                    score_matrix.insert((*c1, *c2), 2);
+                } else {
+                    score_matrix.insert((*c1, *c2), -4);
+                }
+            }
+        }
+        let align_score = super::exec(
+            &seq,
+            &graph,
+            &score_matrix,
+            (graph.len() - seq.len()) * 2 + 1,
+            0,
+            -4
+        );
+        assert_eq!(align_score, -144);
+    }
+    fn ab_gap_gives_correct_result() {
+        let graph = graph::get_linearization("./prova.gfa");
+        let seq: Vec<char> = "$CAAATAAG".chars().collect();
+
+        let mut score_matrix: HashMap<(char, char), i32> = HashMap::new();
+        for c1 in ['A', 'C', 'G', 'T'].iter() {
+            for c2 in ['A', 'C', 'G', 'T'].iter() {
+                if c1 == c2 {
+                    score_matrix.insert((*c1, *c2), 2);
+                } else {
+                    score_matrix.insert((*c1, *c2), -4);
+                }
+            }
+        }
+        let align_score = super::exec(
+            &seq,
+            &graph,
+            &score_matrix,
+            (graph.len() - seq.len()) * 2 + 1,
+            200,
+            -4
+        );
+        assert_eq!(align_score, -344);
+    }
 }
