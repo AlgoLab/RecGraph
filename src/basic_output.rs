@@ -300,7 +300,6 @@ pub fn write_align_ab_poa(
                 let delta = row - path[row][col].1 as usize;
                 row = path[row][col].1 as usize;
                 col += delta - 1;
-
             }
             ('d', _) => {
                 sequence_align.push(sequence[index_of_seq]);
@@ -310,7 +309,6 @@ pub fn write_align_ab_poa(
                 let delta = row - path[row][col].1 as usize;
                 row = path[row][col].1 as usize;
                 col += delta - 1;
-
             }
             ('L', _) => {
                 sequence_align.push(sequence[index_of_seq]);

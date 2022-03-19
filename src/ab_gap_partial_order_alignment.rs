@@ -2,6 +2,7 @@ use std::{
     cmp::{self, Ordering},
     collections::HashMap,
 };
+//FIXME: band doesn't work
 
 pub fn exec(
     sequence: &[char],
@@ -94,7 +95,7 @@ pub fn exec(
                             .get(&(sequence[index_of_seq], graph[i].0))
                             .unwrap();
 
-                            match d_best.cmp(&u_best) {
+                        match d_best.cmp(&u_best) {
                             Ordering::Less => {
                                 m[i][j] = u_best;
                                 path[i][j] = ('U', u_idx)
@@ -272,18 +273,20 @@ pub fn exec(
                 "AB GAP Best alignment: {}",
                 m[graph.len() - 1][(sequence.len() - 1) + (ampl / 2) - (graph.len() - 1)]
             );
-            return m[graph.len() - 1][(sequence.len() - 1) + (ampl / 2) - (graph.len() - 1)]
+            return m[graph.len() - 1][(sequence.len() - 1) + (ampl / 2) - (graph.len() - 1)];
         }
-        false => {
-            exec(sequence, graph, score_matrix, ampl * 2 + 1, o, e)
-        }
+        false => exec(sequence, graph, score_matrix, ampl * 2 + 1, o, e),
     }
 
     //basic_output::write_align_ab_poa(&path, sequence, graph);
-    
 }
 
-fn get_best_d_pred(graph: &[(char, Vec<usize>)], m: &[Vec<i32>], i: usize, j: usize) -> (i32, usize) {
+fn get_best_d_pred(
+    graph: &[(char, Vec<usize>)],
+    m: &[Vec<i32>],
+    i: usize,
+    j: usize,
+) -> (i32, usize) {
     let mut d_best = 0;
     let mut d_idx = 0;
 
@@ -310,7 +313,7 @@ fn get_best_u_pred(
     i: usize,
     j: usize,
     o: i32,
-    e: i32
+    e: i32,
 ) -> (i32, usize) {
     let mut u_m_best = 0;
     let mut u_y_best = 0;
@@ -340,12 +343,8 @@ fn get_best_u_pred(
         }
     }
     match u_m_best.cmp(&u_y_best) {
-        Ordering::Less => {
-            return (u_y_best, u_y_idx)
-        }
-        _ => {
-            return (u_m_best, u_m_idx)
-        }
+        Ordering::Less => return (u_y_best, u_y_idx),
+        _ => return (u_m_best, u_m_idx),
     };
 }
 
@@ -437,10 +436,11 @@ mod tests {
             &score_matrix,
             (graph.len() - seq.len()) * 2 + 1,
             0,
-            -4
+            -4,
         );
         assert_eq!(align_score, -144);
     }
+    #[test]
     fn ab_gap_gives_correct_result() {
         let graph = graph::get_linearization("./prova.gfa");
         let seq: Vec<char> = "$CAAATAAG".chars().collect();
@@ -461,7 +461,7 @@ mod tests {
             &score_matrix,
             (graph.len() - seq.len()) * 2 + 1,
             200,
-            -4
+            -4,
         );
         assert_eq!(align_score, -344);
     }

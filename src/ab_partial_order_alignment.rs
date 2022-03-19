@@ -1,6 +1,7 @@
 use std::{cmp::Ordering, collections::HashMap};
 
 use crate::basic_output;
+//FIXME: band doesn't work
 
 pub fn exec(
     sequence: &[char],
@@ -124,7 +125,7 @@ pub fn exec(
                         match d_best.cmp(&l_best) {
                             Ordering::Less => {
                                 m[i][j] = l_best;
-                                path[i][j] = ('L', 0)
+                                path[i][j] = ('L', 0);
                             }
                             _ => {
                                 m[i][j] = d_best;
@@ -157,7 +158,7 @@ pub fn exec(
                                 }
                                 _ => {
                                     m[i][j] = l;
-                                    path[i][j] = ('L', 0)
+                                    path[i][j] = ('L', 0);
                                 }
                             },
                             _ => match d.cmp(&u) {
@@ -243,15 +244,17 @@ fn get_best_d_pred(graph: &[(char, Vec<usize>)], m: &[Vec<i32>], i: usize, j: us
 
     let mut first = true;
     for p in graph[i].1.iter() {
-        let d_align = m[*p][j + (i - p) - 1];
-        if first {
-            d_best = d_align;
-            d_idx = *p;
-            first = false;
-        }
-        if d_align > d_best {
-            d_best = d_align;
-            d_idx = *p;
+        if j + i - p - 1 < m[0].len() {
+            let d_align = m[*p][j + (i - p) - 1];
+            if first {
+                d_best = d_align;
+                d_idx = *p;
+                first = false;
+            }
+            if d_align > d_best {
+                d_best = d_align;
+                d_idx = *p;
+            }
         }
     }
     (d_best, d_idx as i32)
@@ -263,15 +266,17 @@ fn get_best_u_pred(graph: &[(char, Vec<usize>)], m: &[Vec<i32>], i: usize, j: us
 
     let mut first = true;
     for p in graph[i].1.iter() {
-        let p_align = m[*p][j + (i - p)]; // not j + 1 because +1 for every line up
-        if first {
-            u_best = p_align;
-            u_idx = *p;
-            first = false;
-        }
-        if p_align > u_best {
-            u_best = p_align;
-            u_idx = *p;
+        if (j + i - p) < m[0].len() {
+            let p_align = m[*p][j + (i - p)]; // not j + 1 because +1 for every line up
+            if first {
+                u_best = p_align;
+                u_idx = *p;
+                first = false;
+            }
+            if p_align > u_best {
+                u_best = p_align;
+                u_idx = *p;
+            }
         }
     }
     (u_best, u_idx as i32)
@@ -311,14 +316,14 @@ fn ampl_is_enough(path: &[Vec<(char, i32)>], start_col: usize) -> bool {
     let mut row = path[path.len() - 1][start_col].1 as usize;
 
     let col_number = path[0].len();
-    
+
     while path[row][col].0 != 'O' {
         if col == 0 || col == col_number - 1 {
             if path[row][col].0 == 'D' {
                 let delta = row - path[row][col].1 as usize;
                 row = path[row][col].1 as usize;
                 col += delta - 1;
-                 // finchè ho match posso continuare anche se sul margine
+                // finchè ho match posso continuare anche se sul margine
             } else {
                 return false;
             }
@@ -338,7 +343,8 @@ fn ampl_is_enough(path: &[Vec<(char, i32)>], start_col: usize) -> bool {
                     col -= 1;
                 }
                 _ => {
-                    panic!("ampl_is_enough panic")},
+                    panic!("ampl_is_enough panic")
+                }
             }
         }
     }

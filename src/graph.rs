@@ -53,7 +53,6 @@ pub fn get_linearization(file_path: &str) -> Vec<(char, Vec<usize>)> {
     }
     linearization.insert(linearization.len(), ('F', vec![]));
     set_last_nodes(&last_nodes, &mut linearization);
-
     linearization
 }
 

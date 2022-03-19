@@ -10,7 +10,7 @@ mod graph;
 mod local_alignment;
 mod matrix;
 mod partial_order_alignment_global;
-
+mod gap_partial_order_alignment;
 use std::cmp;
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
@@ -60,28 +60,29 @@ fn main() {
             );
         }
         4 => {
-            let mut sequence: Vec<char> = sequences[13].chars().collect();
+            let mut sequence: Vec<char> = sequences[14].chars().collect();
             sequence.insert(0, '$');
             let graph_path = args_parser::get_graph_path();
             let linearization = graph::get_linearization(&graph_path);
-
+            
             partial_order_alignment_global::exec(&sequence, &linearization, &score_matrix);
-
-            ab_partial_order_alignment::exec(
-                &sequence,
-                &linearization,
-                &score_matrix,
-                cmp::max((linearization.len() - sequence.len()) * 2 + 1, 3),
-            );
             let (g_open, g_ext) = args_parser::get_gap_open_gap_ext();
+            gap_partial_order_alignment::exec(&sequence, &linearization, &score_matrix, g_open, g_ext);
+            /*
+            let ampl = match sequence.len() < linearization.len() {
+                true => linearization.len() - sequence.len() + bases_to_add,
+                _ => sequence.len() - linearization.len() + bases_to_add,
+            };
+            ab_partial_order_alignment::exec(&sequence, &linearization, &score_matrix, 1001);
             ab_gap_partial_order_alignment::exec(
                 &sequence,
                 &linearization,
                 &score_matrix,
-                cmp::max((linearization.len() - sequence.len()) * 2 + 1, 3),
+                cmp::max(ampl * 2 + 1, 3),
                 g_open,
                 g_ext,
             );
+             */
         }
         _ => panic!("alignment mode must be 0, 1, 2 or 3"),
     }
