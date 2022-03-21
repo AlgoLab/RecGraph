@@ -1,8 +1,6 @@
 mod ab_gap_global_alignment;
-mod ab_gap_partial_order_alignment;
 mod ab_global_alignment;
-mod ab_mk_edit_distance;
-mod ab_partial_order_alignment;
+
 mod args_parser;
 mod basic_output;
 mod global_alignment_affine_gap;
@@ -46,7 +44,7 @@ fn main() {
             */
             local_alignment::exec(&s1, &s2, &score_matrix)
         }
-        2 => ab_mk_edit_distance::exec(&s1, &s2, cmp::max((ampl * 2 + 1) as i32, 3)),
+        2 => println!("edit distance removed"),
         3 => {
             let (g_open, g_ext) = args_parser::get_gap_open_gap_ext();
             global_alignment_affine_gap::exec(&s1, &s2, &score_matrix, g_open, g_ext);
@@ -68,21 +66,7 @@ fn main() {
             partial_order_alignment_global::exec(&sequence, &linearization, &score_matrix);
             let (g_open, g_ext) = args_parser::get_gap_open_gap_ext();
             gap_partial_order_alignment::exec(&sequence, &linearization, &score_matrix, g_open, g_ext);
-            /*
-            let ampl = match sequence.len() < linearization.len() {
-                true => linearization.len() - sequence.len() + bases_to_add,
-                _ => sequence.len() - linearization.len() + bases_to_add,
-            };
-            ab_partial_order_alignment::exec(&sequence, &linearization, &score_matrix, 1001);
-            ab_gap_partial_order_alignment::exec(
-                &sequence,
-                &linearization,
-                &score_matrix,
-                cmp::max(ampl * 2 + 1, 3),
-                g_open,
-                g_ext,
-            );
-             */
+            
         }
         _ => panic!("alignment mode must be 0, 1, 2 or 3"),
     }

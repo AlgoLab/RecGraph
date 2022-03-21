@@ -1,7 +1,5 @@
 use std::{cmp::{Ordering, self}, collections::HashMap};
 
-use crate::basic_output;
-
 pub fn exec(
     sequence: &[char],
     graph: &[(char, Vec<usize>)],
