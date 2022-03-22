@@ -3,12 +3,12 @@ mod ab_global_alignment;
 mod ab_partial_order_alignment;
 mod args_parser;
 mod basic_output;
+mod gap_partial_order_alignment;
 mod global_alignment_affine_gap;
 mod graph;
 mod local_alignment;
 mod matrix;
 mod partial_order_alignment_global;
-mod gap_partial_order_alignment;
 use std::cmp;
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
@@ -62,12 +62,17 @@ fn main() {
             sequence.insert(0, '$');
             let graph_path = args_parser::get_graph_path();
             let linearization = graph::get_linearization(&graph_path);
-            
+
             partial_order_alignment_global::exec(&sequence, &linearization, &score_matrix);
             let (g_open, g_ext) = args_parser::get_gap_open_gap_ext();
-            gap_partial_order_alignment::exec(&sequence, &linearization, &score_matrix, g_open, g_ext);
-            ab_partial_order_alignment::exec(&sequence, &linearization, &score_matrix)
-            
+            gap_partial_order_alignment::exec(
+                &sequence,
+                &linearization,
+                &score_matrix,
+                g_open,
+                g_ext,
+            );
+            ab_partial_order_alignment::exec(&sequence, &linearization, &score_matrix, 11)
         }
         _ => panic!("alignment mode must be 0, 1, 2 or 3"),
     }

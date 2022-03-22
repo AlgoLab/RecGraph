@@ -1,26 +1,29 @@
-use std::{cmp::{Ordering, self}, collections::HashMap};
+use std::{
+    cmp::{self, Ordering},
+    collections::HashMap,
+};
 
 pub fn exec(
     sequence: &[char],
     graph: &[(char, Vec<usize>)],
     scores_matrix: &HashMap<(char, char), i32>,
     o: i32,
-    e: i32
+    e: i32,
 ) {
     let mut m = vec![vec![0; sequence.len()]; graph.len()];
     let mut x = vec![vec![0; sequence.len()]; graph.len()];
     let mut y = vec![vec![0; sequence.len()]; graph.len()];
     let mut path = vec![vec![('x', 0); sequence.len()]; graph.len()];
 
-    for i in 0..graph.len() - 1{
+    for i in 0..graph.len() - 1 {
         for j in 0..sequence.len() {
             match (i, j) {
-                (0, 0) => {},
+                (0, 0) => {}
                 (0, _) => {
                     y[0][j] = o + e * j as i32;
                     m[0][j] = y[0][j];
 
-                    path[0][j] = ('L', j - 1);  
+                    path[0][j] = ('L', j - 1);
                 }
                 (_, 0) => {
                     if graph[i].1.is_empty() {
@@ -35,13 +38,13 @@ pub fn exec(
 
                         path[i][j] = ('U', min_p as usize);
                     }
-                   
                 }
                 _ => {
                     let d;
                     if graph[i].1.is_empty() {
                         y[i][j] = cmp::max(y[i - 1][j] + e, m[i - 1][j] + o + e);
-                        d =  m[i-1][j-1] + scores_matrix.get(&(graph[i].0, sequence[j])).unwrap();
+                        d = m[i - 1][j - 1]
+                            + scores_matrix.get(&(graph[i].0, sequence[j])).unwrap();
                     } else {
                         let mut u_m_best = 0;
                         let mut u_y_best = 0;
@@ -50,7 +53,7 @@ pub fn exec(
                         for p in graph[i].1.iter() {
                             let u_m_current = m[*p][j] + o + e;
                             let u_y_current = y[*p][j] + e;
-                            let current_d = m[*p][j-1];
+                            let current_d = m[*p][j - 1];
                             if first {
                                 u_m_best = u_m_current;
                                 u_y_best = u_y_current;
@@ -74,8 +77,7 @@ pub fn exec(
 
                     let l = x[i][j];
                     let u = y[i][j];
-                    
-                    
+
                     match d.cmp(&l) {
                         Ordering::Less => match l.cmp(&u) {
                             Ordering::Less => {
