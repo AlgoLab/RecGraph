@@ -1,6 +1,6 @@
 mod ab_gap_global_alignment;
 mod ab_global_alignment;
-
+mod ab_partial_order_alignment;
 mod args_parser;
 mod basic_output;
 mod global_alignment_affine_gap;
@@ -66,6 +66,7 @@ fn main() {
             partial_order_alignment_global::exec(&sequence, &linearization, &score_matrix);
             let (g_open, g_ext) = args_parser::get_gap_open_gap_ext();
             gap_partial_order_alignment::exec(&sequence, &linearization, &score_matrix, g_open, g_ext);
+            ab_partial_order_alignment::exec(&sequence, &linearization, &score_matrix)
             
         }
         _ => panic!("alignment mode must be 0, 1, 2 or 3"),
