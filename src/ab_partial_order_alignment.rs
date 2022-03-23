@@ -1,10 +1,10 @@
 use std::{
-    cmp::{self, Ordering},
+    cmp::{self},
     collections::HashMap,
     panic,
 };
-
 use crate::basic_output;
+
 pub fn exec(
     sequence: &[char],
     graph: &[(char, Vec<usize>)],
@@ -15,18 +15,7 @@ pub fn exec(
     let mut path = vec![vec![('x', 0); sequence.len()]; graph.len()];
     let mut ampl_for_row: Vec<(usize, usize)> = vec![(0, 0); graph.len()];
 
-    band_poa_align(sequence, graph, scores_matrix, ampl, &mut m, &mut path, &mut ampl_for_row);
-
-    match ampl_is_enough(&path, &ampl_for_row) {
-        true => {
-            println!("{}", m[graph.len() - 1][sequence.len() - 1]);
-            m[graph.len() - 1][sequence.len() - 1]
-        }
-        false => {
-            println!("need double ampl");
-            exec(sequence, graph, scores_matrix, ampl * 2)
-        }
-    }
+    band_poa_align(sequence, graph, scores_matrix, ampl, &mut m, &mut path, &mut ampl_for_row)
 }
 pub fn band_poa_align(
     sequence: &[char],
@@ -36,7 +25,7 @@ pub fn band_poa_align(
     m: &mut Vec<Vec<i32>>,
     path: &mut Vec<Vec<(char, usize)>>,
     ampl_for_row: &mut Vec<(usize, usize)>
-) {
+) -> i32 {
     for i in 0..graph.len() - 1 {
         let (left, right) = set_left_right(ampl, i, graph, sequence);
         ampl_for_row[i] = (left, right);
@@ -73,7 +62,11 @@ pub fn band_poa_align(
                         let d_idx = i - 1;
                         m[i][j] = *[d, u].iter().max().unwrap();
                         if m[i][j] == d {
-                            path[i][j] = ('D', d_idx);
+                            if graph[i].0 == sequence[j] {
+                                path[i][j] = ('D', d_idx);
+                            } else {
+                                path[i][j] = ('d', d_idx);
+                            }
                         } else {
                             path[i][j] = ('U', u_idx);
                         }
@@ -85,7 +78,11 @@ pub fn band_poa_align(
                             (Some((d, d_idx)), Some((u, u_idx))) => {
                                 m[i][j] = *[d, u].iter().max().unwrap();
                                 if m[i][j] == d {
-                                    path[i][j] = ('D', d_idx);
+                                    if graph[i].0 == sequence[j] {
+                                        path[i][j] = ('D', d_idx);
+                                    } else {
+                                        path[i][j] = ('d', d_idx);
+                                    }
                                 } else {
                                     path[i][j] = ('U', u_idx);
                                 }
@@ -106,7 +103,11 @@ pub fn band_poa_align(
                         let d_idx = i - 1;
                         m[i][j] = *[d, u, l].iter().max().unwrap();
                         if m[i][j] == d {
-                            path[i][j] = ('D', d_idx);
+                            if graph[i].0 == sequence[j] {
+                                path[i][j] = ('D', d_idx);
+                            } else {
+                                path[i][j] = ('d', d_idx);
+                            }
                         } else if m[i][j] == l {
                             path[i][j] = ('L', j - 1);
                         } else {
@@ -120,7 +121,11 @@ pub fn band_poa_align(
                             (Some((d, d_idx)), Some((u, u_idx))) => {
                                 m[i][j] = *[d, u, l].iter().max().unwrap();
                                 if m[i][j] == d {
-                                    path[i][j] = ('D', d_idx);
+                                    if graph[i].0 == sequence[j] {
+                                        path[i][j] = ('D', d_idx);
+                                    } else {
+                                        path[i][j] = ('d', d_idx);
+                                    }
                                 } else if m[i][j] == l {
                                     path[i][j] = ('L', j - 1);
                                 } else {
@@ -137,13 +142,17 @@ pub fn band_poa_align(
     for j in 0..m[0].len() {
         best_last_node(graph, m,  path, j);
     }
-
-    
-    /*
-    println!("Best alignment: {}", m[sequence.len() - 1][graph.len() - 1]);
-
-    basic_output::write_align_poa(&path, sequence, graph);
-    */
+    match ampl_is_enough(&path, &ampl_for_row) {
+        true => {
+            println!("{}", m[graph.len() - 1][sequence.len() - 1]);
+            basic_output::write_align_banded_poa(&path, sequence, graph);
+            m[graph.len() - 1][sequence.len() - 1]
+        }
+        false => {
+            band_poa_align(sequence, graph, scores_matrix, ampl*2, m, path, ampl_for_row)
+            
+        }
+    }
 }
 
 fn best_last_node(
