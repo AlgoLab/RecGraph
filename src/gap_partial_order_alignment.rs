@@ -9,7 +9,7 @@ pub fn exec(
     scores_matrix: &HashMap<(char, char), i32>,
     o: i32,
     e: i32,
-) {
+) -> i32 {
     let mut m = vec![vec![0; sequence.len()]; graph.len()];
     let mut x = vec![vec![0; sequence.len()]; graph.len()];
     let mut y = vec![vec![0; sequence.len()]; graph.len()];
@@ -113,6 +113,7 @@ pub fn exec(
     }
 
     println!("Best alignment: {}", m[graph.len() - 1][sequence.len() - 1]);
+    m[graph.len() - 1][sequence.len() - 1]
 
     //basic_output::write_align_poa(&path, sequence, graph);
 }
@@ -141,4 +142,44 @@ fn best_last_node(
     }
     m[m_len - 1][j] = best_align;
     path[m_len - 1][j] = ('F', best_idx);
+}
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+    use crate::{graph, ab_partial_order_alignment};
+    
+    #[test]
+    fn gap_align_gives_correct_result(){
+        let sequence: Vec<char> = "$CAAATAAGGCTTGGAAATTTTCTGGAGTTCTATTATATTCCAAC".chars().collect();
+        let graph = graph::get_linearization("./prova.gfa");
+        let mut score_matrix: HashMap<(char, char), i32> = HashMap::new();
+        for c1 in ['A', 'C', 'G', 'T'].iter() {
+            for c2 in ['A', 'C', 'G', 'T'].iter() {
+                if c1 == c2 {
+                    score_matrix.insert((*c1, *c2), 1);
+                } else {
+                    score_matrix.insert((*c1, *c2), -1);
+                }
+            }
+        }
+        let align_score = super::exec(&sequence, &graph, &score_matrix, -10, -2);
+        assert_eq!(align_score, 20);
+    }
+    #[test]
+    fn gap_align_gives_same_result_as_normal_if_o_zero(){
+        let sequence: Vec<char> = "$CAAATAAGGCTTGGAAATTTTCTGGAGTTCTATTATATTCCAAC".chars().collect();
+        let graph = graph::get_linearization("./prova.gfa");
+        let mut score_matrix: HashMap<(char, char), i32> = HashMap::new();
+        for c1 in ['A', 'C', 'G', 'T', '-'].iter() {
+            for c2 in ['A', 'C', 'G', 'T', '-'].iter() {
+                if c1 == c2 {
+                    score_matrix.insert((*c1, *c2), 1);
+                } else {
+                    score_matrix.insert((*c1, *c2), -1);
+                }
+            }
+        }
+        let align_score = super::exec(&sequence, &graph, &score_matrix, 0, -1);
+        assert_eq!(align_score, ab_partial_order_alignment::exec(&sequence, &graph, &score_matrix, 5));
+    }
 }
