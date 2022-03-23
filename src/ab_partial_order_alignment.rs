@@ -11,7 +11,7 @@ pub fn exec(
     graph: &[(char, Vec<usize>)],
     scores_matrix: &HashMap<(char, char), i32>,
     ampl: usize,
-) {
+) -> i32 {
     let mut m = vec![vec![0; sequence.len()]; graph.len()];
     let mut ampl_for_row: Vec<(usize, usize)> = vec![(0, 0); graph.len()];
     let mut path = vec![vec![('x', 0); sequence.len()]; graph.len()];
@@ -119,6 +119,7 @@ pub fn exec(
     match ampl_is_enough(&path, &ampl_for_row) {
         true => {
             println!("{}", m[graph.len() - 1][sequence.len() - 1]);
+            m[graph.len() - 1][sequence.len() - 1]
         }
         false => {
             println!("need double ampl");
@@ -312,5 +313,28 @@ fn get_best_u(
         None
     } else {
         Some((u, u_idx))
+    }
+}
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+    use crate::graph;
+    
+    #[test]
+    fn ab_align_gives_correct_result(){
+        let sequence: Vec<char> = "$CAAATAAGGCTTGGAAATTTTCTGGAGTTCTATTATATTCCAACTCTCTG".chars().collect();
+        let graph = graph::get_linearization("./prova.gfa");
+        let mut score_matrix: HashMap<(char, char), i32> = HashMap::new();
+        for c1 in ['A', 'C', 'G', 'T', '-'].iter() {
+            for c2 in ['A', 'C', 'G', 'T', '-'].iter() {
+                if c1 == c2 {
+                    score_matrix.insert((*c1, *c2), 1);
+                } else {
+                    score_matrix.insert((*c1, *c2), -1);
+                }
+            }
+        }
+        let align_score = super::exec(&sequence, &graph, &score_matrix, 5);
+        assert_eq!(align_score, 48);
     }
 }

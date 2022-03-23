@@ -72,7 +72,7 @@ fn main() {
                 g_open,
                 g_ext,
             );
-            ab_partial_order_alignment::exec(&sequence, &linearization, &score_matrix, 11)
+            ab_partial_order_alignment::exec(&sequence, &linearization, &score_matrix, 11);
         }
         _ => panic!("alignment mode must be 0, 1, 2 or 3"),
     }
