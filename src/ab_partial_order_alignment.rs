@@ -5,7 +5,6 @@ use std::{
 };
 
 use crate::basic_output;
-
 pub fn exec(
     sequence: &[char],
     graph: &[(char, Vec<usize>)],
@@ -13,8 +12,31 @@ pub fn exec(
     ampl: usize,
 ) -> i32 {
     let mut m = vec![vec![0; sequence.len()]; graph.len()];
-    let mut ampl_for_row: Vec<(usize, usize)> = vec![(0, 0); graph.len()];
     let mut path = vec![vec![('x', 0); sequence.len()]; graph.len()];
+    let mut ampl_for_row: Vec<(usize, usize)> = vec![(0, 0); graph.len()];
+
+    band_poa_align(sequence, graph, scores_matrix, ampl, &mut m, &mut path, &mut ampl_for_row);
+
+    match ampl_is_enough(&path, &ampl_for_row) {
+        true => {
+            println!("{}", m[graph.len() - 1][sequence.len() - 1]);
+            m[graph.len() - 1][sequence.len() - 1]
+        }
+        false => {
+            println!("need double ampl");
+            exec(sequence, graph, scores_matrix, ampl * 2)
+        }
+    }
+}
+pub fn band_poa_align(
+    sequence: &[char],
+    graph: &[(char, Vec<usize>)],
+    scores_matrix: &HashMap<(char, char), i32>,
+    ampl: usize,
+    m: &mut Vec<Vec<i32>>,
+    path: &mut Vec<Vec<(char, usize)>>,
+    ampl_for_row: &mut Vec<(usize, usize)>
+) {
     for i in 0..graph.len() - 1 {
         let (left, right) = set_left_right(ampl, i, graph, sequence);
         ampl_for_row[i] = (left, right);
@@ -113,19 +135,10 @@ pub fn exec(
         }
     }
     for j in 0..m[0].len() {
-        best_last_node(graph, &mut m, &mut path, j);
+        best_last_node(graph, m,  path, j);
     }
 
-    match ampl_is_enough(&path, &ampl_for_row) {
-        true => {
-            println!("{}", m[graph.len() - 1][sequence.len() - 1]);
-            m[graph.len() - 1][sequence.len() - 1]
-        }
-        false => {
-            println!("need double ampl");
-            exec(sequence, graph, scores_matrix, ampl * 2)
-        }
-    }
+    
     /*
     println!("Best alignment: {}", m[sequence.len() - 1][graph.len() - 1]);
 
