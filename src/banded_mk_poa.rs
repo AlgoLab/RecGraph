@@ -18,6 +18,7 @@ pub fn exec(
         m[i] = vec![-1000; right - left];
         path[i] = vec![('X', 0); right - left];
     }
+
     for i in 0..graph.len() - 1 {
         let (left, right) = ampl_for_row[i];
         for j in 0..right - left {
@@ -129,15 +130,11 @@ pub fn exec(
             }
         }
     }
+    let last_col = ampl_for_row[m.len()-1].1 - ampl_for_row[m.len()-1].0 - 1 ;
 
-    for j in 0..m[m.len() - 1].len() {
-        best_last_node(graph, &mut m, &mut path, j);
-    }
-    for p in graph[m.len()-1].1.iter() {
-        println!("{:?}",m[*p])
-    }
-    m.iter().for_each(|line| {println!("{:?}", line)});
-    println!("{:?}", m[graph.len() - 1]);
+    best_last_node(graph, &mut m, &mut path, last_col, &ampl_for_row);
+    
+    println!("Alignment mk {:?}", m[m.len() - 1][last_col]);
     /*
     match ampl_is_enough(&path, &ampl_for_row) {
         true => {
@@ -157,6 +154,7 @@ fn best_last_node(
     m: &mut [Vec<i32>],
     path: &mut [Vec<(char, usize)>],
     j: usize,
+    ampl_for_row: &Vec<(usize, usize)>
 ) {
     let mut best_align = 0;
     let mut best_idx = 0;
@@ -164,13 +162,22 @@ fn best_last_node(
     let m_len = m.len();
 
     for p in graph[graph.len() - 1].1.iter() {
+        let delta;
+        let j_pos;
+        if ampl_for_row[graph.len()-1].0 >= ampl_for_row[*p].0 {
+            delta = ampl_for_row[graph.len()-1].0 - ampl_for_row[*p].0;
+            j_pos = j + delta;
+        } else {
+            delta = ampl_for_row[*p].0 - ampl_for_row[graph.len()-1].0;
+            j_pos = j - delta;
+        }
         if first {
-            best_align = m[*p][j];
+            best_align = m[*p][j_pos];
             best_idx = *p;
             first = false;
         }
-        if m[*p][j] > best_align {
-            best_align = m[*p][j];
+        if m[*p][j_pos] > best_align {
+            best_align = m[*p][j_pos];
             best_idx = *p;
         }
     }
