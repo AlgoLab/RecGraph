@@ -1,9 +1,9 @@
+use crate::basic_output;
 use std::{
     cmp::{self},
     collections::HashMap,
     panic,
 };
-use crate::basic_output;
 
 pub fn exec(
     sequence: &[char],
@@ -15,7 +15,15 @@ pub fn exec(
     let mut path = vec![vec![('x', 0); sequence.len()]; graph.len()];
     let mut ampl_for_row: Vec<(usize, usize)> = vec![(0, 0); graph.len()];
 
-    band_poa_align(sequence, graph, scores_matrix, ampl, &mut m, &mut path, &mut ampl_for_row)
+    band_poa_align(
+        sequence,
+        graph,
+        scores_matrix,
+        ampl,
+        &mut m,
+        &mut path,
+        &mut ampl_for_row,
+    )
 }
 pub fn band_poa_align(
     sequence: &[char],
@@ -24,7 +32,7 @@ pub fn band_poa_align(
     ampl: usize,
     m: &mut Vec<Vec<i32>>,
     path: &mut Vec<Vec<(char, usize)>>,
-    ampl_for_row: &mut Vec<(usize, usize)>
+    ampl_for_row: &mut Vec<(usize, usize)>,
 ) -> i32 {
     for i in 0..graph.len() - 1 {
         let (left, right) = set_left_right(ampl, i, graph, sequence);
@@ -140,7 +148,7 @@ pub fn band_poa_align(
         }
     }
     for j in 0..m[0].len() {
-        best_last_node(graph, m,  path, j);
+        best_last_node(graph, m, path, j);
     }
     match ampl_is_enough(&path, &ampl_for_row) {
         true => {
@@ -148,10 +156,15 @@ pub fn band_poa_align(
             basic_output::write_align_banded_poa(&path, sequence, graph);
             m[graph.len() - 1][sequence.len() - 1]
         }
-        false => {
-            band_poa_align(sequence, graph, scores_matrix, ampl*2, m, path, ampl_for_row)
-            
-        }
+        false => band_poa_align(
+            sequence,
+            graph,
+            scores_matrix,
+            ampl * 2,
+            m,
+            path,
+            ampl_for_row,
+        ),
     }
 }
 
@@ -199,7 +212,7 @@ fn set_left_right(
                 left = i - ampl / 2
             }
             right = cmp::min(i + ampl / 2, sequence.len());
-            if right  <= left {
+            if right <= left {
                 (left, right) = (right - 1, right);
             }
         } else {
@@ -237,11 +250,14 @@ fn ampl_is_enough(path: &[Vec<(char, usize)>], ampl_for_row: &Vec<(usize, usize)
 
     while path[row][col].0 != 'O' {
         //reached end of path, no need to continue
-        if col == 0  {
-            return true
+        if col == 0 {
+            return true;
         }
-        
-        if col == ampl_for_row[row].0 || (col == ampl_for_row[row].1 - 1 && !(col == path[0].len() - 1)) { // != from path_len because couldn't go larger
+
+        if col == ampl_for_row[row].0
+            || (col == ampl_for_row[row].1 - 1 && !(col == path[0].len() - 1))
+        {
+            // != from path_len because couldn't go larger
             if path[row][col].0 == 'D' {
                 row = path[row][col].1 as usize;
                 col -= 1;
@@ -339,12 +355,14 @@ fn get_best_u(
 }
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
     use crate::graph;
-    
+    use std::collections::HashMap;
+
     #[test]
-    fn ab_align_gives_correct_result(){
-        let sequence: Vec<char> = "$CAAATAAGGCTTGGAAATTTTCTGGAGTTCTATTATATTCCAACTCTCTG".chars().collect();
+    fn ab_align_gives_correct_result() {
+        let sequence: Vec<char> = "$CAAATAAGGCTTGGAAATTTTCTGGAGTTCTATTATATTCCAACTCTCTG"
+            .chars()
+            .collect();
         let graph = graph::get_linearization("./prova.gfa");
         let mut score_matrix: HashMap<(char, char), i32> = HashMap::new();
         for c1 in ['A', 'C', 'G', 'T', '-'].iter() {

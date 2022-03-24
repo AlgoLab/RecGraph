@@ -274,7 +274,11 @@ pub fn write_align_poa(path: &[Vec<(char, i32)>], sequence: &[char], graph: &[(c
     reverse_and_write(sequence_align, graph_align, alignment_moves, "poa");
 }
 
-pub fn write_align_banded_poa(path: &[Vec<(char, usize)>], sequence: &[char], graph: &[(char, Vec<usize>)]) {
+pub fn write_align_banded_poa(
+    path: &[Vec<(char, usize)>],
+    sequence: &[char],
+    graph: &[(char, Vec<usize>)],
+) {
     let mut col = path[0].len() - 1;
     let mut row = path[path.len() - 1][path[0].len() - 1].1;
     let mut sequence_align = String::new();

@@ -12,6 +12,7 @@ mod partial_order_alignment_global;
 use std::cmp;
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
+mod banded_mk_poa;
 
 fn main() {
     let sequences = get_sequences();
@@ -72,7 +73,7 @@ fn main() {
                 g_open,
                 g_ext,
             );
-            ab_partial_order_alignment::exec(&sequence, &linearization, &score_matrix, 11);
+            banded_mk_poa::exec(&sequence, &linearization, &score_matrix, 25);
         }
         _ => panic!("alignment mode must be 0, 1, 2 or 3"),
     }

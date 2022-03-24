@@ -145,12 +145,14 @@ fn best_last_node(
 }
 #[cfg(test)]
 mod tests {
+    use crate::{ab_partial_order_alignment, graph};
     use std::collections::HashMap;
-    use crate::{graph, ab_partial_order_alignment};
-    
+
     #[test]
-    fn gap_align_gives_correct_result(){
-        let sequence: Vec<char> = "$CAAATAAGGCTTGGAAATTTTCTGGAGTTCTATTATATTCCAAC".chars().collect();
+    fn gap_align_gives_correct_result() {
+        let sequence: Vec<char> = "$CAAATAAGGCTTGGAAATTTTCTGGAGTTCTATTATATTCCAAC"
+            .chars()
+            .collect();
         let graph = graph::get_linearization("./prova.gfa");
         let mut score_matrix: HashMap<(char, char), i32> = HashMap::new();
         for c1 in ['A', 'C', 'G', 'T'].iter() {
@@ -166,8 +168,10 @@ mod tests {
         assert_eq!(align_score, 20);
     }
     #[test]
-    fn gap_align_gives_same_result_as_normal_if_o_zero(){
-        let sequence: Vec<char> = "$CAAATAAGGCTTGGAAATTTTCTGGAGTTCTATTATATTCCAAC".chars().collect();
+    fn gap_align_gives_same_result_as_normal_if_o_zero() {
+        let sequence: Vec<char> = "$CAAATAAGGCTTGGAAATTTTCTGGAGTTCTATTATATTCCAAC"
+            .chars()
+            .collect();
         let graph = graph::get_linearization("./prova.gfa");
         let mut score_matrix: HashMap<(char, char), i32> = HashMap::new();
         for c1 in ['A', 'C', 'G', 'T', '-'].iter() {
@@ -180,6 +184,9 @@ mod tests {
             }
         }
         let align_score = super::exec(&sequence, &graph, &score_matrix, 0, -1);
-        assert_eq!(align_score, ab_partial_order_alignment::exec(&sequence, &graph, &score_matrix, 5));
+        assert_eq!(
+            align_score,
+            ab_partial_order_alignment::exec(&sequence, &graph, &score_matrix, 5)
+        );
     }
 }
