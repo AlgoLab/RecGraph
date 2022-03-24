@@ -2,7 +2,6 @@ use crate::basic_output;
 use std::{
     cmp::{self},
     collections::HashMap,
-    panic,
 };
 
 pub fn exec(
@@ -15,8 +14,7 @@ pub fn exec(
     let mut path = vec![vec![]; graph.len()];
     let mut ampl_for_row: Vec<(usize, usize)> = vec![(0, 0); graph.len()];
     for i in 0..graph.len() {
-        let (left, right) = set_left_right(ampl, i, graph, sequence, &ampl_for_row);
-        ampl_for_row[i] = (left, right);
+        let (left, right) = set_left_right(ampl, i, graph, sequence, &mut ampl_for_row);
         m[i] = vec![-1000; right - left];
         path[i] = vec![('X', 0); right - left];
     }
@@ -31,7 +29,7 @@ pub fn exec(
                     //only left
                     m[i][j] = m[i][j - 1] + score_matrix.get(&('-', sequence[j + left])).unwrap();
                 }
-                (_, 0) if left == 0 || j == left => {
+                (_, 0) if left == 0 || ampl_for_row[i].0 == ampl_for_row[i - 1].0 => {
                     // only upper
                     if graph[i].1.is_empty() {
                         m[i][j] = m[i - 1][j] + score_matrix.get(&(graph[i].0, '-')).unwrap();
@@ -49,13 +47,13 @@ pub fn exec(
                         if ampl_for_row[i].0 < ampl_for_row[i - 1].0 {
                             delta = ampl_for_row[i - 1].0 - ampl_for_row[i].0;
                             u = m[i - 1][j - delta] + score_matrix.get(&('-', graph[i].0)).unwrap();
-                            d = m[i - 1][j - delta - 1] 
-                                + score_matrix.get(&(sequence[j+left], graph[i].0)).unwrap();
+                            d = m[i - 1][j - delta - 1]
+                                + score_matrix.get(&(sequence[j + left], graph[i].0)).unwrap();
                         } else {
                             delta = ampl_for_row[i].0 - ampl_for_row[i - 1].0;
                             u = m[i - 1][j + delta] + score_matrix.get(&('-', graph[i].0)).unwrap();
                             d = m[i - 1][j + delta - 1]
-                                + score_matrix.get(&(sequence[j+left], graph[i].0)).unwrap();
+                                + score_matrix.get(&(sequence[j + left], graph[i].0)).unwrap();
                         }
                         m[i][j] = *[d, u].iter().max().unwrap();
                         //path
@@ -106,12 +104,12 @@ pub fn exec(
                             delta = ampl_for_row[i - 1].0 - ampl_for_row[i].0;
                             u = m[i - 1][j - delta] + score_matrix.get(&('-', graph[i].0)).unwrap();
                             d = m[i - 1][j - delta - 1]
-                                + score_matrix.get(&(sequence[j+left], graph[i].0)).unwrap();
+                                + score_matrix.get(&(sequence[j + left], graph[i].0)).unwrap();
                         } else {
                             delta = ampl_for_row[i].0 - ampl_for_row[i - 1].0;
                             u = m[i - 1][j + delta] + score_matrix.get(&('-', graph[i].0)).unwrap();
                             d = m[i - 1][j + delta - 1]
-                                + score_matrix.get(&(sequence[j+left], graph[i].0)).unwrap();
+                                + score_matrix.get(&(sequence[j + left], graph[i].0)).unwrap();
                         }
                         m[i][j] = *[d, u, l].iter().max().unwrap();
                         //path
@@ -131,10 +129,16 @@ pub fn exec(
             }
         }
     }
-    /*
-    for j in 0..m[m.len()-1].len() {
-        best_last_node(graph, &mut m,  &mut path, j);
+
+    for j in 0..m[m.len() - 1].len() {
+        best_last_node(graph, &mut m, &mut path, j);
     }
+    for p in graph[m.len()-1].1.iter() {
+        println!("{:?}",m[*p])
+    }
+    m.iter().for_each(|line| {println!("{:?}", line)});
+    println!("{:?}", m[graph.len() - 1]);
+    /*
     match ampl_is_enough(&path, &ampl_for_row) {
         true => {
             println!("{}", m[graph.len() - 1][sequence.len() - 1]);
@@ -179,49 +183,57 @@ fn set_left_right(
     i: usize,
     graph: &[(char, Vec<usize>)],
     sequence: &[char],
-    ampl_for_row: &[(usize, usize)],
+    ampl_for_row: &mut [(usize, usize)],
 ) -> (usize, usize) {
-    let mut left = 0;
-    let mut right = sequence.len();
-    if i == 0 {
-        right = cmp::min(ampl / 2, sequence.len());
+    let mut left;
+    let mut right;
+    if ampl >= sequence.len() {
+        left = 0;
+        right = sequence.len();
     } else {
-        if graph[i].1.is_empty() {
-            if i < ampl / 2 {
-                left = 0;
-            } else {
-                left = ampl_for_row[i - 1].0 + 1
-            }
-            right = cmp::min(ampl_for_row[i - 1].1 + 1, sequence.len());
-            if right <= left + ampl / 2 {
-                (left, right) = (right - ampl / 2, right);
-            }
+        left = 0;
+        right = sequence.len();
+        if i == 0 {
+            right = cmp::min(ampl / 2, sequence.len());
         } else {
-            let mut first = true;
-            for p in graph[i].1.iter() {
-                let (current_l, current_r);
-                if p + 1 < ampl / 2 {
-                    current_l = 0;
+            if graph[i].1.is_empty() {
+                if i < ampl / 2 {
+                    left = 0;
                 } else {
-                    current_l = ampl_for_row[*p].0 + 1
+                    left = ampl_for_row[i - 1].0 + 1
                 }
-                current_r = cmp::min(ampl_for_row[*p].1 + 1, sequence.len());
-                if first {
-                    first = false;
-                    (left, right) = (current_l, current_r)
+                right = cmp::min(ampl_for_row[i - 1].1 + 1, sequence.len());
+                if right <= left + ampl / 2 {
+                    (left, right) = (right - ampl / 2, right);
                 }
-                if current_l < left {
-                    left = current_l;
+            } else {
+                let mut first = true;
+                for p in graph[i].1.iter() {
+                    let (current_l, current_r);
+                    if p + 1 < ampl / 2 {
+                        current_l = 0;
+                    } else {
+                        current_l = ampl_for_row[*p].0 + 1
+                    }
+                    current_r = cmp::min(ampl_for_row[*p].1 + 1, sequence.len());
+                    if first {
+                        first = false;
+                        (left, right) = (current_l, current_r)
+                    }
+                    if current_l < left {
+                        left = current_l;
+                    }
+                    if current_r > right {
+                        right = current_r;
+                    }
                 }
-                if current_r > right {
-                    right = current_r;
+                if right <= left + ampl / 2 {
+                    (left, right) = (right - ampl / 2, right);
                 }
-            }
-            if right <= left + ampl / 2 {
-                (left, right) = (right - ampl / 2, right);
             }
         }
     }
+    ampl_for_row[i] = (left, right);
     (left, right)
 }
 
@@ -281,7 +293,7 @@ fn get_best_d(
     let mut first = true;
     let left = ampl_for_row[i].0;
     for p in graph[i].1.iter() {
-        if j + left >= ampl_for_row[*p].0+1 && j + left < ampl_for_row[*p].1 + 1 {
+        if j + left >= ampl_for_row[*p].0 + 1 && j + left < ampl_for_row[*p].1 + 1 {
             let delta;
             let current_d;
             if ampl_for_row[i].0 < ampl_for_row[*p].0 {

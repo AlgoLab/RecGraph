@@ -78,6 +78,7 @@ pub fn band_poa_align(
                         } else {
                             path[i][j] = ('U', u_idx);
                         }
+                        
                     } else {
                         match (
                             get_best_d(graph, sequence, &m, scores_matrix, &ampl_for_row, i, j),
@@ -93,6 +94,45 @@ pub fn band_poa_align(
                                     }
                                 } else {
                                     path[i][j] = ('U', u_idx);
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                _ if j == right - 1 =>{
+                    // only left or d
+                    let l = m[i][j - 1] + scores_matrix.get(&('-', sequence[j])).unwrap();
+
+                    if graph[i].1.is_empty() {
+                        let d = m[i - 1][j - 1]
+                            + scores_matrix.get(&(graph[i].0, sequence[j])).unwrap();
+                        let d_idx = i - 1;
+                        m[i][j] = *[d, l].iter().max().unwrap();
+                        if m[i][j] == d {
+                            if graph[i].0 == sequence[j] {
+                                path[i][j] = ('D', d_idx);
+                            } else {
+                                path[i][j] = ('d', d_idx);
+                            }
+                        } else {
+                            path[i][j] = ('L', j-1);
+                        }
+                        
+                    } else {
+                        match 
+                            get_best_d(graph, sequence, &m, scores_matrix, &ampl_for_row, i, j)
+                         {
+                            Some((d, d_idx)) => {
+                                m[i][j] = *[d, l].iter().max().unwrap();
+                                if m[i][j] == d {
+                                    if graph[i].0 == sequence[j] {
+                                        path[i][j] = ('D', d_idx);
+                                    } else {
+                                        path[i][j] = ('d', d_idx);
+                                    }
+                                } else {
+                                    path[i][j] = ('L', j-1);
                                 }
                             }
                             _ => {}

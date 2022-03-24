@@ -59,7 +59,7 @@ fn main() {
             );
         }
         4 => {
-            let mut sequence: Vec<char> = sequences[14].chars().collect();
+            let mut sequence: Vec<char> = sequences[10].chars().collect();
             sequence.insert(0, '$');
             let graph_path = args_parser::get_graph_path();
             let linearization = graph::get_linearization(&graph_path);
@@ -73,7 +73,7 @@ fn main() {
                 g_open,
                 g_ext,
             );
-            banded_mk_poa::exec(&sequence, &linearization, &score_matrix, 25);
+            banded_mk_poa::exec(&sequence, &linearization, &score_matrix, 21);
         }
         _ => panic!("alignment mode must be 0, 1, 2 or 3"),
     }
