@@ -6,7 +6,7 @@ pub fn exec(
     sequence: &[char],
     graph: &[(char, Vec<usize>)],
     scores_matrix: &HashMap<(char, char), i32>,
-) {
+) -> i32 {
     let mut m = vec![vec![0; graph.len()]; sequence.len()];
     let mut path = vec![vec![('x', 0); graph.len()]; sequence.len()];
 
@@ -146,6 +146,7 @@ pub fn exec(
     println!("Best alignment: {}", m[sequence.len() - 1][graph.len() - 1]);
 
     basic_output::write_align_poa(&path, sequence, graph);
+    m[sequence.len() - 1][graph.len() - 1]
 }
 
 fn best_last_node(

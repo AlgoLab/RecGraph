@@ -145,7 +145,7 @@ fn best_last_node(
 }
 #[cfg(test)]
 mod tests {
-    use crate::{ab_partial_order_alignment, graph};
+    use crate::{partial_order_alignment_global, graph};
     use std::collections::HashMap;
 
     #[test]
@@ -186,7 +186,7 @@ mod tests {
         let align_score = super::exec(&sequence, &graph, &score_matrix, 0, -1);
         assert_eq!(
             align_score,
-            ab_partial_order_alignment::exec(&sequence, &graph, &score_matrix, 5)
+            partial_order_alignment_global::exec(&sequence, &graph, &score_matrix)
         );
     }
 }
