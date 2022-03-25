@@ -145,7 +145,7 @@ fn best_last_node(
 }
 #[cfg(test)]
 mod tests {
-    use crate::{partial_order_alignment_global, graph};
+    use crate::{graph, partial_order_alignment_global};
     use std::collections::HashMap;
 
     #[test]

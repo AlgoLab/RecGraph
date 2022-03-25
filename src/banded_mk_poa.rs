@@ -1,6 +1,6 @@
 use crate::basic_output;
 use std::{
-    cmp::{self},
+    cmp::{self, Ordering},
     collections::HashMap,
 };
 
@@ -15,7 +15,7 @@ pub fn exec(
     let mut ampl_for_row: Vec<(usize, usize)> = vec![(0, 0); graph.len()];
     for i in 0..graph.len() {
         let (left, right) = set_left_right(ampl, i, graph, sequence, &mut ampl_for_row);
-        m[i] = vec![-1000; right - left];
+        m[i] = vec![0; right - left];
         path[i] = vec![('X', 0); right - left];
     }
 
@@ -25,18 +25,22 @@ pub fn exec(
             match (i, j) {
                 (0, 0) => {
                     m[i][j] = 0;
+                    path[i][j] = ('O', 0);
                 }
                 (0, _) => {
                     //only left
                     m[i][j] = m[i][j - 1] + score_matrix.get(&('-', sequence[j + left])).unwrap();
+                    path[i][j] = ('L', j - 1);
                 }
                 (_, 0) if left == 0 || ampl_for_row[i].0 == ampl_for_row[i - 1].0 => {
                     // only upper
                     if graph[i].1.is_empty() {
                         m[i][j] = m[i - 1][j] + score_matrix.get(&(graph[i].0, '-')).unwrap();
+                        path[i][j] = ('U', i - 1);
                     } else {
                         let p = graph[i].1.iter().min().unwrap();
                         m[i][j] = m[*p][j] + score_matrix.get(&(graph[i].0, '-')).unwrap();
+                        path[i][j] = ('U', *p);
                     }
                 }
                 (_, 0) if left > 0 => {
@@ -56,16 +60,40 @@ pub fn exec(
                             d = m[i - 1][j + delta - 1]
                                 + score_matrix.get(&(sequence[j + left], graph[i].0)).unwrap();
                         }
-                        m[i][j] = *[d, u].iter().max().unwrap();
-                        //path
+                        m[i][j] = match d.cmp(&u) {
+                            Ordering::Less => {
+                                path[i][j] = ('U', i - 1);
+                                u
+                            }
+                            _ => {
+                                if graph[i].0 == sequence[j + left] {
+                                    path[i][j] = ('D', i - 1);
+                                } else {
+                                    path[i][j] = ('d', i - 1);
+                                }
+                                d
+                            }
+                        }
                     } else {
                         match (
                             get_best_d(graph, sequence, &m, score_matrix, &ampl_for_row, i, j),
                             get_best_u(graph, &m, score_matrix, &ampl_for_row, i, j),
                         ) {
                             (Some((d, d_idx)), Some((u, u_idx))) => {
-                                m[i][j] = *[d, u].iter().max().unwrap();
-                                // path update
+                                m[i][j] = match d.cmp(&u) {
+                                    Ordering::Less => {
+                                        path[i][j] = ('U', u_idx);
+                                        u
+                                    }
+                                    _ => {
+                                        if graph[i].0 == sequence[j + left] {
+                                            path[i][j] = ('D', d_idx);
+                                        } else {
+                                            path[i][j] = ('d', d_idx);
+                                        }
+                                        d
+                                    }
+                                }
                             }
                             _ => {}
                         }
@@ -81,11 +109,38 @@ pub fn exec(
                         let delta = ampl_for_row[i].0 - ampl_for_row[i - 1].0;
                         let d = m[i - 1][j + delta - 1]
                             + score_matrix.get(&(graph[i].0, sequence[j + left])).unwrap();
-                        m[i][j] = *[d, l].iter().max().unwrap();
+
+                        m[i][j] = match d.cmp(&l) {
+                            Ordering::Less => {
+                                path[i][j] = ('L', j - 1);
+                                l
+                            }
+                            _ => {
+                                if graph[i].0 == sequence[j + left] {
+                                    path[i][j] = ('D', i - 1);
+                                } else {
+                                    path[i][j] = ('d', i - 1);
+                                }
+                                d
+                            }
+                        }
                     } else {
                         match get_best_d(graph, sequence, &m, score_matrix, &ampl_for_row, i, j) {
                             Some((d, d_idx)) => {
-                                m[i][j] = *[d, l].iter().max().unwrap();
+                                m[i][j] = match d.cmp(&l) {
+                                    Ordering::Less => {
+                                        path[i][j] = ('L', j - 1);
+                                        l
+                                    }
+                                    _ => {
+                                        if graph[i].0 == sequence[j + left] {
+                                            path[i][j] = ('D', d_idx);
+                                        } else {
+                                            path[i][j] = ('d', d_idx);
+                                        }
+                                        d
+                                    }
+                                }
                             }
                             _ => {}
                         }
@@ -112,16 +167,34 @@ pub fn exec(
                             d = m[i - 1][j + delta - 1]
                                 + score_matrix.get(&(sequence[j + left], graph[i].0)).unwrap();
                         }
-                        m[i][j] = *[d, u, l].iter().max().unwrap();
-                        //path
+                        let (best_val, mut dir) = get_max_d_u_l(d, l, u);
+                        if dir == 'D' && sequence[j + left] != graph[i].0 {
+                            dir = 'd'
+                        }
+                        m[i][j] = best_val;
+                        path[i][j] = match dir {
+                            'D' => ('D', i - 1),
+                            'd' => ('d', i - 1),
+                            'U' => ('U', i - 1),
+                            _ => ('L', j - 1),
+                        };
                     } else {
                         match (
                             get_best_d(graph, sequence, &m, score_matrix, &ampl_for_row, i, j),
                             get_best_u(graph, &m, score_matrix, &ampl_for_row, i, j),
                         ) {
                             (Some((d, d_idx)), Some((u, u_idx))) => {
-                                m[i][j] = *[d, u, l].iter().max().unwrap();
-                                // path update
+                                let (best_val, mut dir) = get_max_d_u_l(d, l, u);
+                                if dir == 'D' && sequence[j + left] != graph[i].0 {
+                                    dir = 'd'
+                                }
+                                m[i][j] = best_val;
+                                path[i][j] = match dir {
+                                    'D' => ('D', d_idx),
+                                    'd' => ('d', d_idx),
+                                    'U' => ('U', u_idx),
+                                    _ => ('L', j - 1),
+                                };
                             }
                             _ => {}
                         }
@@ -130,23 +203,23 @@ pub fn exec(
             }
         }
     }
-    let last_col = ampl_for_row[m.len()-1].1 - ampl_for_row[m.len()-1].0 - 1 ;
-
+    
+    let last_col = ampl_for_row[m.len() - 1].1 - ampl_for_row[m.len() - 1].0 - 1;
+    
+    path.iter().for_each(|line| {println!("{:?}",line)});
     best_last_node(graph, &mut m, &mut path, last_col, &ampl_for_row);
     
-    println!("Alignment mk {:?}", m[m.len() - 1][last_col]);
-    /*
-    match ampl_is_enough(&path, &ampl_for_row) {
+    
+    match ampl_is_enough(&path, &ampl_for_row, sequence.len()) {
         true => {
-            println!("{}", m[graph.len() - 1][sequence.len() - 1]);
-            basic_output::write_align_banded_poa(&path, sequence, graph);
-            m[graph.len() - 1][sequence.len() - 1]
+            println!("Alignment mk {:?}", m[m.len() - 1][last_col]);
+            //basic_output::write_align_banded_poa(&path, sequence, graph);
+            //m[graph.len() - 1][sequence.len() - 1]
         }
         false => {
             exec(sequence, graph, score_matrix, ampl*2)
         }
     }
-    */
 }
 
 fn best_last_node(
@@ -154,7 +227,7 @@ fn best_last_node(
     m: &mut [Vec<i32>],
     path: &mut [Vec<(char, usize)>],
     j: usize,
-    ampl_for_row: &Vec<(usize, usize)>
+    ampl_for_row: &Vec<(usize, usize)>,
 ) {
     let mut best_align = 0;
     let mut best_idx = 0;
@@ -164,11 +237,11 @@ fn best_last_node(
     for p in graph[graph.len() - 1].1.iter() {
         let delta;
         let j_pos;
-        if ampl_for_row[graph.len()-1].0 >= ampl_for_row[*p].0 {
-            delta = ampl_for_row[graph.len()-1].0 - ampl_for_row[*p].0;
+        if ampl_for_row[graph.len() - 1].0 >= ampl_for_row[*p].0 {
+            delta = ampl_for_row[graph.len() - 1].0 - ampl_for_row[*p].0;
             j_pos = j + delta;
         } else {
-            delta = ampl_for_row[*p].0 - ampl_for_row[graph.len()-1].0;
+            delta = ampl_for_row[*p].0 - ampl_for_row[graph.len() - 1].0;
             j_pos = j - delta;
         }
         if first {
@@ -244,18 +317,18 @@ fn set_left_right(
     (left, right)
 }
 
-fn ampl_is_enough(path: &[Vec<(char, usize)>], ampl_for_row: &Vec<(usize, usize)>) -> bool {
+fn ampl_is_enough(path: &[Vec<(char, usize)>], ampl_for_row: &Vec<(usize, usize)>, seq_len: usize) -> bool {
     let mut col = path[0].len() - 1;
     let mut row = path[path.len() - 1][path[0].len() - 1].1 as usize;
 
     while path[row][col].0 != 'O' {
         //reached end of path, no need to continue
-        if col == 0 {
+        if ampl_for_row[row].0 == 0 {
             return true;
         }
 
-        if col == ampl_for_row[row].0
-            || (col == ampl_for_row[row].1 - 1 && !(col == path[0].len() - 1))
+        if col == 0
+            || (col == ampl_for_row[row].1 - 1 && !(ampl_for_row[row].1 == seq_len - 1))
         {
             // != from path_len because couldn't go larger
             if path[row][col].0 == 'D' {
@@ -377,4 +450,18 @@ fn get_best_u(
     } else {
         Some((u, u_idx))
     }
+}
+
+fn get_max_d_u_l(d: i32, u: i32, l: i32) -> (i32, char) {
+    let (best_val, dir) = match d.cmp(&u) {
+        Ordering::Less => match u.cmp(&l) {
+            Ordering::Less => (l, 'L'),
+            _ => (u, 'U'),
+        },
+        _ => match d.cmp(&l) {
+            Ordering::Less => (l, 'L'),
+            _ => (d, 'D'),
+        },
+    };
+    (best_val, dir)
 }

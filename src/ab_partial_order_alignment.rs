@@ -78,7 +78,6 @@ pub fn band_poa_align(
                         } else {
                             path[i][j] = ('U', u_idx);
                         }
-                        
                     } else {
                         match (
                             get_best_d(graph, sequence, &m, scores_matrix, &ampl_for_row, i, j),
@@ -100,7 +99,7 @@ pub fn band_poa_align(
                         }
                     }
                 }
-                _ if j == right - 1 =>{
+                _ if j == right - 1 => {
                     // only left or d
                     let l = m[i][j - 1] + scores_matrix.get(&('-', sequence[j])).unwrap();
 
@@ -116,13 +115,10 @@ pub fn band_poa_align(
                                 path[i][j] = ('d', d_idx);
                             }
                         } else {
-                            path[i][j] = ('L', j-1);
+                            path[i][j] = ('L', j - 1);
                         }
-                        
                     } else {
-                        match 
-                            get_best_d(graph, sequence, &m, scores_matrix, &ampl_for_row, i, j)
-                         {
+                        match get_best_d(graph, sequence, &m, scores_matrix, &ampl_for_row, i, j) {
                             Some((d, d_idx)) => {
                                 m[i][j] = *[d, l].iter().max().unwrap();
                                 if m[i][j] == d {
@@ -132,7 +128,7 @@ pub fn band_poa_align(
                                         path[i][j] = ('d', d_idx);
                                     }
                                 } else {
-                                    path[i][j] = ('L', j-1);
+                                    path[i][j] = ('L', j - 1);
                                 }
                             }
                             _ => {}
