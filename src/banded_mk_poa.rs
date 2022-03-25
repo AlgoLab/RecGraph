@@ -2,6 +2,7 @@ use std::{
     cmp::{self, Ordering},
     collections::HashMap,
 };
+use crate::basic_output;
 
 pub fn exec(
     sequence: &[char],
@@ -191,13 +192,12 @@ pub fn exec(
     }
 
     let last_col = ampl_for_row[m.len() - 1].1 - ampl_for_row[m.len() - 1].0 - 1;
-
     best_last_node(graph, &mut m, &mut path, last_col, &ampl_for_row);
-
+    let last_row = path[m.len()-1][last_col].1;
     match ampl_is_enough(&path, &ampl_for_row, sequence.len()) {
         true => {
             println!("Alignment mk {:?}", m[m.len() - 1][last_col]);
-            //basic_output::write_align_banded_poa(&path, sequence, graph);
+            basic_output::write_align_banded_poa(&path, sequence, graph, &ampl_for_row,last_row, last_col);
             //m[graph.len() - 1][sequence.len() - 1]
         }
         false => exec(sequence, graph, score_matrix, ampl * 2),
