@@ -1,8 +1,8 @@
+use crate::basic_output;
 use std::{
     cmp::{self, Ordering},
     collections::HashMap,
 };
-use crate::basic_output;
 
 pub fn exec(
     sequence: &[char],
@@ -95,45 +95,74 @@ pub fn exec(
                     }
                 }
                 _ if j == right - left - 1 => {
-                    //only d or l
+                    //only d or l, u only if band ends predecessor and current node equals
                     let l = m[i][j - 1]
                         + score_matrix
                             .get(&(sequence[j + ampl_for_row[i].0], '-'))
                             .unwrap();
                     if graph[i].1.is_empty() {
-                        let delta = ampl_for_row[i].0 - ampl_for_row[i - 1].0;
-                        let d = m[i - 1][j + delta - 1]
-                            + score_matrix.get(&(graph[i].0, sequence[j + left])).unwrap();
+                        let d;
+                        let delta;
+                        let u;
 
-                        m[i][j] = match d.cmp(&l) {
-                            Ordering::Less => {
-                                path[i][j] = ('L', j - 1);
-                                l
-                            }
-                            _ => {
-                                if graph[i].0 == sequence[j + left] {
-                                    path[i][j] = ('D', i - 1);
-                                } else {
-                                    path[i][j] = ('d', i - 1);
-                                }
-                                d
-                            }
+                        if ampl_for_row[i].0 < ampl_for_row[i - 1].0 {
+                            delta = ampl_for_row[i - 1].0 - ampl_for_row[i].0;
+                            d = m[i - 1][j - delta - 1]
+                                + score_matrix.get(&(sequence[j + left], graph[i].0)).unwrap();
+                        } else {
+                            delta = ampl_for_row[i].0 - ampl_for_row[i - 1].0;
+                            d = m[i - 1][j + delta - 1]
+                                + score_matrix.get(&(sequence[j + left], graph[i].0)).unwrap();
                         }
+                        if cannot_look_up(i - 1, i, &ampl_for_row) {
+                            u = d - 1;
+                        } else {
+                            // can have u value even if last char of band
+                            u = m[i - 1][j + delta] + score_matrix.get(&('-', graph[i].0)).unwrap();
+                        }
+                        let (best_val, mut dir) = get_max_d_u_l(d, u, l);
+                        if dir == 'D' && sequence[j + left] != graph[i].0 {
+                            dir = 'd'
+                        }
+                        m[i][j] = best_val;
+                        path[i][j] = match dir {
+                            'D' => ('D', i - 1),
+                            'd' => ('d', i - 1),
+                            'U' => ('U', i - 1),
+                            _ => ('L', j - 1),
+                        };
                     } else if let Some((d, d_idx)) =
                         get_best_d(graph, sequence, &m, score_matrix, &ampl_for_row, i, j)
                     {
-                        m[i][j] = match d.cmp(&l) {
-                            Ordering::Less => {
-                                path[i][j] = ('L', j - 1);
-                                l
+                        if let Some((u, u_idx)) =
+                            get_best_u_special(graph, &m, score_matrix, &ampl_for_row, i, j)
+                        // same as case before
+                        {
+                            let (best_val, mut dir) = get_max_d_u_l(d, u, l);
+                            if dir == 'D' && sequence[j + left] != graph[i].0 {
+                                dir = 'd'
                             }
-                            _ => {
-                                if graph[i].0 == sequence[j + left] {
-                                    path[i][j] = ('D', d_idx);
-                                } else {
-                                    path[i][j] = ('d', d_idx);
+                            m[i][j] = best_val;
+                            path[i][j] = match dir {
+                                'D' => ('D', d_idx),
+                                'd' => ('d', d_idx),
+                                'U' => ('U', u_idx),
+                                _ => ('L', j - 1),
+                            };
+                        } else {
+                            m[i][j] = match d.cmp(&l) {
+                                Ordering::Less => {
+                                    path[i][j] = ('L', j - 1);
+                                    l
                                 }
-                                d
+                                _ => {
+                                    if graph[i].0 == sequence[j + left] {
+                                        path[i][j] = ('D', d_idx);
+                                    } else {
+                                        path[i][j] = ('d', d_idx);
+                                    }
+                                    d
+                                }
                             }
                         }
                     }
@@ -159,7 +188,7 @@ pub fn exec(
                             d = m[i - 1][j + delta - 1]
                                 + score_matrix.get(&(sequence[j + left], graph[i].0)).unwrap();
                         }
-                        let (best_val, mut dir) = get_max_d_u_l(d, l, u);
+                        let (best_val, mut dir) = get_max_d_u_l(d, u, l);
                         if dir == 'D' && sequence[j + left] != graph[i].0 {
                             dir = 'd'
                         }
@@ -174,7 +203,7 @@ pub fn exec(
                         get_best_d(graph, sequence, &m, score_matrix, &ampl_for_row, i, j),
                         get_best_u(graph, &m, score_matrix, &ampl_for_row, i, j),
                     ) {
-                        let (best_val, mut dir) = get_max_d_u_l(d, l, u);
+                        let (best_val, mut dir) = get_max_d_u_l(d, u, l);
                         if dir == 'D' && sequence[j + left] != graph[i].0 {
                             dir = 'd'
                         }
@@ -193,11 +222,19 @@ pub fn exec(
 
     let last_col = ampl_for_row[m.len() - 1].1 - ampl_for_row[m.len() - 1].0 - 1;
     best_last_node(graph, &mut m, &mut path, last_col, &ampl_for_row);
-    let last_row = path[m.len()-1][last_col].1;
+    let last_row = path[m.len() - 1][last_col].1;
     match ampl_is_enough(&path, &ampl_for_row, sequence.len()) {
         true => {
             println!("Alignment mk {:?}", m[m.len() - 1][last_col]);
-            basic_output::write_align_banded_poa(&path, sequence, graph, &ampl_for_row,last_row, last_col);
+            basic_output::write_align_banded_poa(
+                &path,
+                sequence,
+                graph,
+                &ampl_for_row,
+                last_row,
+                last_col,
+            );
+
             //m[graph.len() - 1][sequence.len() - 1]
         }
         false => exec(sequence, graph, score_matrix, ampl * 2),
@@ -460,4 +497,44 @@ fn get_max_d_u_l(d: i32, u: i32, l: i32) -> (i32, char) {
         },
     };
     (best_val, dir)
+}
+
+fn cannot_look_up(p: usize, i: usize, ampl_for_row: &[(usize, usize)]) -> bool {
+    if ampl_for_row[i].1 > ampl_for_row[p].1 {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+fn get_best_u_special(
+    graph: &[(char, Vec<usize>)],
+    m: &[Vec<i32>],
+    scores_matrix: &HashMap<(char, char), i32>,
+    ampl_for_row: &[(usize, usize)],
+    i: usize,
+    j: usize,
+) -> Option<(i32, usize)> {
+    let mut u = 0;
+    let mut u_idx = 0;
+    let mut first = true;
+    for p in graph[i].1.iter() {
+        if ampl_for_row[i].1 == ampl_for_row[*p].1 {
+            let current_u = m[*p][j] + scores_matrix.get(&(graph[i].0, '-')).unwrap();
+            if first {
+                first = false;
+                u = current_u;
+                u_idx = *p;
+            }
+            if current_u > u {
+                u = current_u;
+                u_idx = *p;
+            }
+        }
+    }
+    if first {
+        None
+    } else {
+        Some((u, u_idx))
+    }
 }

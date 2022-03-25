@@ -261,9 +261,6 @@ pub fn write_align_poa(path: &[Vec<(char, i32)>], sequence: &[char], graph: &[(c
                 col = path[row][col].1 as usize;
             }
             ('U', _) => {
-                sequence_align.push(sequence[row]);
-                graph_align.push('-');
-                alignment_moves.push(' ');
                 row -= 1;
             }
             _ => {
@@ -273,13 +270,19 @@ pub fn write_align_poa(path: &[Vec<(char, i32)>], sequence: &[char], graph: &[(c
     }
     reverse_and_write(sequence_align, graph_align, alignment_moves, "poa");
 }
-pub fn write_align_banded_poa(path: &[Vec<(char, usize)>], sequence: &[char], graph: &[(char, Vec<usize>)], ampl_for_row: &[(usize, usize)],last_row: usize, last_col: usize) {
+pub fn write_align_banded_poa(
+    path: &[Vec<(char, usize)>],
+    sequence: &[char],
+    graph: &[(char, Vec<usize>)],
+    ampl_for_row: &[(usize, usize)],
+    last_row: usize,
+    last_col: usize,
+) {
     let mut col = last_col;
     let mut row = last_row;
     let mut sequence_align = String::new();
     let mut graph_align = String::new();
     let mut alignment_moves = String::new();
-
     while path[row][col] != ('O', 0) {
         let (left, _) = ampl_for_row[row];
         let p_left = ampl_for_row[path[row][col].1].0;
@@ -292,14 +295,14 @@ pub fn write_align_banded_poa(path: &[Vec<(char, usize)>], sequence: &[char], gr
         };
         match path[row][col] {
             ('D', _) => {
-                sequence_align.push(sequence[col+left]);
+                sequence_align.push(sequence[col + left]);
                 graph_align.push(graph[row].0);
                 alignment_moves.push('|');
                 row = path[row][col].1 as usize;
                 col = j_pos - 1;
             }
             ('d', _) => {
-                sequence_align.push(sequence[col+left]);
+                sequence_align.push(sequence[col + left]);
                 graph_align.push(graph[row].0);
                 alignment_moves.push('.');
                 row = path[row][col].1 as usize;
@@ -307,7 +310,7 @@ pub fn write_align_banded_poa(path: &[Vec<(char, usize)>], sequence: &[char], gr
             }
             ('L', _) => {
                 graph_align.push('-');
-                sequence_align.push(sequence[col+left]);
+                sequence_align.push(sequence[col + left]);
                 alignment_moves.push(' ');
                 col -= 1;
             }
