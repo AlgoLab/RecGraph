@@ -206,9 +206,7 @@ pub fn exec(
     
     let last_col = ampl_for_row[m.len() - 1].1 - ampl_for_row[m.len() - 1].0 - 1;
     
-    path.iter().for_each(|line| {println!("{:?}",line)});
     best_last_node(graph, &mut m, &mut path, last_col, &ampl_for_row);
-    
     
     match ampl_is_enough(&path, &ampl_for_row, sequence.len()) {
         true => {
@@ -318,22 +316,33 @@ fn set_left_right(
 }
 
 fn ampl_is_enough(path: &[Vec<(char, usize)>], ampl_for_row: &Vec<(usize, usize)>, seq_len: usize) -> bool {
-    let mut col = path[0].len() - 1;
-    let mut row = path[path.len() - 1][path[0].len() - 1].1 as usize;
+    let last_row = path.len()-1;
+    let last_col = ampl_for_row[last_row].1 - ampl_for_row[last_row].0 - 1;
+    let mut row = path[last_row][last_col].1;
+    let mut col = path[row].len()-1;
 
     while path[row][col].0 != 'O' {
         //reached end of path, no need to continue
         if ampl_for_row[row].0 == 0 {
             return true;
         }
-
+        let j_pos;
+                let p_left = ampl_for_row[path[row][col].1].0;
+                if ampl_for_row[row].0 < p_left {
+                    let delta = p_left - ampl_for_row[row].0;
+                    j_pos = col - delta;
+                }
+                else {
+                    let delta = ampl_for_row[row].0 - p_left;
+                    j_pos = col + delta;
+                }
         if col == 0
-            || (col == ampl_for_row[row].1 - 1 && !(ampl_for_row[row].1 == seq_len - 1))
+            || (col == ampl_for_row[row].1 - ampl_for_row[row].0 - 1 && !(ampl_for_row[row].1 == seq_len - 1))
         {
             // != from path_len because couldn't go larger
             if path[row][col].0 == 'D' {
                 row = path[row][col].1 as usize;
-                col -= 1;
+                col = j_pos - 1;
                 // finchè ho match posso continuare anche se sul margine
             } else {
                 return false;
@@ -342,10 +351,11 @@ fn ampl_is_enough(path: &[Vec<(char, usize)>], ampl_for_row: &Vec<(usize, usize)
             match path[row][col].0 {
                 'D' | 'd' => {
                     row = path[row][col].1 as usize;
-                    col -= 1;
+                    col = j_pos - 1;
                 }
                 'U' => {
                     row = path[row][col].1 as usize;
+                    col = j_pos;
                 }
                 'L' => {
                     col -= 1;
