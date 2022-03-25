@@ -1,4 +1,3 @@
-use crate::basic_output;
 use std::{
     cmp::{self, Ordering},
     collections::HashMap,
@@ -74,28 +73,23 @@ pub fn exec(
                                 d
                             }
                         }
-                    } else {
-                        match (
-                            get_best_d(graph, sequence, &m, score_matrix, &ampl_for_row, i, j),
-                            get_best_u(graph, &m, score_matrix, &ampl_for_row, i, j),
-                        ) {
-                            (Some((d, d_idx)), Some((u, u_idx))) => {
-                                m[i][j] = match d.cmp(&u) {
-                                    Ordering::Less => {
-                                        path[i][j] = ('U', u_idx);
-                                        u
-                                    }
-                                    _ => {
-                                        if graph[i].0 == sequence[j + left] {
-                                            path[i][j] = ('D', d_idx);
-                                        } else {
-                                            path[i][j] = ('d', d_idx);
-                                        }
-                                        d
-                                    }
-                                }
+                    } else if let (Some((d, d_idx)), Some((u, u_idx))) = (
+                        get_best_d(graph, sequence, &m, score_matrix, &ampl_for_row, i, j),
+                        get_best_u(graph, &m, score_matrix, &ampl_for_row, i, j),
+                    ) {
+                        m[i][j] = match d.cmp(&u) {
+                            Ordering::Less => {
+                                path[i][j] = ('U', u_idx);
+                                u
                             }
-                            _ => {}
+                            _ => {
+                                if graph[i].0 == sequence[j + left] {
+                                    path[i][j] = ('D', d_idx);
+                                } else {
+                                    path[i][j] = ('d', d_idx);
+                                }
+                                d
+                            }
                         }
                     }
                 }
@@ -124,25 +118,22 @@ pub fn exec(
                                 d
                             }
                         }
-                    } else {
-                        match get_best_d(graph, sequence, &m, score_matrix, &ampl_for_row, i, j) {
-                            Some((d, d_idx)) => {
-                                m[i][j] = match d.cmp(&l) {
-                                    Ordering::Less => {
-                                        path[i][j] = ('L', j - 1);
-                                        l
-                                    }
-                                    _ => {
-                                        if graph[i].0 == sequence[j + left] {
-                                            path[i][j] = ('D', d_idx);
-                                        } else {
-                                            path[i][j] = ('d', d_idx);
-                                        }
-                                        d
-                                    }
-                                }
+                    } else if let Some((d, d_idx)) =
+                        get_best_d(graph, sequence, &m, score_matrix, &ampl_for_row, i, j)
+                    {
+                        m[i][j] = match d.cmp(&l) {
+                            Ordering::Less => {
+                                path[i][j] = ('L', j - 1);
+                                l
                             }
-                            _ => {}
+                            _ => {
+                                if graph[i].0 == sequence[j + left] {
+                                    path[i][j] = ('D', d_idx);
+                                } else {
+                                    path[i][j] = ('d', d_idx);
+                                }
+                                d
+                            }
                         }
                     }
                 }
@@ -178,45 +169,38 @@ pub fn exec(
                             'U' => ('U', i - 1),
                             _ => ('L', j - 1),
                         };
-                    } else {
-                        match (
-                            get_best_d(graph, sequence, &m, score_matrix, &ampl_for_row, i, j),
-                            get_best_u(graph, &m, score_matrix, &ampl_for_row, i, j),
-                        ) {
-                            (Some((d, d_idx)), Some((u, u_idx))) => {
-                                let (best_val, mut dir) = get_max_d_u_l(d, l, u);
-                                if dir == 'D' && sequence[j + left] != graph[i].0 {
-                                    dir = 'd'
-                                }
-                                m[i][j] = best_val;
-                                path[i][j] = match dir {
-                                    'D' => ('D', d_idx),
-                                    'd' => ('d', d_idx),
-                                    'U' => ('U', u_idx),
-                                    _ => ('L', j - 1),
-                                };
-                            }
-                            _ => {}
+                    } else if let (Some((d, d_idx)), Some((u, u_idx))) = (
+                        get_best_d(graph, sequence, &m, score_matrix, &ampl_for_row, i, j),
+                        get_best_u(graph, &m, score_matrix, &ampl_for_row, i, j),
+                    ) {
+                        let (best_val, mut dir) = get_max_d_u_l(d, l, u);
+                        if dir == 'D' && sequence[j + left] != graph[i].0 {
+                            dir = 'd'
                         }
+                        m[i][j] = best_val;
+                        path[i][j] = match dir {
+                            'D' => ('D', d_idx),
+                            'd' => ('d', d_idx),
+                            'U' => ('U', u_idx),
+                            _ => ('L', j - 1),
+                        };
                     }
                 }
             }
         }
     }
-    
+
     let last_col = ampl_for_row[m.len() - 1].1 - ampl_for_row[m.len() - 1].0 - 1;
-    
+
     best_last_node(graph, &mut m, &mut path, last_col, &ampl_for_row);
-    
+
     match ampl_is_enough(&path, &ampl_for_row, sequence.len()) {
         true => {
             println!("Alignment mk {:?}", m[m.len() - 1][last_col]);
             //basic_output::write_align_banded_poa(&path, sequence, graph);
             //m[graph.len() - 1][sequence.len() - 1]
         }
-        false => {
-            exec(sequence, graph, score_matrix, ampl*2)
-        }
+        false => exec(sequence, graph, score_matrix, ampl * 2),
     }
 }
 
@@ -225,7 +209,7 @@ fn best_last_node(
     m: &mut [Vec<i32>],
     path: &mut [Vec<(char, usize)>],
     j: usize,
-    ampl_for_row: &Vec<(usize, usize)>,
+    ampl_for_row: &[(usize, usize)],
 ) {
     let mut best_align = 0;
     let mut best_idx = 0;
@@ -273,41 +257,39 @@ fn set_left_right(
         right = sequence.len();
         if i == 0 {
             right = cmp::min(ampl / 2, sequence.len());
-        } else {
-            if graph[i].1.is_empty() {
-                if i < ampl / 2 {
-                    left = 0;
-                } else {
-                    left = ampl_for_row[i - 1].0 + 1
-                }
-                right = cmp::min(ampl_for_row[i - 1].1 + 1, sequence.len());
-                if right <= left + ampl / 2 {
-                    (left, right) = (right - ampl / 2, right);
-                }
+        } else if graph[i].1.is_empty() {
+            if i < ampl / 2 {
+                left = 0;
             } else {
-                let mut first = true;
-                for p in graph[i].1.iter() {
-                    let (current_l, current_r);
-                    if p + 1 < ampl / 2 {
-                        current_l = 0;
-                    } else {
-                        current_l = ampl_for_row[*p].0 + 1
-                    }
-                    current_r = cmp::min(ampl_for_row[*p].1 + 1, sequence.len());
-                    if first {
-                        first = false;
-                        (left, right) = (current_l, current_r)
-                    }
-                    if current_l < left {
-                        left = current_l;
-                    }
-                    if current_r > right {
-                        right = current_r;
-                    }
+                left = ampl_for_row[i - 1].0 + 1
+            }
+            right = cmp::min(ampl_for_row[i - 1].1 + 1, sequence.len());
+            if right <= left + ampl / 2 {
+                (left, right) = (right - ampl / 2, right);
+            }
+        } else {
+            let mut first = true;
+            for p in graph[i].1.iter() {
+                let (current_l, current_r);
+                if p + 1 < ampl / 2 {
+                    current_l = 0;
+                } else {
+                    current_l = ampl_for_row[*p].0 + 1
                 }
-                if right <= left + ampl / 2 {
-                    (left, right) = (right - ampl / 2, right);
+                current_r = cmp::min(ampl_for_row[*p].1 + 1, sequence.len());
+                if first {
+                    first = false;
+                    (left, right) = (current_l, current_r)
                 }
+                if current_l < left {
+                    left = current_l;
+                }
+                if current_r > right {
+                    right = current_r;
+                }
+            }
+            if right <= left + ampl / 2 {
+                (left, right) = (right - ampl / 2, right);
             }
         }
     }
@@ -315,29 +297,33 @@ fn set_left_right(
     (left, right)
 }
 
-fn ampl_is_enough(path: &[Vec<(char, usize)>], ampl_for_row: &Vec<(usize, usize)>, seq_len: usize) -> bool {
-    let last_row = path.len()-1;
+fn ampl_is_enough(
+    path: &[Vec<(char, usize)>],
+    ampl_for_row: &[(usize, usize)],
+    seq_len: usize,
+) -> bool {
+    let last_row = path.len() - 1;
     let last_col = ampl_for_row[last_row].1 - ampl_for_row[last_row].0 - 1;
     let mut row = path[last_row][last_col].1;
-    let mut col = path[row].len()-1;
+    let mut col = path[row].len() - 1;
 
     while path[row][col].0 != 'O' {
         //reached end of path, no need to continue
         if ampl_for_row[row].0 == 0 {
             return true;
         }
-        let j_pos;
-                let p_left = ampl_for_row[path[row][col].1].0;
-                if ampl_for_row[row].0 < p_left {
-                    let delta = p_left - ampl_for_row[row].0;
-                    j_pos = col - delta;
-                }
-                else {
-                    let delta = ampl_for_row[row].0 - p_left;
-                    j_pos = col + delta;
-                }
+
+        let p_left = ampl_for_row[path[row][col].1].0;
+        let j_pos = if ampl_for_row[row].0 < p_left {
+            let delta = p_left - ampl_for_row[row].0;
+            col - delta
+        } else {
+            let delta = ampl_for_row[row].0 - p_left;
+            col + delta
+        };
         if col == 0
-            || (col == ampl_for_row[row].1 - ampl_for_row[row].0 - 1 && !(ampl_for_row[row].1 == seq_len - 1))
+            || (col == ampl_for_row[row].1 - ampl_for_row[row].0 - 1
+                && ampl_for_row[row].1 != seq_len - 1)
         {
             // != from path_len because couldn't go larger
             if path[row][col].0 == 'D' {
@@ -374,7 +360,7 @@ fn get_best_d(
     sequence: &[char],
     m: &[Vec<i32>],
     scores_matrix: &HashMap<(char, char), i32>,
-    ampl_for_row: &Vec<(usize, usize)>,
+    ampl_for_row: &[(usize, usize)],
     i: usize,
     j: usize,
 ) -> Option<(i32, usize)> {
@@ -424,7 +410,7 @@ fn get_best_u(
     graph: &[(char, Vec<usize>)],
     m: &[Vec<i32>],
     scores_matrix: &HashMap<(char, char), i32>,
-    ampl_for_row: &Vec<(usize, usize)>,
+    ampl_for_row: &[(usize, usize)],
     i: usize,
     j: usize,
 ) -> Option<(i32, usize)> {

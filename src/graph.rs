@@ -26,29 +26,26 @@ pub fn get_linearization(file_path: &str) -> Vec<(char, Vec<usize>)> {
     }
     // per ogni sequenza guardo i predecessori e aggiorno valore corrispondente
     for handle in &sorted_handles {
-        match visited_node.get(&handle.id()) {
-            Some(_) => {
-                if graph
-                    .handle_edges_iter(*handle, Direction::Left)
-                    .into_iter()
-                    .count()
-                    == 0
-                {
-                    let h_last_idx = get_idx(&visited_node, handle.id());
-                    linearization[h_last_idx as usize - graph.sequence(*handle).len() + 1]
-                        .1
-                        .push(0);
-                }
-                for predecessor in graph.handle_edges_iter(*handle, Direction::Left) {
-                    let pred_last_idx = get_idx(&visited_node, predecessor.id());
-                    let h_last_idx = get_idx(&visited_node, handle.id());
-                    linearization[h_last_idx as usize - graph.sequence(*handle).len() + 1]
-                        .1
-                        .push(pred_last_idx as usize);
-                    last_nodes.remove(&predecessor.id());
-                }
+        if visited_node.get(&handle.id()).is_some() {
+            if graph
+                .handle_edges_iter(*handle, Direction::Left)
+                .into_iter()
+                .count()
+                == 0
+            {
+                let h_last_idx = get_idx(&visited_node, handle.id());
+                linearization[h_last_idx as usize - graph.sequence(*handle).len() + 1]
+                    .1
+                    .push(0);
             }
-            _ => {}
+            for predecessor in graph.handle_edges_iter(*handle, Direction::Left) {
+                let pred_last_idx = get_idx(&visited_node, predecessor.id());
+                let h_last_idx = get_idx(&visited_node, handle.id());
+                linearization[h_last_idx as usize - graph.sequence(*handle).len() + 1]
+                    .1
+                    .push(pred_last_idx as usize);
+                last_nodes.remove(&predecessor.id());
+            }
         }
     }
     linearization.insert(linearization.len(), ('F', vec![]));

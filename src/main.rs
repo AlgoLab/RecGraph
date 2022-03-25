@@ -1,6 +1,5 @@
 mod ab_gap_global_alignment;
 mod ab_global_alignment;
-mod ab_partial_order_alignment;
 mod args_parser;
 mod basic_output;
 mod gap_partial_order_alignment;
