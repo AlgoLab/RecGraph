@@ -9,12 +9,13 @@ mod graph;
 mod local_alignment;
 mod matrix;
 mod partial_order_alignment_global;
+mod sequences;
 use std::cmp;
-use std::fs::File;
-use std::io::{prelude::*, BufReader};
+
+
 
 fn main() {
-    let sequences = get_sequences();
+    let sequences = sequences::get_sequences();
 
     let mut s1: Vec<char> = sequences[10].chars().collect();
     let mut s2: Vec<char> = sequences[11].chars().collect();
@@ -78,17 +79,3 @@ fn main() {
     }
 }
 
-fn get_sequences() -> Vec<String> {
-    let mut sequences: Vec<String> = Vec::new();
-    /*let file_path = project_root::get_project_root()
-    .unwrap()
-    .join("sequences.txt");*/
-    let file_path = args_parser::get_sequence_path();
-    let file = File::open(file_path).unwrap();
-    let reader = BufReader::new(file);
-
-    for line in reader.lines().flatten() {
-        sequences.push(line);
-    }
-    sequences
-}

@@ -103,7 +103,6 @@ pub fn exec(
                     if graph[i].1.is_empty() {
                         let d;
                         let delta;
-                        let u;
 
                         if ampl_for_row[i].0 < ampl_for_row[i - 1].0 {
                             delta = ampl_for_row[i - 1].0 - ampl_for_row[i].0;
@@ -114,12 +113,12 @@ pub fn exec(
                             d = m[i - 1][j + delta - 1]
                                 + score_matrix.get(&(sequence[j + left], graph[i].0)).unwrap();
                         }
-                        if cannot_look_up(i - 1, i, &ampl_for_row) {
-                            u = d - 1;
+                        let u = if cannot_look_up(i - 1, i, &ampl_for_row) {
+                            d - 1
                         } else {
                             // can have u value even if last char of band
-                            u = m[i - 1][j + delta] + score_matrix.get(&('-', graph[i].0)).unwrap();
-                        }
+                            m[i - 1][j + delta] + score_matrix.get(&('-', graph[i].0)).unwrap()
+                        };
                         let (best_val, mut dir) = get_max_d_u_l(d, u, l);
                         if dir == 'D' && sequence[j + left] != graph[i].0 {
                             dir = 'd'
@@ -500,11 +499,7 @@ fn get_max_d_u_l(d: i32, u: i32, l: i32) -> (i32, char) {
 }
 
 fn cannot_look_up(p: usize, i: usize, ampl_for_row: &[(usize, usize)]) -> bool {
-    if ampl_for_row[i].1 > ampl_for_row[p].1 {
-        return true;
-    } else {
-        return false;
-    }
+    ampl_for_row[i].1 > ampl_for_row[p].1
 }
 
 fn get_best_u_special(
