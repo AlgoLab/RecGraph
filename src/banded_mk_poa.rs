@@ -3,7 +3,6 @@ use std::{
     cmp::{self, Ordering},
     collections::HashMap,
 };
-
 pub fn exec(
     sequence: &[char],
     graph: &[(char, Vec<usize>)],

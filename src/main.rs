@@ -12,11 +12,8 @@ mod partial_order_alignment_global;
 mod sequences;
 use std::cmp;
 
-
-
 fn main() {
     let sequences = sequences::get_sequences();
-
     let mut s1: Vec<char> = sequences[10].chars().collect();
     let mut s2: Vec<char> = sequences[11].chars().collect();
     s1.insert(0, '$');
@@ -78,4 +75,3 @@ fn main() {
         _ => panic!("alignment mode must be 0, 1, 2 or 3"),
     }
 }
-

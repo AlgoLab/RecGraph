@@ -1,6 +1,6 @@
+use crate::args_parser;
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
-use crate::args_parser;
 
 pub fn get_sequences() -> Vec<String> {
     let file_path = args_parser::get_sequence_path();
@@ -9,7 +9,7 @@ pub fn get_sequences() -> Vec<String> {
 
     let mut sequences: Vec<String> = Vec::new();
     for line in reader.lines().flatten() {
-        if !line.starts_with('>') && !line.is_empty(){
+        if !line.starts_with('>') && !line.is_empty() {
             let line: String = line
                 .chars()
                 .map(|c| if c == '-' { 'N' } else { c })
