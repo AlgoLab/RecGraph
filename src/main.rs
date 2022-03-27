@@ -60,6 +60,7 @@ fn main() {
             sequence.insert(0, '$');
             let graph_path = args_parser::get_graph_path();
             let linearization = graph::get_linearization(&graph_path);
+            let graph_struct = graph::create_graph_struct(&graph_path);
 
             partial_order_alignment_global::exec(&sequence, &linearization, &score_matrix);
             let (g_open, g_ext) = args_parser::get_gap_open_gap_ext();
@@ -70,7 +71,7 @@ fn main() {
                 g_open,
                 g_ext,
             );
-            banded_mk_poa::exec(&sequence, &linearization, &score_matrix, 5);
+            banded_mk_poa::exec(&sequence, &graph_struct, &score_matrix, 5);
         }
         _ => panic!("alignment mode must be 0, 1, 2 or 3"),
     }

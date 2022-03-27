@@ -72,9 +72,9 @@ fn read_graph(file_path: &str) -> (HashGraph, Vec<Handle>) {
     (graph, handles)
 }
 pub struct LnzGraph {
-    lnz: Vec<char>,
-    nwp: BitVec,
-    pred_hash: HashMap<usize, Vec<usize>>,
+    pub lnz: Vec<char>,
+    pub nwp: BitVec,
+    pub pred_hash: HashMap<usize, Vec<usize>>,
 }
 pub fn create_graph_struct(file_path: &str) -> LnzGraph {
     let (graph, sorted_handles) = read_graph(file_path);
