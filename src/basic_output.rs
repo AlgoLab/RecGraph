@@ -273,7 +273,7 @@ pub fn write_align_poa(path: &[Vec<(char, i32)>], sequence: &[char], graph: &[(c
 pub fn write_align_banded_poa(
     path: &[Vec<(char, usize)>],
     sequence: &[char],
-    graph: &[(char, Vec<usize>)],
+    graph: &[char],
     ampl_for_row: &[(usize, usize)],
     last_row: usize,
     last_col: usize,
@@ -296,14 +296,14 @@ pub fn write_align_banded_poa(
         match path[row][col] {
             ('D', _) => {
                 sequence_align.push(sequence[col + left]);
-                graph_align.push(graph[row].0);
+                graph_align.push(graph[row]);
                 alignment_moves.push('|');
                 row = path[row][col].1 as usize;
                 col = j_pos - 1;
             }
             ('d', _) => {
                 sequence_align.push(sequence[col + left]);
-                graph_align.push(graph[row].0);
+                graph_align.push(graph[row]);
                 alignment_moves.push('.');
                 row = path[row][col].1 as usize;
                 col = j_pos - 1;
@@ -315,7 +315,7 @@ pub fn write_align_banded_poa(
                 col -= 1;
             }
             ('U', _) => {
-                graph_align.push(graph[row].0);
+                graph_align.push(graph[row]);
                 sequence_align.push('-');
                 alignment_moves.push(' ');
                 row = path[row][col].1 as usize;

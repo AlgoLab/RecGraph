@@ -122,57 +122,38 @@ pub fn exec(
                             d = m[i - 1][j + delta - 1]
                                 + score_matrix.get(&(sequence[j + left], lnz[i])).unwrap();
                         }
-                        let u = if cannot_look_up(i - 1, i, &ampl_for_row) {
-                            d - 1
-                        } else {
-                            // can have u value even if last char of band
-                            m[i - 1][j + delta] + score_matrix.get(&('-', lnz[i])).unwrap()
-                        };
-                        let (best_val, mut dir) = get_max_d_u_l(d, u, l);
-                        if dir == 'D' && sequence[j + left] != lnz[i] {
-                            dir = 'd'
+
+                        m[i][j] = match d.cmp(&l) {
+                            Ordering::Less => {
+                                path[i][j] = ('L', j - 1);
+                                l
+                            }
+                            _ => {
+                                if lnz[i] == sequence[j + left] {
+                                    path[i][j] = ('D', i - 1);
+                                } else {
+                                    path[i][j] = ('d', i - 1);
+                                }
+                                d
+                            }
                         }
-                        m[i][j] = best_val;
-                        path[i][j] = match dir {
-                            'D' => ('D', i - 1),
-                            'd' => ('d', i - 1),
-                            'U' => ('U', i - 1),
-                            _ => ('L', j - 1),
-                        };
                     } else if let Some((mut d, d_idx)) =
                         get_best_d(pred_hash.get(&i).unwrap(), &m, &ampl_for_row, i, j)
                     {
                         d += score_matrix.get(&(lnz[i], sequence[j + left])).unwrap();
-                        if let Some((mut u, u_idx)) =
-                            get_best_u_special(pred_hash.get(&i).unwrap(), &m, &ampl_for_row, i, j)
-                        // same as case before
-                        {
-                            u += score_matrix.get(&(lnz[i], '-')).unwrap();
-                            let (best_val, mut dir) = get_max_d_u_l(d, u, l);
-                            if dir == 'D' && sequence[j + left] != lnz[i] {
-                                dir = 'd'
+
+                        m[i][j] = match d.cmp(&l) {
+                            Ordering::Less => {
+                                path[i][j] = ('L', j - 1);
+                                l
                             }
-                            m[i][j] = best_val;
-                            path[i][j] = match dir {
-                                'D' => ('D', d_idx),
-                                'd' => ('d', d_idx),
-                                'U' => ('U', u_idx),
-                                _ => ('L', j - 1),
-                            };
-                        } else {
-                            m[i][j] = match d.cmp(&l) {
-                                Ordering::Less => {
-                                    path[i][j] = ('L', j - 1);
-                                    l
+                            _ => {
+                                if lnz[i] == sequence[j + left] {
+                                    path[i][j] = ('D', d_idx);
+                                } else {
+                                    path[i][j] = ('d', d_idx);
                                 }
-                                _ => {
-                                    if lnz[i] == sequence[j + left] {
-                                        path[i][j] = ('D', d_idx);
-                                    } else {
-                                        path[i][j] = ('d', d_idx);
-                                    }
-                                    d
-                                }
+                                d
                             }
                         }
                     }
@@ -231,28 +212,30 @@ pub fn exec(
             }
         }
     }
-    let last_col = ampl_for_row[m.len() - 1].1 - ampl_for_row[m.len() - 1].0 - 1;
+    let last_col_f_node = ampl_for_row[m.len() - 1].1 - ampl_for_row[m.len() - 1].0 - 1;
     best_last_node(
         pred_hash.get(&(lnz.len() - 1)).unwrap(),
         &mut m,
         &mut path,
-        last_col,
+        last_col_f_node,
         &ampl_for_row,
     );
-    let last_row = path[m.len() - 1][last_col].1;
+    let last_row = path[m.len() - 1][last_col_f_node].1;
+    let last_col = ampl_for_row[last_row].1 - ampl_for_row[last_row].0 - 1;
+    path.iter().for_each(|line| println!("{:?}", line));
     match ampl_is_enough(&path, &ampl_for_row, sequence.len()) {
         true => {
-            println!("Alignment mk {:?}", m[m.len() - 1][last_col]);
-            /*
+            println!("Alignment mk {:?}", m[m.len() - 1][last_col_f_node]);
+
             basic_output::write_align_banded_poa(
                 &path,
                 sequence,
-                graph,
+                &lnz,
                 &ampl_for_row,
                 last_row,
                 last_col,
             );
-            */
+
             //m[graph.len() - 1][sequence.len() - 1]
         }
         false => exec(sequence, graph_struct, score_matrix, ampl * 2),
