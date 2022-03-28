@@ -37,7 +37,7 @@ pub fn exec(
                 (0, _) => {
                     //only left
                     m[i][j] = m[i][j - 1] + score_matrix.get(&('-', sequence[j + left])).unwrap();
-                    path[i][j] = ('L', j - 1);
+                    path[i][j] = ('L', i);
                 }
                 (_, 0) if left == 0 || ampl_for_row[i].0 == ampl_for_row[i - 1].0 => {
                     // only upper
@@ -104,7 +104,7 @@ pub fn exec(
                     }
                 }
                 _ if j == right - left - 1 => {
-                    //only d or l, u only if band ends predecessor and current node equals
+                    //only d or l
                     let l = m[i][j - 1]
                         + score_matrix
                             .get(&(sequence[j + ampl_for_row[i].0], '-'))
@@ -125,7 +125,7 @@ pub fn exec(
 
                         m[i][j] = match d.cmp(&l) {
                             Ordering::Less => {
-                                path[i][j] = ('L', j - 1);
+                                path[i][j] = ('L', i);
                                 l
                             }
                             _ => {
@@ -144,7 +144,7 @@ pub fn exec(
 
                         m[i][j] = match d.cmp(&l) {
                             Ordering::Less => {
-                                path[i][j] = ('L', j - 1);
+                                path[i][j] = ('L', i);
                                 l
                             }
                             _ => {
@@ -188,7 +188,7 @@ pub fn exec(
                             'D' => ('D', i - 1),
                             'd' => ('d', i - 1),
                             'U' => ('U', i - 1),
-                            _ => ('L', j - 1),
+                            _ => ('L', i),
                         };
                     } else if let (Some((mut d, d_idx)), Some((mut u, u_idx))) = (
                         get_best_d(pred_hash.get(&i).unwrap(), &m, &ampl_for_row, i, j),
@@ -205,7 +205,7 @@ pub fn exec(
                             'D' => ('D', d_idx),
                             'd' => ('d', d_idx),
                             'U' => ('U', u_idx),
-                            _ => ('L', j - 1),
+                            _ => ('L', i),
                         };
                     }
                 }
@@ -222,7 +222,6 @@ pub fn exec(
     );
     let last_row = path[m.len() - 1][last_col_f_node].1;
     let last_col = ampl_for_row[last_row].1 - ampl_for_row[last_row].0 - 1;
-    path.iter().for_each(|line| println!("{:?}", line));
     match ampl_is_enough(&path, &ampl_for_row, sequence.len()) {
         true => {
             println!("Alignment mk {:?}", m[m.len() - 1][last_col_f_node]);
@@ -238,7 +237,9 @@ pub fn exec(
 
             //m[graph.len() - 1][sequence.len() - 1]
         }
-        false => exec(sequence, graph_struct, score_matrix, ampl * 2),
+        false => {
+            exec(sequence, graph_struct, score_matrix, ampl * 2)
+        },
     }
 }
 
@@ -485,37 +486,3 @@ fn get_max_d_u_l(d: i32, u: i32, l: i32) -> (i32, char) {
     (best_val, dir)
 }
 
-fn cannot_look_up(p: usize, i: usize, ampl_for_row: &[(usize, usize)]) -> bool {
-    ampl_for_row[i].1 > ampl_for_row[p].1
-}
-
-fn get_best_u_special(
-    p_arr: &[usize],
-    m: &[Vec<i32>],
-    ampl_for_row: &[(usize, usize)],
-    i: usize,
-    j: usize,
-) -> Option<(i32, usize)> {
-    let mut u = 0;
-    let mut u_idx = 0;
-    let mut first = true;
-    for p in p_arr.iter() {
-        if ampl_for_row[i].1 == ampl_for_row[*p].1 {
-            let current_u = m[*p][j];
-            if first {
-                first = false;
-                u = current_u;
-                u_idx = *p;
-            }
-            if current_u > u {
-                u = current_u;
-                u_idx = *p;
-            }
-        }
-    }
-    if first {
-        None
-    } else {
-        Some((u, u_idx))
-    }
-}

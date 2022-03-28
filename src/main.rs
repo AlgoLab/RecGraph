@@ -10,7 +10,7 @@ mod local_alignment;
 mod matrix;
 mod partial_order_alignment_global;
 mod sequences;
-use std::cmp;
+use std::{cmp};
 
 fn main() {
     let sequences = sequences::get_sequences();
@@ -61,8 +61,13 @@ fn main() {
             let graph_path = args_parser::get_graph_path();
             let linearization = graph::get_linearization(&graph_path);
             let graph_struct = graph::create_graph_struct(&graph_path);
-
+            let ampl = match sequence.len() < linearization.len() {
+                true => linearization.len() - sequence.len(),
+                _ => sequence.len() - linearization.len(),
+            };
             partial_order_alignment_global::exec(&sequence, &linearization, &score_matrix);
+            banded_mk_poa::exec(&sequence, &graph_struct, &score_matrix, ampl);
+            
             let (g_open, g_ext) = args_parser::get_gap_open_gap_ext();
             gap_partial_order_alignment::exec(
                 &sequence,
@@ -71,7 +76,6 @@ fn main() {
                 g_open,
                 g_ext,
             );
-            banded_mk_poa::exec(&sequence, &graph_struct, &score_matrix, 5);
         }
         _ => panic!("alignment mode must be 0, 1, 2 or 3"),
     }
