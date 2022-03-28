@@ -13,7 +13,6 @@ pub fn exec(
     let lnz = &graph_struct.lnz;
     let nodes_w_pred = &graph_struct.nwp;
     let pred_hash = &graph_struct.pred_hash;
-
     let mut m = vec![vec![]; lnz.len()];
     let mut path = vec![vec![]; lnz.len()];
     let mut ampl_for_row: Vec<(usize, usize)> = vec![(0, 0); lnz.len()];
@@ -39,7 +38,7 @@ pub fn exec(
                     m[i][j] = m[i][j - 1] + score_matrix.get(&('-', sequence[j + left])).unwrap();
                     path[i][j] = ('L', i);
                 }
-                (_, 0) if left == 0 || ampl_for_row[i].0 == ampl_for_row[i - 1].0 => {
+                (_, 0) if left == 0  => {
                     // only upper
                     if !nodes_w_pred[i] {
                         m[i][j] = m[i - 1][j] + score_matrix.get(&(lnz[i], '-')).unwrap();
@@ -222,10 +221,10 @@ pub fn exec(
     );
     let last_row = path[m.len() - 1][last_col_f_node].1;
     let last_col = ampl_for_row[last_row].1 - ampl_for_row[last_row].0 - 1;
+    
     match ampl_is_enough(&path, &ampl_for_row, sequence.len()) {
         true => {
             println!("Alignment mk {:?}", m[m.len() - 1][last_col_f_node]);
-
             basic_output::write_align_banded_poa(
                 &path,
                 sequence,
@@ -237,9 +236,7 @@ pub fn exec(
 
             //m[graph.len() - 1][sequence.len() - 1]
         }
-        false => {
-            exec(sequence, graph_struct, score_matrix, ampl * 2)
-        },
+        false => exec(sequence, graph_struct, score_matrix, ampl * 2),
     }
 }
 
@@ -398,18 +395,17 @@ fn get_best_d(
     let mut d = 0;
     let mut d_idx = 0;
     let mut first = true;
-    let left = ampl_for_row[i].0;
     for p in p_arr.iter() {
-        if j + left >= ampl_for_row[*p].0 + 1 && j + left < ampl_for_row[*p].1 + 1 {
-            let delta;
-            let current_d;
-            if ampl_for_row[i].0 < ampl_for_row[*p].0 {
-                delta = ampl_for_row[*p].0 - ampl_for_row[i].0;
-                current_d = m[*p][j - delta - 1];
-            } else {
-                delta = ampl_for_row[i].0 - ampl_for_row[*p].0;
-                current_d = m[*p][j + delta - 1];
-            }
+        let j_pos;
+        if ampl_for_row[i].0 < ampl_for_row[*p].0 {
+            let delta = ampl_for_row[*p].0 - ampl_for_row[i].0;
+            j_pos = j - delta - 1;
+        } else {
+            let delta = ampl_for_row[i].0 - ampl_for_row[*p].0;
+            j_pos = j + delta - 1;
+        }
+        if j_pos >= ampl_for_row[*p].0 && j_pos <= ampl_for_row[*p].1 {
+            let current_d = m[*p][j_pos];
 
             if first {
                 first = false;
@@ -425,6 +421,7 @@ fn get_best_d(
 
     if first {
         // j is too far to be aligned with current predecessors
+        println!("ERR best_d"); // if no pred found should panic
         None
     } else {
         Some((d, d_idx))
@@ -440,19 +437,18 @@ fn get_best_u(
 ) -> Option<(i32, usize)> {
     let mut u = 0;
     let mut u_idx = 0;
-    let left = ampl_for_row[i].0;
     let mut first = true;
     for p in p_arr.iter() {
-        if j + left >= ampl_for_row[*p].0 && j + left < ampl_for_row[*p].1 {
-            let delta;
-            let current_u;
-            if ampl_for_row[i].0 < ampl_for_row[*p].0 {
-                delta = ampl_for_row[*p].0 - ampl_for_row[i].0;
-                current_u = m[*p][j - delta];
-            } else {
-                delta = ampl_for_row[i].0 - ampl_for_row[*p].0;
-                current_u = m[*p][j + delta];
-            }
+        let j_pos;
+        if ampl_for_row[i].0 < ampl_for_row[*p].0 {
+            let delta = ampl_for_row[*p].0 - ampl_for_row[i].0;
+            j_pos = j - delta;
+        } else {
+            let delta = ampl_for_row[i].0 - ampl_for_row[*p].0;
+            j_pos = j + delta;
+        }
+        if j_pos >= ampl_for_row[*p].0 && j_pos <= ampl_for_row[*p].1 {
+            let current_u = m[*p][j_pos];
             if first {
                 first = false;
                 u = current_u;
@@ -466,6 +462,7 @@ fn get_best_u(
     }
 
     if first {
+        println!("ERR best_u");
         None
     } else {
         Some((u, u_idx))
@@ -485,4 +482,3 @@ fn get_max_d_u_l(d: i32, u: i32, l: i32) -> (i32, char) {
     };
     (best_val, dir)
 }
-
