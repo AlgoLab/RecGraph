@@ -337,20 +337,37 @@ fn reverse_and_write(mut s1_al: String, mut s2_al: String, mut al_moves: String,
     let path = project_root::get_project_root().unwrap().join(file_name);
     let f = File::create(path).expect("unable to create file");
     let mut f = BufWriter::new(f);
-    let mut i =0;
-    while i < s1_al.len(){
-        if i+80 < s1_al.len(){
-            writeln!(f, "{}", &s1_al[i..i+80]).expect("unable to write");
-            writeln!(f, "{}", &al_moves[i..i+80]).expect("unable to write");
-            writeln!(f, "{}", &s2_al[i..i+80]).expect("unable to write");
-            writeln!(f, "").expect("unable to write");
+    let mut i = 0;
+    while i < s1_al.len() {
+        if i + 80 < s1_al.len() {
+            write!(f, "{: >80}", "").expect("unable to write");
+            writeln!(f, "[{}-{}]", i, i + 80).expect("unable to write");
+
+            write!(f, "{}", &s1_al[i..i + 80]).expect("unable to write");
+            writeln!(f, "\tgraph").expect("unable to write");
+
+            write!(f, "{}", &al_moves[i..i + 80]).expect("unable to write");
+            writeln!(f, "\tmatc/mis").expect("unable to write");
+
+            write!(f, "{}", &s2_al[i..i + 80]).expect("unable to write");
+            writeln!(f, "\tseq").expect("unable to write");
+
+            writeln!(f).expect("unable to write");
         } else {
-            writeln!(f, "{}", &s1_al[i..]).expect("unable to write");
-            writeln!(f, "{}", &al_moves[i..]).expect("unable to write");
-            writeln!(f, "{}", &s2_al[i..]).expect("unable to write");
-            writeln!(f, "").expect("unable to write");
+            write!(f, "{: >80}", "").expect("unable to write");
+            writeln!(f, "[{}-{}]", i, s1_al.len()).expect("unable to write");
+
+            write!(f, "{}", &s1_al[i..]).expect("unable to write");
+            writeln!(f, "\tgraph").expect("unable to write");
+
+            write!(f, "{}", &al_moves[i..]).expect("unable to write");
+            writeln!(f, "\tmatc/mis").expect("unable to write");
+
+            write!(f, "{}", &s2_al[i..]).expect("unable to write");
+            writeln!(f, "\tseq").expect("unable to write");
+
+            writeln!(f).expect("unable to write");
         }
         i += 80;
     }
-    
 }

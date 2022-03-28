@@ -69,13 +69,13 @@ fn main() {
             banded_mk_poa::exec(&sequence, &graph_struct, &score_matrix, ampl * 2);
 
             let (g_open, g_ext) = args_parser::get_gap_open_gap_ext();
-            /*gap_partial_order_alignment::exec(
+            gap_partial_order_alignment::exec(
                 &sequence,
                 &linearization,
                 &score_matrix,
                 g_open,
                 g_ext,
-            );*/
+            );
         }
         _ => panic!("alignment mode must be 0, 1, 2 or 3"),
     }

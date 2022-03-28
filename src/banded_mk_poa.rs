@@ -21,7 +21,7 @@ pub fn exec(
         if nodes_w_pred[i] {
             p_arr = pred_hash.get(&i).unwrap()
         }
-        let (left, right) = set_left_right(ampl, i, &p_arr, sequence.len(), &mut ampl_for_row);
+        let (left, right) = set_left_right(ampl, i, p_arr, sequence.len(), &mut ampl_for_row);
         m[i] = vec![0; right - left];
         path[i] = vec![('X', 0); right - left];
     }
@@ -38,7 +38,7 @@ pub fn exec(
                     m[i][j] = m[i][j - 1] + score_matrix.get(&('-', sequence[j + left])).unwrap();
                     path[i][j] = ('L', i);
                 }
-                (_, 0) if left == 0  => {
+                (_, 0) if left == 0 => {
                     // only upper
                     if !nodes_w_pred[i] {
                         m[i][j] = m[i - 1][j] + score_matrix.get(&(lnz[i], '-')).unwrap();
@@ -221,14 +221,14 @@ pub fn exec(
     );
     let last_row = path[m.len() - 1][last_col_f_node].1;
     let last_col = ampl_for_row[last_row].1 - ampl_for_row[last_row].0 - 1;
-    
+
     match ampl_is_enough(&path, &ampl_for_row, sequence.len()) {
         true => {
             println!("Alignment mk {:?}", m[m.len() - 1][last_col_f_node]);
             basic_output::write_align_banded_poa(
                 &path,
                 sequence,
-                &lnz,
+                lnz,
                 &ampl_for_row,
                 last_row,
                 last_col,
@@ -386,7 +386,7 @@ fn ampl_is_enough(
 }
 
 fn get_best_d(
-    p_arr: &Vec<usize>,
+    p_arr: &[usize],
     m: &[Vec<i32>],
     ampl_for_row: &[(usize, usize)],
     i: usize,
@@ -396,14 +396,13 @@ fn get_best_d(
     let mut d_idx = 0;
     let mut first = true;
     for p in p_arr.iter() {
-        let j_pos;
-        if ampl_for_row[i].0 < ampl_for_row[*p].0 {
+        let j_pos = if ampl_for_row[i].0 < ampl_for_row[*p].0 {
             let delta = ampl_for_row[*p].0 - ampl_for_row[i].0;
-            j_pos = j - delta - 1;
+            j - delta - 1
         } else {
             let delta = ampl_for_row[i].0 - ampl_for_row[*p].0;
-            j_pos = j + delta - 1;
-        }
+            j + delta - 1
+        };
         if j_pos >= ampl_for_row[*p].0 && j_pos <= ampl_for_row[*p].1 {
             let current_d = m[*p][j_pos];
 
@@ -429,7 +428,7 @@ fn get_best_d(
 }
 
 fn get_best_u(
-    p_arr: &Vec<usize>,
+    p_arr: &[usize],
     m: &[Vec<i32>],
     ampl_for_row: &[(usize, usize)],
     i: usize,
@@ -439,14 +438,13 @@ fn get_best_u(
     let mut u_idx = 0;
     let mut first = true;
     for p in p_arr.iter() {
-        let j_pos;
-        if ampl_for_row[i].0 < ampl_for_row[*p].0 {
+        let j_pos = if ampl_for_row[i].0 < ampl_for_row[*p].0 {
             let delta = ampl_for_row[*p].0 - ampl_for_row[i].0;
-            j_pos = j - delta;
+            j - delta
         } else {
             let delta = ampl_for_row[i].0 - ampl_for_row[*p].0;
-            j_pos = j + delta;
-        }
+            j + delta
+        };
         if j_pos >= ampl_for_row[*p].0 && j_pos <= ampl_for_row[*p].1 {
             let current_u = m[*p][j_pos];
             if first {
@@ -493,10 +491,10 @@ mod tests {
 
     #[test]
     fn test1() {
-        let s = vec!['$','A','A','A','A'];
-        
-        let lnz = vec!['$','A','A','A','A', 'F'];
-        
+        let s = vec!['$', 'A', 'A', 'A', 'A'];
+
+        let lnz = vec!['$', 'A', 'A', 'A', 'A', 'F'];
+
         let mut nwp = BitVec::from_elem(6, false);
         nwp.set(1, true);
         nwp.set(5, true);
@@ -504,25 +502,25 @@ mod tests {
         let mut pred_hash = HashMap::new();
         pred_hash.insert(1, vec![0]);
         pred_hash.insert(5, vec![4]);
-        let graph = LnzGraph{
+        let graph = LnzGraph {
             lnz,
             nwp,
-            pred_hash
+            pred_hash,
         };
         let mut score_matrix = HashMap::new();
         score_matrix.insert(('A', 'A'), 1);
         score_matrix.insert(('A', '-'), -1);
         score_matrix.insert(('-', 'A'), -1);
-        let align = super::exec(&s, &graph, &score_matrix, 5);
+        let align = super::exec(&s, &graph, &score_matrix, 4);
 
         assert_eq!(align, 4);
     }
     #[test]
     fn test2() {
-        let s = vec!['$','A','A','C','A','A'];
-        
-        let lnz = vec!['$','A','A','C','A','A','A', 'F'];
-        
+        let s = vec!['$', 'A', 'A', 'C', 'A', 'A'];
+
+        let lnz = vec!['$', 'A', 'A', 'C', 'A', 'A', 'A', 'F'];
+
         let mut nwp = BitVec::from_elem(8, false);
         nwp.set(1, true);
         nwp.set(3, true);
@@ -536,10 +534,10 @@ mod tests {
         pred_hash.insert(4, vec![2]);
         pred_hash.insert(5, vec![3, 4]);
         pred_hash.insert(7, vec![6]);
-        let graph = LnzGraph{
+        let graph = LnzGraph {
             lnz,
             nwp,
-            pred_hash
+            pred_hash,
         };
         let mut score_matrix = HashMap::new();
         score_matrix.insert(('A', 'A'), 1);
@@ -550,16 +548,16 @@ mod tests {
         score_matrix.insert(('C', '-'), -1);
         score_matrix.insert(('C', 'A'), -1);
         score_matrix.insert(('A', 'C'), -1);
-        let align = super::exec(&s, &graph, &score_matrix, 5);
+        let align = super::exec(&s, &graph, &score_matrix, 4);
 
         assert_eq!(align, 5);
     }
     #[test]
     fn multiple_starts() {
-        let s = vec!['$','C','A','C','A','A'];
-        
-        let lnz = vec!['$','A','C','A','C','C','A','A', 'F'];
-        
+        let s = vec!['$', 'C', 'A', 'C', 'A', 'A'];
+
+        let lnz = vec!['$', 'A', 'C', 'A', 'C', 'C', 'A', 'A', 'F'];
+
         let mut nwp = BitVec::from_elem(9, false);
         nwp.set(1, true);
         nwp.set(2, true);
@@ -571,14 +569,14 @@ mod tests {
         let mut pred_hash = HashMap::new();
         pred_hash.insert(1, vec![0]);
         pred_hash.insert(2, vec![0]);
-        pred_hash.insert(3, vec![1,2]);
-        pred_hash.insert(4, vec![1,2]);
+        pred_hash.insert(3, vec![1, 2]);
+        pred_hash.insert(4, vec![1, 2]);
         pred_hash.insert(5, vec![3, 4]);
         pred_hash.insert(8, vec![7]);
-        let graph = LnzGraph{
+        let graph = LnzGraph {
             lnz,
             nwp,
-            pred_hash
+            pred_hash,
         };
         let mut score_matrix = HashMap::new();
         score_matrix.insert(('A', 'A'), 1);
@@ -589,17 +587,17 @@ mod tests {
         score_matrix.insert(('C', '-'), -1);
         score_matrix.insert(('C', 'A'), -1);
         score_matrix.insert(('A', 'C'), -1);
-        let align = super::exec(&s, &graph, &score_matrix, 5);
+        let align = super::exec(&s, &graph, &score_matrix, 4);
 
         assert_eq!(align, 5);
     }
 
     #[test]
     fn multiple_ends() {
-        let s = vec!['$','C','A','C','A','A'];
-        
-        let lnz = vec!['$','A','C','A','C','C','A','A','C', 'F'];
-        
+        let s = vec!['$', 'C', 'A', 'C', 'A', 'A'];
+
+        let lnz = vec!['$', 'A', 'C', 'A', 'C', 'C', 'A', 'A', 'C', 'F'];
+
         let mut nwp = BitVec::from_elem(10, false);
         nwp.set(1, true);
         nwp.set(2, true);
@@ -613,16 +611,16 @@ mod tests {
         let mut pred_hash = HashMap::new();
         pred_hash.insert(1, vec![0]);
         pred_hash.insert(2, vec![0]);
-        pred_hash.insert(3, vec![1,2]);
-        pred_hash.insert(4, vec![1,2]);
+        pred_hash.insert(3, vec![1, 2]);
+        pred_hash.insert(4, vec![1, 2]);
         pred_hash.insert(5, vec![3, 4]);
         pred_hash.insert(7, vec![6]);
         pred_hash.insert(8, vec![6]);
         pred_hash.insert(9, vec![7, 8]);
-        let graph = LnzGraph{
+        let graph = LnzGraph {
             lnz,
             nwp,
-            pred_hash
+            pred_hash,
         };
         let mut score_matrix = HashMap::new();
         score_matrix.insert(('A', 'A'), 1);
@@ -633,7 +631,7 @@ mod tests {
         score_matrix.insert(('C', '-'), -1);
         score_matrix.insert(('C', 'A'), -1);
         score_matrix.insert(('A', 'C'), -1);
-        let align = super::exec(&s, &graph, &score_matrix, 5);
+        let align = super::exec(&s, &graph, &score_matrix, 4);
 
         assert_eq!(align, 5);
     }
