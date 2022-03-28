@@ -9,7 +9,7 @@ pub fn exec(
     graph_struct: &LnzGraph,
     score_matrix: &HashMap<(char, char), i32>,
     ampl: usize,
-) {
+) -> i32 {
     let lnz = &graph_struct.lnz;
     let nodes_w_pred = &graph_struct.nwp;
     let pred_hash = &graph_struct.pred_hash;
@@ -234,7 +234,7 @@ pub fn exec(
                 last_col,
             );
 
-            //m[graph.len() - 1][sequence.len() - 1]
+            m[last_row][last_col]
         }
         false => exec(sequence, graph_struct, score_matrix, ampl * 2),
     }
@@ -481,4 +481,77 @@ fn get_max_d_u_l(d: i32, u: i32, l: i32) -> (i32, char) {
         },
     };
     (best_val, dir)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use bit_vec::BitVec;
+
+    use crate::graph::LnzGraph;
+
+    #[test]
+    fn test1() {
+        let s = vec!['$','A','A','A','A'];
+        
+        let lnz = vec!['$','A','A','A','A', 'F'];
+        
+        let mut nwp = BitVec::from_elem(6, false);
+        nwp.set(1, true);
+        nwp.set(5, true);
+
+        let mut pred_hash = HashMap::new();
+        pred_hash.insert(1, vec![0]);
+        pred_hash.insert(5, vec![4]);
+        let graph = LnzGraph{
+            lnz,
+            nwp,
+            pred_hash
+        };
+        let mut score_matrix = HashMap::new();
+        score_matrix.insert(('A', 'A'), 1);
+        score_matrix.insert(('A', '-'), -1);
+        score_matrix.insert(('-', 'A'), -1);
+        let align = super::exec(&s, &graph, &score_matrix, 5);
+
+        assert_eq!(align, 4);
+    }
+    #[test]
+    fn test2() {
+        let s = vec!['$','A','A','C','A','A'];
+        
+        let lnz = vec!['$','A','A','C','A','A','A', 'F'];
+        
+        let mut nwp = BitVec::from_elem(8, false);
+        nwp.set(1, true);
+        nwp.set(3, true);
+        nwp.set(4, true);
+        nwp.set(5, true);
+        nwp.set(7, true);
+
+        let mut pred_hash = HashMap::new();
+        pred_hash.insert(1, vec![0]);
+        pred_hash.insert(3, vec![2]);
+        pred_hash.insert(4, vec![2]);
+        pred_hash.insert(5, vec![3, 4]);
+        pred_hash.insert(7, vec![6]);
+        let graph = LnzGraph{
+            lnz,
+            nwp,
+            pred_hash
+        };
+        let mut score_matrix = HashMap::new();
+        score_matrix.insert(('A', 'A'), 1);
+        score_matrix.insert(('A', '-'), -1);
+        score_matrix.insert(('-', 'A'), -1);
+        score_matrix.insert(('C', 'C'), 1);
+        score_matrix.insert(('-', 'C'), -1);
+        score_matrix.insert(('C', '-'), -1);
+        score_matrix.insert(('C', 'A'), -1);
+        score_matrix.insert(('A', 'C'), -1);
+        let align = super::exec(&s, &graph, &score_matrix, 5);
+
+        assert_eq!(align, 5);
+    }
 }
