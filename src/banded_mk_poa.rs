@@ -554,4 +554,87 @@ mod tests {
 
         assert_eq!(align, 5);
     }
+    #[test]
+    fn multiple_starts() {
+        let s = vec!['$','C','A','C','A','A'];
+        
+        let lnz = vec!['$','A','C','A','C','C','A','A', 'F'];
+        
+        let mut nwp = BitVec::from_elem(9, false);
+        nwp.set(1, true);
+        nwp.set(2, true);
+        nwp.set(3, true);
+        nwp.set(4, true);
+        nwp.set(5, true);
+        nwp.set(8, true);
+
+        let mut pred_hash = HashMap::new();
+        pred_hash.insert(1, vec![0]);
+        pred_hash.insert(2, vec![0]);
+        pred_hash.insert(3, vec![1,2]);
+        pred_hash.insert(4, vec![1,2]);
+        pred_hash.insert(5, vec![3, 4]);
+        pred_hash.insert(8, vec![7]);
+        let graph = LnzGraph{
+            lnz,
+            nwp,
+            pred_hash
+        };
+        let mut score_matrix = HashMap::new();
+        score_matrix.insert(('A', 'A'), 1);
+        score_matrix.insert(('A', '-'), -1);
+        score_matrix.insert(('-', 'A'), -1);
+        score_matrix.insert(('C', 'C'), 1);
+        score_matrix.insert(('-', 'C'), -1);
+        score_matrix.insert(('C', '-'), -1);
+        score_matrix.insert(('C', 'A'), -1);
+        score_matrix.insert(('A', 'C'), -1);
+        let align = super::exec(&s, &graph, &score_matrix, 5);
+
+        assert_eq!(align, 5);
+    }
+
+    #[test]
+    fn multiple_ends() {
+        let s = vec!['$','C','A','C','A','A'];
+        
+        let lnz = vec!['$','A','C','A','C','C','A','A','C', 'F'];
+        
+        let mut nwp = BitVec::from_elem(10, false);
+        nwp.set(1, true);
+        nwp.set(2, true);
+        nwp.set(3, true);
+        nwp.set(4, true);
+        nwp.set(5, true);
+        nwp.set(7, true);
+        nwp.set(8, true);
+        nwp.set(9, true);
+
+        let mut pred_hash = HashMap::new();
+        pred_hash.insert(1, vec![0]);
+        pred_hash.insert(2, vec![0]);
+        pred_hash.insert(3, vec![1,2]);
+        pred_hash.insert(4, vec![1,2]);
+        pred_hash.insert(5, vec![3, 4]);
+        pred_hash.insert(7, vec![6]);
+        pred_hash.insert(8, vec![6]);
+        pred_hash.insert(9, vec![7, 8]);
+        let graph = LnzGraph{
+            lnz,
+            nwp,
+            pred_hash
+        };
+        let mut score_matrix = HashMap::new();
+        score_matrix.insert(('A', 'A'), 1);
+        score_matrix.insert(('A', '-'), -1);
+        score_matrix.insert(('-', 'A'), -1);
+        score_matrix.insert(('C', 'C'), 1);
+        score_matrix.insert(('-', 'C'), -1);
+        score_matrix.insert(('C', '-'), -1);
+        score_matrix.insert(('C', 'A'), -1);
+        score_matrix.insert(('A', 'C'), -1);
+        let align = super::exec(&s, &graph, &score_matrix, 5);
+
+        assert_eq!(align, 5);
+    }
 }
