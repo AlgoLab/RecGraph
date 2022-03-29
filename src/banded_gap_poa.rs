@@ -4,17 +4,21 @@ use std::{
     collections::HashMap,
     vec,
 };
-//TODO: remove last row, only best value needed
 pub fn exec(
     sequence: &[char],
     graph_struct: &LnzGraph,
     score_matrix: &HashMap<(char, char), i32>,
     ampl: usize,
+    o: i32,
+    e: i32
 ) -> i32 {
     let lnz = &graph_struct.lnz;
     let nodes_w_pred = &graph_struct.nwp;
     let pred_hash = &graph_struct.pred_hash;
-    let mut m = vec![vec![]; lnz.len()];
+    let mut m = vec![vec![]; lnz.len()];// best alignment
+    let mut x = vec![vec![];lnz.len()];//best alignment final gap in graph
+    let mut y = vec![vec![];lnz.len()];// best alignment final gap in sequence
+    
     let mut path = vec![vec![]; lnz.len()];
     let mut ampl_for_row: Vec<(usize, usize)> = vec![(0, 0); lnz.len()];
     for i in 0..lnz.len() {
@@ -24,6 +28,8 @@ pub fn exec(
         }
         let (left, right) = set_left_right(ampl, i, p_arr, sequence.len(), &mut ampl_for_row);
         m[i] = vec![0; right - left];
+        x[i] = vec![0; right - left];
+        y[i] = vec![0; right - left];
         path[i] = vec![('X', 0); right - left];
     }
     for i in 0..lnz.len() - 1 {
@@ -32,41 +38,54 @@ pub fn exec(
             match (i, j) {
                 (0, 0) => {
                     m[i][j] = 0;
+                    x[i][j] = 0;
+                    y[i][j] = 0;
+
                     path[i][j] = ('O', 0);
                 }
                 (0, _) => {
                     //only left
-                    m[i][j] = m[i][j - 1] + score_matrix.get(&('-', sequence[j + left])).unwrap();
+                    //set y
+                    y[i][j] = o + e * (j+ampl_for_row[0].0) as i32;
+                    // set m
+                    m[i][j] = y[i][j];
                     path[i][j] = ('L', i);
                 }
                 (_, 0) if left == 0 => {
                     // only upper
                     if !nodes_w_pred[i] {
-                        m[i][j] = m[i - 1][j] + score_matrix.get(&(lnz[i], '-')).unwrap();
+                        //set x
+                        x[i][j] =  o + e * i as i32;
+                        // set m
+                        m[i][j] = x[i][j];
                         path[i][j] = ('U', i - 1);
                     } else {
                         let p = pred_hash.get(&i).unwrap().iter().min().unwrap();
-                        m[i][j] = m[*p][j] + score_matrix.get(&(lnz[i], '-')).unwrap();
+                        // set x
+                        x[i][j] = o + e * (*p + 1) as i32;
+                        // set m
+                        m[i][j] = x[i][j];
                         path[i][j] = ('U', *p);
                     }
                 }
                 (_, 0) if left > 0 => {
                     //only u or d
                     if !nodes_w_pred[i] {
-                        let delta;
-                        let u;
-                        let d;
-                        if ampl_for_row[i].0 < ampl_for_row[i - 1].0 {
-                            delta = ampl_for_row[i - 1].0 - ampl_for_row[i].0;
-                            u = m[i - 1][j - delta] + score_matrix.get(&('-', lnz[i])).unwrap();
-                            d = m[i - 1][j - delta - 1]
-                                + score_matrix.get(&(sequence[j + left], lnz[i])).unwrap();
+                        let j_pos = if  ampl_for_row[i].0 < ampl_for_row[i - 1].0 {
+                            let delta = ampl_for_row[i - 1].0 - ampl_for_row[i].0;
+                            j - delta
                         } else {
-                            delta = ampl_for_row[i].0 - ampl_for_row[i - 1].0;
-                            u = m[i - 1][j + delta] + score_matrix.get(&('-', lnz[i])).unwrap();
-                            d = m[i - 1][j + delta - 1]
-                                + score_matrix.get(&(sequence[j + left], lnz[i])).unwrap();
-                        }
+                            let delta = ampl_for_row[i].0 - ampl_for_row[i - 1].0;
+                            j +  delta
+                        };
+
+                        // set y
+                        y[i][j] = cmp::max(m[i-1][j_pos]+ o +e, y[i-1][j_pos]+e);
+
+                        // set m
+                        let u = y[i][j];
+                        let d = m[i-1][j_pos-1] + score_matrix.get(&(sequence[j + left], lnz[i])).unwrap();
+
                         m[i][j] = match d.cmp(&u) {
                             Ordering::Less => {
                                 path[i][j] = ('U', i - 1);
@@ -83,10 +102,14 @@ pub fn exec(
                         }
                     } else if let (Some((mut d, d_idx)), Some((mut u, u_idx))) = (
                         get_best_d(pred_hash.get(&i).unwrap(), &m, &ampl_for_row, i, j),
-                        get_best_u(pred_hash.get(&i).unwrap(), &m, &ampl_for_row, i, j),
+                        get_best_u(pred_hash.get(&i).unwrap(), &m, &y, &ampl_for_row, i, j, o),
                     ) {
+                        // set x
+                        x[i][j] = u + e;
+
+                        //set m
                         d += score_matrix.get(&(lnz[i], sequence[j + left])).unwrap();
-                        u += score_matrix.get(&(lnz[i], '-')).unwrap();
+                        u += e;
                         m[i][j] = match d.cmp(&u) {
                             Ordering::Less => {
                                 path[i][j] = ('U', u_idx);
@@ -105,14 +128,14 @@ pub fn exec(
                 }
                 _ if j == right - left - 1 => {
                     //only d or l
-                    let l = m[i][j - 1]
-                        + score_matrix
-                            .get(&(sequence[j + ampl_for_row[i].0], '-'))
-                            .unwrap();
+                    // set x
+                    x[i][j] = cmp::max(m[i][j-1]+o+e, x[i][j-1]+e);
+                    let l = x[i][j];
+                    
                     if !nodes_w_pred[i] {
                         let d;
                         let delta;
-
+                        // set m
                         if ampl_for_row[i].0 < ampl_for_row[i - 1].0 {
                             delta = ampl_for_row[i - 1].0 - ampl_for_row[i].0;
                             d = m[i - 1][j - delta - 1]
@@ -140,6 +163,7 @@ pub fn exec(
                     } else if let Some((mut d, d_idx)) =
                         get_best_d(pred_hash.get(&i).unwrap(), &m, &ampl_for_row, i, j)
                     {
+                        // set m
                         d += score_matrix.get(&(lnz[i], sequence[j + left])).unwrap();
 
                         m[i][j] = match d.cmp(&l) {
@@ -158,27 +182,28 @@ pub fn exec(
                         }
                     }
                 }
-                _ => {
+                _ => { 
                     //every value ok
-                    let l = m[i][j - 1]
-                        + score_matrix
-                            .get(&(sequence[j + ampl_for_row[i].0], '-'))
-                            .unwrap();
+                    // set x
+                    x[i][j] = cmp::max(m[i][j-1]+o+e, x[i][j-1]+e);
+                    let l = x[i][j];
+
                     if !nodes_w_pred[i] {
-                        let delta;
-                        let u;
-                        let d;
-                        if ampl_for_row[i].0 < ampl_for_row[i - 1].0 {
-                            delta = ampl_for_row[i - 1].0 - ampl_for_row[i].0;
-                            u = m[i - 1][j - delta] + score_matrix.get(&('-', lnz[i])).unwrap();
-                            d = m[i - 1][j - delta - 1]
-                                + score_matrix.get(&(sequence[j + left], lnz[i])).unwrap();
+                        let j_pos = if  ampl_for_row[i].0 < ampl_for_row[i - 1].0 {
+                            let delta = ampl_for_row[i - 1].0 - ampl_for_row[i].0;
+                            j - delta
                         } else {
-                            delta = ampl_for_row[i].0 - ampl_for_row[i - 1].0;
-                            u = m[i - 1][j + delta] + score_matrix.get(&('-', lnz[i])).unwrap();
-                            d = m[i - 1][j + delta - 1]
-                                + score_matrix.get(&(sequence[j + left], lnz[i])).unwrap();
-                        }
+                            let delta = ampl_for_row[i].0 - ampl_for_row[i - 1].0;
+                            j +  delta
+                        };
+
+                        // set y
+                        y[i][j] = cmp::max(m[i-1][j_pos]+ o +e, y[i-1][j_pos]+e);
+
+                        // set m
+                        let u = y[i][j];
+                        let d = m[i-1][j_pos-1] + score_matrix.get(&(sequence[j + left], lnz[i])).unwrap();
+
                         let (best_val, mut dir) = get_max_d_u_l(d, u, l);
                         if dir == 'D' && sequence[j + left] != lnz[i] {
                             dir = 'd'
@@ -192,10 +217,14 @@ pub fn exec(
                         };
                     } else if let (Some((mut d, d_idx)), Some((mut u, u_idx))) = (
                         get_best_d(pred_hash.get(&i).unwrap(), &m, &ampl_for_row, i, j),
-                        get_best_u(pred_hash.get(&i).unwrap(), &m, &ampl_for_row, i, j),
+                        get_best_u(pred_hash.get(&i).unwrap(), &m, &y, &ampl_for_row, i, j, o),
                     ) {
+                        // set y
+                        y[i][j] = u + e;
+
+                        //set m
                         d += score_matrix.get(&(lnz[i], sequence[j + left])).unwrap();
-                        u += score_matrix.get(&(lnz[i], '-')).unwrap();
+                        u += e;
                         let (best_val, mut dir) = get_max_d_u_l(d, u, l);
                         if dir == 'D' && sequence[j + left] != lnz[i] {
                             dir = 'd'
@@ -226,6 +255,7 @@ pub fn exec(
     match ampl_is_enough(&path, &ampl_for_row, sequence.len()) {
         true => {
             println!("Alignment mk {:?}", m[m.len() - 1][last_col_f_node]);
+            /*
             basic_output::write_align_banded_poa(
                 &path,
                 sequence,
@@ -234,10 +264,12 @@ pub fn exec(
                 last_row,
                 last_col,
             );
-
+            */
             m[last_row][last_col]
         }
-        false => exec(sequence, graph_struct, score_matrix, ampl * 2),
+        false => { 0
+            //exec(sequence, graph_struct, score_matrix, ampl * 2)
+        },
     }
 }
 
@@ -431,12 +463,16 @@ fn get_best_d(
 fn get_best_u(
     p_arr: &[usize],
     m: &[Vec<i32>],
+    y: &[Vec<i32>],
     ampl_for_row: &[(usize, usize)],
     i: usize,
     j: usize,
+    o: i32
 ) -> Option<(i32, usize)> {
-    let mut u = 0;
-    let mut u_idx = 0;
+    let mut u_m = 0;
+    let mut u_y = 0;
+    let mut u_m_idx = 0;
+    let mut u_y_idx = 0;
     let mut first = true;
     for p in p_arr.iter() {
         let j_pos = if ampl_for_row[i].0 < ampl_for_row[*p].0 {
@@ -447,15 +483,22 @@ fn get_best_u(
             j + delta
         };
         if j_pos >= ampl_for_row[*p].0 && j_pos <= ampl_for_row[*p].1 {
-            let current_u = m[*p][j_pos];
+            let current_u_m = m[*p][j_pos]+o;
+            let current_u_y = y[*p][j_pos];
             if first {
                 first = false;
-                u = current_u;
-                u_idx = *p;
+                u_m = current_u_m;
+                u_y = current_u_y;
+                u_y_idx = *p;
+                u_m_idx = *p
             }
-            if current_u > u {
-                u = current_u;
-                u_idx = *p;
+            if current_u_m > u_m {
+                u_m = current_u_m;
+                u_m_idx = *p;
+            }
+            if current_u_y > u_y {
+                u_y = current_u_y;
+                u_y_idx = *p;
             }
         }
     }
@@ -463,8 +506,10 @@ fn get_best_u(
     if first {
         println!("ERR best_u");
         None
+    } else if u_y > u_m{
+        Some((u_y, u_y_idx))
     } else {
-        Some((u, u_idx))
+        Some((u_m, u_m_idx))
     }
 }
 
@@ -481,7 +526,7 @@ fn get_max_d_u_l(d: i32, u: i32, l: i32) -> (i32, char) {
     };
     (best_val, dir)
 }
-
+/* 
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -637,3 +682,4 @@ mod tests {
         assert_eq!(align, 5);
     }
 }
+*/
