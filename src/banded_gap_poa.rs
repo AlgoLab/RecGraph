@@ -11,15 +11,15 @@ pub fn exec(
     score_matrix: &HashMap<(char, char), i32>,
     ampl: usize,
     o: i32,
-    e: i32
+    e: i32,
 ) -> i32 {
     let lnz = &graph_struct.lnz;
     let nodes_w_pred = &graph_struct.nwp;
     let pred_hash = &graph_struct.pred_hash;
-    let mut m = vec![vec![]; lnz.len()];// best alignment
-    let mut x = vec![vec![];lnz.len()];//best alignment final gap in graph
-    let mut y = vec![vec![];lnz.len()];// best alignment final gap in sequence
-    
+    let mut m = vec![vec![]; lnz.len()]; // best alignment
+    let mut x = vec![vec![]; lnz.len()]; //best alignment final gap in graph
+    let mut y = vec![vec![]; lnz.len()]; // best alignment final gap in sequence
+
     let mut path = vec![vec![]; lnz.len()];
     let mut ampl_for_row: Vec<(usize, usize)> = vec![(0, 0); lnz.len()];
     for i in 0..lnz.len() {
@@ -33,6 +33,7 @@ pub fn exec(
         y[i] = vec![0; right - left];
         path[i] = vec![('X', 0); right - left];
     }
+
     for i in 0..lnz.len() - 1 {
         let (left, right) = ampl_for_row[i];
         for j in 0..right - left {
@@ -47,16 +48,18 @@ pub fn exec(
                 (0, _) => {
                     //only left
                     //set y
-                    y[i][j] = o + e * (j+ampl_for_row[0].0) as i32;
+                    y[i][j] = o + e * (j + ampl_for_row[0].0) as i32;
                     // set m
                     m[i][j] = y[i][j];
                     path[i][j] = ('L', i);
                 }
-                (_, 0) if left == 0 || left_equal_for_every_p(pred_hash.get(&i), &ampl_for_row, i) => {
+                (_, 0)
+                    if left == 0 || left_equal_for_every_p(pred_hash.get(&i), &ampl_for_row, i) =>
+                {
                     // only upper
                     if !nodes_w_pred[i] {
                         //set x
-                        x[i][j] =  o + e * i as i32;
+                        x[i][j] = o + e * i as i32;
                         // set m
                         m[i][j] = x[i][j];
                         path[i][j] = ('U', i - 1);
@@ -72,20 +75,21 @@ pub fn exec(
                 (_, 0) if left > 0 => {
                     //only u or d
                     if !nodes_w_pred[i] {
-                        let j_pos = if  ampl_for_row[i].0 < ampl_for_row[i - 1].0 {
+                        let j_pos = if ampl_for_row[i].0 < ampl_for_row[i - 1].0 {
                             let delta = ampl_for_row[i - 1].0 - ampl_for_row[i].0;
                             j - delta
                         } else {
                             let delta = ampl_for_row[i].0 - ampl_for_row[i - 1].0;
-                            j +  delta
+                            j + delta
                         };
 
                         // set y
-                        y[i][j] = cmp::max(m[i-1][j_pos]+ o +e, y[i-1][j_pos]+e);
+                        y[i][j] = cmp::max(m[i - 1][j_pos] + o + e, y[i - 1][j_pos] + e);
 
                         // set m
                         let u = y[i][j];
-                        let d = m[i-1][j_pos-1] + score_matrix.get(&(sequence[j + left], lnz[i])).unwrap();
+                        let d = m[i - 1][j_pos - 1]
+                            + score_matrix.get(&(sequence[j + left], lnz[i])).unwrap();
 
                         m[i][j] = match d.cmp(&u) {
                             Ordering::Less => {
@@ -130,9 +134,9 @@ pub fn exec(
                 _ if j == right - left - 1 => {
                     //only d or l
                     // set x
-                    x[i][j] = cmp::max(m[i][j-1]+o+e, x[i][j-1]+e);
+                    x[i][j] = cmp::max(m[i][j - 1] + o + e, x[i][j - 1] + e);
                     let l = x[i][j];
-                    
+
                     if !nodes_w_pred[i] {
                         let d;
                         let delta;
@@ -183,27 +187,28 @@ pub fn exec(
                         }
                     }
                 }
-                _ => { 
+                _ => {
                     //every value ok
                     // set x
-                    x[i][j] = cmp::max(m[i][j-1]+o+e, x[i][j-1]+e);
+                    x[i][j] = cmp::max(m[i][j - 1] + o + e, x[i][j - 1] + e);
                     let l = x[i][j];
 
                     if !nodes_w_pred[i] {
-                        let j_pos = if  ampl_for_row[i].0 < ampl_for_row[i - 1].0 {
+                        let j_pos = if ampl_for_row[i].0 < ampl_for_row[i - 1].0 {
                             let delta = ampl_for_row[i - 1].0 - ampl_for_row[i].0;
                             j - delta
                         } else {
                             let delta = ampl_for_row[i].0 - ampl_for_row[i - 1].0;
-                            j +  delta
+                            j + delta
                         };
 
                         // set y
-                        y[i][j] = cmp::max(m[i-1][j_pos]+ o +e, y[i-1][j_pos]+e);
+                        y[i][j] = cmp::max(m[i - 1][j_pos] + o + e, y[i - 1][j_pos] + e);
 
                         // set m
                         let u = y[i][j];
-                        let d = m[i-1][j_pos-1] + score_matrix.get(&(sequence[j + left], lnz[i])).unwrap();
+                        let d = m[i - 1][j_pos - 1]
+                            + score_matrix.get(&(sequence[j + left], lnz[i])).unwrap();
 
                         let (best_val, mut dir) = get_max_d_u_l(d, u, l);
                         if dir == 'D' && sequence[j + left] != lnz[i] {
@@ -252,11 +257,11 @@ pub fn exec(
     );
     let last_row = path[m.len() - 1][last_col_f_node].1;
     let last_col = ampl_for_row[last_row].1 - ampl_for_row[last_row].0 - 1;
-    /* 
+    /*
     match ampl_is_enough(&path, &ampl_for_row, sequence.len()) {
         true => {
             println!("Alignment mk {:?}", m[m.len() - 1][last_col_f_node]);
-            
+
             basic_output::write_align_banded_poa(
                 &path,
                 sequence,
@@ -265,7 +270,7 @@ pub fn exec(
                 last_row,
                 last_col,
             );
-            
+
             m[last_row][last_col]
         }
         false => { 0
@@ -275,7 +280,6 @@ pub fn exec(
     */
     println!("Alignment mk {:?}", m[m.len() - 1][last_col_f_node]);
     m[last_row][last_col]
-
 }
 
 fn best_last_node(
@@ -292,7 +296,7 @@ fn best_last_node(
     let last_row = ampl_for_row.len() - 1;
 
     for p in p_arr.iter() {
-        let last_col = ampl_for_row[*p].1-ampl_for_row[*p].0 -1;        
+        let last_col = ampl_for_row[*p].1 - ampl_for_row[*p].0 - 1;
         let delta;
         let j_pos;
         if ampl_for_row[last_row].0 >= ampl_for_row[*p].0 {
@@ -460,7 +464,7 @@ fn get_best_d(
 
     if first {
         // j is too far to be aligned with current predecessors
-        println!("ERR best_d: {} {}", i ,j); // if no pred found should panic
+        println!("ERR best_d: {} {}", i, j); // if no pred found should panic
         None
     } else {
         Some((d, d_idx))
@@ -474,7 +478,7 @@ fn get_best_u(
     ampl_for_row: &[(usize, usize)],
     i: usize,
     j: usize,
-    o: i32
+    o: i32,
 ) -> Option<(i32, usize)> {
     let mut u_m = 0;
     let mut u_y = 0;
@@ -483,21 +487,21 @@ fn get_best_u(
     let left = ampl_for_row[i].0;
     let mut first = true;
     for p in p_arr.iter() {
-        if j + left >= ampl_for_row[*p].0 && j + left < ampl_for_row[*p].1  {
+        if j + left >= ampl_for_row[*p].0 && j + left < ampl_for_row[*p].1 {
             let delta;
             let current_u_m;
             let current_u_y;
 
             if ampl_for_row[i].0 < ampl_for_row[*p].0 {
                 delta = ampl_for_row[*p].0 - ampl_for_row[i].0;
-                current_u_m = m[*p][j - delta]+o;
+                current_u_m = m[*p][j - delta] + o;
                 current_u_y = y[*p][j - delta];
             } else {
                 delta = ampl_for_row[i].0 - ampl_for_row[*p].0;
-                current_u_m = m[*p][j + delta]+o;
+                current_u_m = m[*p][j + delta] + o;
                 current_u_y = y[*p][j + delta];
             }
-       
+
             if first {
                 first = false;
                 u_m = current_u_m;
@@ -519,7 +523,7 @@ fn get_best_u(
     if first {
         println!("ERR best_u");
         None
-    } else if u_y > u_m{
+    } else if u_y > u_m {
         Some((u_y, u_y_idx))
     } else {
         Some((u_m, u_m_idx))
@@ -540,7 +544,11 @@ fn get_max_d_u_l(d: i32, u: i32, l: i32) -> (i32, char) {
     (best_val, dir)
 }
 
-fn left_equal_for_every_p(p_arr: Option<&Vec<usize>>, ampl_for_row: &Vec<(usize, usize)>, i: usize) -> bool{
+fn left_equal_for_every_p(
+    p_arr: Option<&Vec<usize>>,
+    ampl_for_row: &Vec<(usize, usize)>,
+    i: usize,
+) -> bool {
     if let Some(arr) = p_arr {
         let mut check = true;
         for p in arr.iter() {
@@ -550,14 +558,14 @@ fn left_equal_for_every_p(p_arr: Option<&Vec<usize>>, ampl_for_row: &Vec<(usize,
         }
         check
     } else {
-        if ampl_for_row[i-1].0 != ampl_for_row[i].0 {
+        if ampl_for_row[i - 1].0 != ampl_for_row[i].0 {
             false
         } else {
             true
         }
     }
 }
-/* 
+/*
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
