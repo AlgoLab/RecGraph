@@ -256,22 +256,14 @@ fn best_last_node(
     let last_row = ampl_for_row.len() - 1;
 
     for p in p_arr.iter() {
-        let delta;
-        let j_pos;
-        if ampl_for_row[last_row].0 >= ampl_for_row[*p].0 {
-            delta = ampl_for_row[last_row].0 - ampl_for_row[*p].0;
-            j_pos = j + delta;
-        } else {
-            delta = ampl_for_row[*p].0 - ampl_for_row[last_row].0;
-            j_pos = j - delta;
-        }
+        let last_col = ampl_for_row[*p].1 - ampl_for_row[*p].0 - 1;
         if first {
-            best_align = m[*p][j_pos];
+            best_align = m[*p][last_col];
             best_idx = *p;
             first = false;
         }
-        if m[*p][j_pos] > best_align {
-            best_align = m[*p][j_pos];
+        if m[*p][last_col] > best_align {
+            best_align = m[*p][last_col];
             best_idx = *p;
         }
     }

@@ -4,7 +4,6 @@ use std::{
     collections::HashMap,
     vec,
 };
-// FIXME: change best_d, best_u and control for j == 0 like banded mk poa
 pub fn exec(
     sequence: &[char],
     graph_struct: &LnzGraph,
@@ -54,7 +53,7 @@ pub fn exec(
                     path[i][j] = ('L', i);
                 }
                 (_, 0)
-                    if left == 0 || left_equal_for_every_p(pred_hash.get(&i), &ampl_for_row, i) =>
+                    if left == 0  =>
                 {
                     // only upper
                     if !nodes_w_pred[i] {
@@ -70,6 +69,31 @@ pub fn exec(
                         // set m
                         m[i][j] = x[i][j];
                         path[i][j] = ('U', *p);
+                    }
+                },
+                (_, 0) if left_equal_for_every_p(pred_hash.get(&i), &ampl_for_row, i) => {
+                    //only upper value
+                    if !nodes_w_pred[i] {
+                        // set y
+                        let j_pos = if ampl_for_row[i].0 < ampl_for_row[i - 1].0 {
+                            let delta = ampl_for_row[i - 1].0 - ampl_for_row[i].0;
+                            j - delta
+                        } else {
+                            let delta = ampl_for_row[i].0 - ampl_for_row[i - 1].0;
+                            j + delta
+                        };
+                        y[i][j] = cmp::max(m[i - 1][j_pos] + o + e, y[i - 1][j_pos] + e);
+                        // set m 
+                        m[i][j] = y[i][j];
+                        path[i][j] = ('U', i-1);
+                        
+                    } else {
+                        let (u, u_idx) = get_best_u(pred_hash.get(&i).unwrap(), &m, &y, &ampl_for_row, i, j, o).unwrap();
+                        // set y
+                        y[i][j] = u + e;
+                        //set m
+                        x[i][j] = y[i][j];
+                        path[i][j] = ('U', u_idx);
                     }
                 }
                 (_, 0) if left > 0 => {
@@ -109,8 +133,8 @@ pub fn exec(
                         get_best_d(pred_hash.get(&i).unwrap(), &m, &ampl_for_row, i, j),
                         get_best_u(pred_hash.get(&i).unwrap(), &m, &y, &ampl_for_row, i, j, o),
                     ) {
-                        // set x
-                        x[i][j] = u + e;
+                        // set y
+                        y[i][j] = u + e;
 
                         //set m
                         d += score_matrix.get(&(lnz[i], sequence[j + left])).unwrap();
@@ -257,6 +281,7 @@ pub fn exec(
     );
     let last_row = path[m.len() - 1][last_col_f_node].1;
     let last_col = ampl_for_row[last_row].1 - ampl_for_row[last_row].0 - 1;
+    //FIXME: ampl control needs correction if sequence longer than path
     match ampl_is_enough(&path, &ampl_for_row, sequence.len()) {
         true => {
             println!("Alignment mk {:?}", m[m.len() - 1][last_col_f_node]);
@@ -369,10 +394,10 @@ fn ampl_is_enough(
 
     while path[row][col].0 != 'O' {
         //reached end of path, no need to continue
+        
         if ampl_for_row[row].0 == 0 {
             return true;
         }
-
         let p_left = ampl_for_row[path[row][col].1].0;
         let j_pos = if ampl_for_row[row].0 < p_left {
             let delta = p_left - ampl_for_row[row].0;
@@ -755,5 +780,30 @@ mod tests {
         let align = super::exec(&s, &graph, &score_matrix, 4, -100, -1);
 
         assert_eq!(align, -101);
+    }
+    #[test]
+    fn sequence_longer_than_graph() {
+        let s = vec!['$', 'A', 'A', 'A','A', 'A', 'A', 'A', 'A', 'A' ];
+
+        let lnz = vec!['$', 'A', 'A', 'A', 'A', 'A', 'F'];
+        let mut nwp = BitVec::from_elem(7, false);
+        nwp.set(1, true);
+        nwp.set(6, true);
+
+        let mut pred_hash = HashMap::new();
+        pred_hash.insert(1, vec![0]);
+        pred_hash.insert(6, vec![5]);
+        let graph = LnzGraph {
+            lnz,
+            nwp,
+            pred_hash,
+        };
+        let mut score_matrix = HashMap::new();
+        score_matrix.insert(('A', 'A'), 1);
+        score_matrix.insert(('C', 'C'), 1);
+        score_matrix.insert(('C', 'A'), -1);
+        score_matrix.insert(('A', 'C'), -1);
+        let align = super::exec(&s, &graph, &score_matrix, 10, 0, -1);
+        assert_eq!(align, 1);
     }
 }
