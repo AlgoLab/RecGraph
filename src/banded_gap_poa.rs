@@ -251,11 +251,11 @@ pub fn exec(
     );
     let last_row = path[m.len() - 1][last_col_f_node].1;
     let last_col = ampl_for_row[last_row].1 - ampl_for_row[last_row].0 - 1;
-
+    /* 
     match ampl_is_enough(&path, &ampl_for_row, sequence.len()) {
         true => {
             println!("Alignment mk {:?}", m[m.len() - 1][last_col_f_node]);
-            /*
+            
             basic_output::write_align_banded_poa(
                 &path,
                 sequence,
@@ -264,13 +264,17 @@ pub fn exec(
                 last_row,
                 last_col,
             );
-            */
+            
             m[last_row][last_col]
         }
         false => { 0
             //exec(sequence, graph_struct, score_matrix, ampl * 2)
         },
     }
+    */
+    println!("Alignment mk {:?}", m[m.len() - 1][last_col_f_node]);
+    m[last_row][last_col]
+
 }
 
 fn best_last_node(
