@@ -39,7 +39,7 @@ pub fn exec(
                     m[i][j] = m[i][j - 1] + score_matrix.get(&('-', sequence[j + left])).unwrap();
                     path[i][j] = ('L', i);
                 }
-                (_, 0) if left == 0  || true_for_every_p(pred_hash.get(&i), &ampl_for_row, i)=> {
+                (_, 0) if left == 0  || left_equal_for_every_p(pred_hash.get(&i), &ampl_for_row, i)=> {
                     // only upper
                     if !nodes_w_pred[i] {
                         m[i][j] = m[i - 1][j] + score_matrix.get(&(lnz[i], '-')).unwrap();
@@ -485,7 +485,7 @@ fn get_max_d_u_l(d: i32, u: i32, l: i32) -> (i32, char) {
     };
     (best_val, dir)
 }
-fn true_for_every_p(p_arr: Option<&Vec<usize>>, ampl_for_row: &Vec<(usize, usize)>, i: usize) -> bool{
+fn left_equal_for_every_p(p_arr: Option<&Vec<usize>>, ampl_for_row: &Vec<(usize, usize)>, i: usize) -> bool{
     if let Some(arr) = p_arr {
         let mut check = true;
         for p in arr.iter() {

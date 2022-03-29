@@ -4,6 +4,7 @@ use std::{
     collections::HashMap,
     vec,
 };
+// FIXME: change best_d, best_u and control for j == 0 like banded mk poa
 pub fn exec(
     sequence: &[char],
     graph_struct: &LnzGraph,
@@ -51,7 +52,7 @@ pub fn exec(
                     m[i][j] = y[i][j];
                     path[i][j] = ('L', i);
                 }
-                (_, 0) if left == 0 => {
+                (_, 0) if left == 0 || left_equal_for_every_p(pred_hash.get(&i), &ampl_for_row, i) => {
                     // only upper
                     if !nodes_w_pred[i] {
                         //set x
@@ -291,6 +292,7 @@ fn best_last_node(
     let last_row = ampl_for_row.len() - 1;
 
     for p in p_arr.iter() {
+        let last_col = ampl_for_row[*p].1-ampl_for_row[*p].0 -1;        
         let delta;
         let j_pos;
         if ampl_for_row[last_row].0 >= ampl_for_row[*p].0 {
@@ -301,12 +303,12 @@ fn best_last_node(
             j_pos = j - delta;
         }
         if first {
-            best_align = m[*p][j_pos];
+            best_align = m[*p][last_col];
             best_idx = *p;
             first = false;
         }
-        if m[*p][j_pos] > best_align {
-            best_align = m[*p][j_pos];
+        if m[*p][last_col] > best_align {
+            best_align = m[*p][last_col];
             best_idx = *p;
         }
     }
@@ -432,17 +434,18 @@ fn get_best_d(
     let mut d = 0;
     let mut d_idx = 0;
     let mut first = true;
+    let left = ampl_for_row[i].0;
     for p in p_arr.iter() {
-        let j_pos = if ampl_for_row[i].0 < ampl_for_row[*p].0 {
-            let delta = ampl_for_row[*p].0 - ampl_for_row[i].0;
-            j - delta - 1
-        } else {
-            let delta = ampl_for_row[i].0 - ampl_for_row[*p].0;
-            j + delta - 1
-        };
-        if j_pos >= ampl_for_row[*p].0 && j_pos <= ampl_for_row[*p].1 {
-            let current_d = m[*p][j_pos];
-
+        if j + left >= ampl_for_row[*p].0 + 1 && j + left < ampl_for_row[*p].1 + 1 {
+            let delta;
+            let current_d;
+            if ampl_for_row[i].0 < ampl_for_row[*p].0 {
+                delta = ampl_for_row[*p].0 - ampl_for_row[i].0;
+                current_d = m[*p][j - delta - 1];
+            } else {
+                delta = ampl_for_row[i].0 - ampl_for_row[*p].0;
+                current_d = m[*p][j + delta - 1];
+            }
             if first {
                 first = false;
                 d = current_d;
@@ -457,7 +460,7 @@ fn get_best_d(
 
     if first {
         // j is too far to be aligned with current predecessors
-        println!("ERR best_d"); // if no pred found should panic
+        println!("ERR best_d: {} {}", i ,j); // if no pred found should panic
         None
     } else {
         Some((d, d_idx))
@@ -477,18 +480,24 @@ fn get_best_u(
     let mut u_y = 0;
     let mut u_m_idx = 0;
     let mut u_y_idx = 0;
+    let left = ampl_for_row[i].0;
     let mut first = true;
     for p in p_arr.iter() {
-        let j_pos = if ampl_for_row[i].0 < ampl_for_row[*p].0 {
-            let delta = ampl_for_row[*p].0 - ampl_for_row[i].0;
-            j - delta
-        } else {
-            let delta = ampl_for_row[i].0 - ampl_for_row[*p].0;
-            j + delta
-        };
-        if j_pos >= ampl_for_row[*p].0 && j_pos <= ampl_for_row[*p].1 {
-            let current_u_m = m[*p][j_pos]+o;
-            let current_u_y = y[*p][j_pos];
+        if j + left >= ampl_for_row[*p].0 && j + left < ampl_for_row[*p].1  {
+            let delta;
+            let current_u_m;
+            let current_u_y;
+
+            if ampl_for_row[i].0 < ampl_for_row[*p].0 {
+                delta = ampl_for_row[*p].0 - ampl_for_row[i].0;
+                current_u_m = m[*p][j - delta]+o;
+                current_u_y = y[*p][j - delta];
+            } else {
+                delta = ampl_for_row[i].0 - ampl_for_row[*p].0;
+                current_u_m = m[*p][j + delta]+o;
+                current_u_y = y[*p][j + delta];
+            }
+       
             if first {
                 first = false;
                 u_m = current_u_m;
@@ -529,6 +538,24 @@ fn get_max_d_u_l(d: i32, u: i32, l: i32) -> (i32, char) {
         },
     };
     (best_val, dir)
+}
+
+fn left_equal_for_every_p(p_arr: Option<&Vec<usize>>, ampl_for_row: &Vec<(usize, usize)>, i: usize) -> bool{
+    if let Some(arr) = p_arr {
+        let mut check = true;
+        for p in arr.iter() {
+            if ampl_for_row[*p].0 != ampl_for_row[i].0 {
+                check = false
+            }
+        }
+        check
+    } else {
+        if ampl_for_row[i-1].0 != ampl_for_row[i].0 {
+            false
+        } else {
+            true
+        }
+    }
 }
 /* 
 #[cfg(test)]
