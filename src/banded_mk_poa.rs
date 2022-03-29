@@ -26,7 +26,7 @@ pub fn exec(
         m[i] = vec![0; right - left];
         path[i] = vec![('X', 0); right - left];
     }
-
+    
     for i in 0..lnz.len() - 1 {
         let (left, right) = ampl_for_row[i];
         for j in 0..right - left {
@@ -40,9 +40,7 @@ pub fn exec(
                     m[i][j] = m[i][j - 1] + score_matrix.get(&('-', sequence[j + left])).unwrap();
                     path[i][j] = ('L', i);
                 }
-                (_, 0)
-                    if left == 0 || left_equal_for_every_p(pred_hash.get(&i), &ampl_for_row, i) =>
-                {
+                (_, 0) if left == 0  || left_equal_for_every_p(pred_hash.get(&i), &ampl_for_row, i)=> {
                     // only upper
                     if !nodes_w_pred[i] {
                         m[i][j] = m[i - 1][j] + score_matrix.get(&(lnz[i], '-')).unwrap();
@@ -425,7 +423,7 @@ fn get_best_d(
 
     if first {
         // j is too far to be aligned with current predecessors
-        println!("ERR best_d: {} {}", i, j); // if no pred found should panic
+        println!("ERR best_d: {} {}", i ,j); // if no pred found should panic
         None
     } else {
         Some((d, d_idx))
@@ -454,7 +452,7 @@ fn get_best_u(
                 delta = ampl_for_row[i].0 - ampl_for_row[*p].0;
                 current_u = m[*p][j + delta];
             }
-
+       
             if first {
                 first = false;
                 u = current_u;
@@ -488,11 +486,7 @@ fn get_max_d_u_l(d: i32, u: i32, l: i32) -> (i32, char) {
     };
     (best_val, dir)
 }
-fn left_equal_for_every_p(
-    p_arr: Option<&Vec<usize>>,
-    ampl_for_row: &Vec<(usize, usize)>,
-    i: usize,
-) -> bool {
+fn left_equal_for_every_p(p_arr: Option<&Vec<usize>>, ampl_for_row: &Vec<(usize, usize)>, i: usize) -> bool{
     if let Some(arr) = p_arr {
         let mut check = true;
         for p in arr.iter() {
@@ -502,7 +496,7 @@ fn left_equal_for_every_p(
         }
         check
     } else {
-        if ampl_for_row[i - 1].0 != ampl_for_row[i].0 {
+        if ampl_for_row[i-1].0 != ampl_for_row[i].0 {
             false
         } else {
             true

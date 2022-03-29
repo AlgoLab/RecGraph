@@ -257,7 +257,6 @@ pub fn exec(
     );
     let last_row = path[m.len() - 1][last_col_f_node].1;
     let last_col = ampl_for_row[last_row].1 - ampl_for_row[last_row].0 - 1;
-    /*
     match ampl_is_enough(&path, &ampl_for_row, sequence.len()) {
         true => {
             println!("Alignment mk {:?}", m[m.len() - 1][last_col_f_node]);
@@ -273,13 +272,10 @@ pub fn exec(
 
             m[last_row][last_col]
         }
-        false => { 0
-            //exec(sequence, graph_struct, score_matrix, ampl * 2)
+        false => { 
+            exec(sequence, graph_struct, score_matrix, ampl * 2, o, e)
         },
     }
-    */
-    println!("Alignment mk {:?}", m[m.len() - 1][last_col_f_node]);
-    m[last_row][last_col]
 }
 
 fn best_last_node(
@@ -297,15 +293,6 @@ fn best_last_node(
 
     for p in p_arr.iter() {
         let last_col = ampl_for_row[*p].1 - ampl_for_row[*p].0 - 1;
-        let delta;
-        let j_pos;
-        if ampl_for_row[last_row].0 >= ampl_for_row[*p].0 {
-            delta = ampl_for_row[last_row].0 - ampl_for_row[*p].0;
-            j_pos = j + delta;
-        } else {
-            delta = ampl_for_row[*p].0 - ampl_for_row[last_row].0;
-            j_pos = j - delta;
-        }
         if first {
             best_align = m[*p][last_col];
             best_idx = *p;
@@ -565,7 +552,7 @@ fn left_equal_for_every_p(
         }
     }
 }
-/*
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -594,15 +581,14 @@ mod tests {
         };
         let mut score_matrix = HashMap::new();
         score_matrix.insert(('A', 'A'), 1);
-        score_matrix.insert(('A', '-'), -1);
-        score_matrix.insert(('-', 'A'), -1);
-        let align = super::exec(&s, &graph, &score_matrix, 4);
+        
+        let align = super::exec(&s, &graph, &score_matrix, 4, -4, -1);
 
         assert_eq!(align, 4);
     }
     #[test]
-    fn test2() {
-        let s = vec!['$', 'A', 'A', 'C', 'A', 'A'];
+    fn gap_correctly_considered() {
+        let s = vec!['$', 'A', 'A', 'C', 'A', 'A','C'];
 
         let lnz = vec!['$', 'A', 'A', 'C', 'A', 'A', 'A', 'F'];
 
@@ -626,17 +612,14 @@ mod tests {
         };
         let mut score_matrix = HashMap::new();
         score_matrix.insert(('A', 'A'), 1);
-        score_matrix.insert(('A', '-'), -1);
-        score_matrix.insert(('-', 'A'), -1);
         score_matrix.insert(('C', 'C'), 1);
-        score_matrix.insert(('-', 'C'), -1);
-        score_matrix.insert(('C', '-'), -1);
         score_matrix.insert(('C', 'A'), -1);
         score_matrix.insert(('A', 'C'), -1);
-        let align = super::exec(&s, &graph, &score_matrix, 4);
+        let align = super::exec(&s, &graph, &score_matrix, 4, -4, -1);
 
-        assert_eq!(align, 5);
+        assert_eq!(align, 0);
     }
+
     #[test]
     fn multiple_starts() {
         let s = vec!['$', 'C', 'A', 'C', 'A', 'A'];
@@ -665,14 +648,10 @@ mod tests {
         };
         let mut score_matrix = HashMap::new();
         score_matrix.insert(('A', 'A'), 1);
-        score_matrix.insert(('A', '-'), -1);
-        score_matrix.insert(('-', 'A'), -1);
         score_matrix.insert(('C', 'C'), 1);
-        score_matrix.insert(('-', 'C'), -1);
-        score_matrix.insert(('C', '-'), -1);
         score_matrix.insert(('C', 'A'), -1);
         score_matrix.insert(('A', 'C'), -1);
-        let align = super::exec(&s, &graph, &score_matrix, 4);
+        let align = super::exec(&s, &graph, &score_matrix, 4, -4,-1);
 
         assert_eq!(align, 5);
     }
@@ -709,16 +688,72 @@ mod tests {
         };
         let mut score_matrix = HashMap::new();
         score_matrix.insert(('A', 'A'), 1);
-        score_matrix.insert(('A', '-'), -1);
-        score_matrix.insert(('-', 'A'), -1);
         score_matrix.insert(('C', 'C'), 1);
-        score_matrix.insert(('-', 'C'), -1);
-        score_matrix.insert(('C', '-'), -1);
         score_matrix.insert(('C', 'A'), -1);
         score_matrix.insert(('A', 'C'), -1);
-        let align = super::exec(&s, &graph, &score_matrix, 4);
+        let align = super::exec(&s, &graph, &score_matrix, 4, -4, -1);
 
         assert_eq!(align, 5);
     }
+
+    #[test]
+    fn gap_poa_same_result_as_normal_if_o_0() {
+        let s = vec!['$', 'A', 'A', 'C', 'A', 'A','C'];
+
+        let lnz = vec!['$', 'A', 'A', 'C', 'A', 'A', 'A', 'F'];
+
+        let mut nwp = BitVec::from_elem(8, false);
+        nwp.set(1, true);
+        nwp.set(3, true);
+        nwp.set(4, true);
+        nwp.set(5, true);
+        nwp.set(7, true);
+
+        let mut pred_hash = HashMap::new();
+        pred_hash.insert(1, vec![0]);
+        pred_hash.insert(3, vec![2]);
+        pred_hash.insert(4, vec![2]);
+        pred_hash.insert(5, vec![3, 4]);
+        pred_hash.insert(7, vec![6]);
+        let graph = LnzGraph {
+            lnz,
+            nwp,
+            pred_hash,
+        };
+        let mut score_matrix = HashMap::new();
+        score_matrix.insert(('A', 'A'), 1);
+        score_matrix.insert(('C', 'C'), 1);
+        score_matrix.insert(('C', 'A'), -1);
+        score_matrix.insert(('A', 'C'), -1);
+        let align = super::exec(&s, &graph, &score_matrix, 4, 0, -1);
+
+        assert_eq!(align, 4);
+    }
+    #[test]
+    fn gap_open_only_once_if_penalty_high() {
+        let s = vec!['$', 'A', 'A', 'A'];
+
+        let lnz = vec!['$', 'A', 'C', 'A', 'C', 'A', 'F'];
+
+        let mut nwp = BitVec::from_elem(7, false);
+        nwp.set(1, true);
+        nwp.set(6, true);
+
+        let mut pred_hash = HashMap::new();
+        pred_hash.insert(1, vec![0]);
+        pred_hash.insert(6, vec![5]);
+        let graph = LnzGraph {
+            lnz,
+            nwp,
+            pred_hash,
+        };
+        let mut score_matrix = HashMap::new();
+        score_matrix.insert(('A', 'A'), 1);
+        score_matrix.insert(('C', 'C'), 1);
+        score_matrix.insert(('C', 'A'), -1);
+        score_matrix.insert(('A', 'C'), -1);
+        let align = super::exec(&s, &graph, &score_matrix, 4, -100, -1);
+
+        assert_eq!(align, -101);
+    }
 }
-*/
