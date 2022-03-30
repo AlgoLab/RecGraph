@@ -19,7 +19,7 @@ pub fn exec(
     let mut x = vec![vec![]; lnz.len()]; //best alignment final gap in graph
     let mut y = vec![vec![]; lnz.len()]; // best alignment final gap in sequence
     let r_values = set_r_values(lnz.len(), pred_hash);
-    let best_scoring_pos = vec![(0, 0); lnz.len()];
+    let best_scoring_pos = vec![0; lnz.len()];
 
     let mut path = vec![vec![]; lnz.len()];
     let mut ampl_for_row: Vec<(usize, usize)> = vec![(0, 0); lnz.len()];
@@ -36,6 +36,11 @@ pub fn exec(
     }
 
     for i in 0..lnz.len() - 1 {
+        let mut p_arr = &vec![];
+        if nodes_w_pred[i] {
+            p_arr = pred_hash.get(&i).unwrap()
+        }
+        set_ampl_for_row_v2(i, p_arr, r_values[i], &best_scoring_pos);
         let (left, right) = ampl_for_row[i];
         for j in 0..right - left {
             match (i, j) {
@@ -576,8 +581,40 @@ fn left_equal_for_every_p(
     }
 }
 
-fn set_ampl_for_row_v2(i: usize, p_arr: &[usize]) {
+fn set_ampl_for_row_v2(i: usize, p_arr: &[usize], r_val: usize, best_scoring_pos: &[usize],) {
+    let lnz_len = best_scoring_pos.len();
+    let ms;
+    let me;
 
+    if p_arr.is_empty() {
+        let pl = best_scoring_pos[i];
+        ms = pl+1;
+        me = pl+1;
+        
+    } else {
+        let mut pl = 0;
+        let mut pr = 0;
+        let mut first = true;
+        for p in p_arr.iter() {
+            let current_best = best_scoring_pos[*p];
+            if first {
+                pl = current_best;
+                pr = current_best;
+                first = false;
+            }
+            if  current_best < pl {
+                pl = current_best;
+            }
+            if current_best > pr {
+                pr = current_best;
+            }
+        }
+        ms = pl+1;
+        me = pr + 1;
+    }
+    let band_start = cmp::max(0, cmp::min(ms, lnz_len -r_val));
+    let band_end = cmp::min(lnz_len, cmp::max(me, lnz_len-r_val));
+    println!("{} {}",band_start, band_end);
 }
 
 fn set_r_values(lnz_len: usize, pred_hash: &HashMap<usize, Vec<usize>>) -> Vec<usize> {
