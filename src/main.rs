@@ -71,7 +71,7 @@ fn main() {
             banded_mk_poa::exec(&sequence, &graph_struct, &score_matrix, ampl * 2);
 
             let (g_open, g_ext) = args_parser::get_gap_open_gap_ext();
-            banded_gap_poa_v2::exec(
+            banded_gap_poa::exec(
                 &sequence,
                 &graph_struct,
                 &score_matrix,
