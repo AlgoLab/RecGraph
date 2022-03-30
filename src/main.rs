@@ -63,8 +63,8 @@ fn main() {
             let linearization = graph::get_linearization(&graph_path);
             let graph_struct = graph::create_graph_struct(&graph_path);
             let ampl = match sequence.len() < linearization.len() {
-                true => linearization.len() - sequence.len(),
-                _ => sequence.len() - linearization.len(),
+                true => linearization.len() - 1 - sequence.len(),
+                _ => sequence.len() - linearization.len() + 1,
             };
             partial_order_alignment_global::exec(&sequence, &linearization, &score_matrix);
             banded_mk_poa::exec(&sequence, &graph_struct, &score_matrix, ampl * 2);

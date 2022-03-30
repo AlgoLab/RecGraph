@@ -18,6 +18,8 @@ pub fn exec(
     let mut m = vec![vec![]; lnz.len()]; // best alignment
     let mut x = vec![vec![]; lnz.len()]; //best alignment final gap in graph
     let mut y = vec![vec![]; lnz.len()]; // best alignment final gap in sequence
+    let r_values = set_r_values(lnz.len(), pred_hash);
+    let best_scoring_pos = vec![(0, 0); lnz.len()];
 
     let mut path = vec![vec![]; lnz.len()];
     let mut ampl_for_row: Vec<(usize, usize)> = vec![(0, 0); lnz.len()];
@@ -52,9 +54,7 @@ pub fn exec(
                     m[i][j] = y[i][j];
                     path[i][j] = ('L', i);
                 }
-                (_, 0)
-                    if left == 0  =>
-                {
+                (_, 0) if left == 0 => {
                     // only upper
                     if !nodes_w_pred[i] {
                         //set x
@@ -70,7 +70,7 @@ pub fn exec(
                         m[i][j] = x[i][j];
                         path[i][j] = ('U', *p);
                     }
-                },
+                }
                 (_, 0) if left_equal_for_every_p(pred_hash.get(&i), &ampl_for_row, i) => {
                     //only upper value
                     if !nodes_w_pred[i] {
@@ -83,12 +83,13 @@ pub fn exec(
                             j + delta
                         };
                         y[i][j] = cmp::max(m[i - 1][j_pos] + o + e, y[i - 1][j_pos] + e);
-                        // set m 
+                        // set m
                         m[i][j] = y[i][j];
-                        path[i][j] = ('U', i-1);
-                        
+                        path[i][j] = ('U', i - 1);
                     } else {
-                        let (u, u_idx) = get_best_u(pred_hash.get(&i).unwrap(), &m, &y, &ampl_for_row, i, j, o).unwrap();
+                        let (u, u_idx) =
+                            get_best_u(pred_hash.get(&i).unwrap(), &m, &y, &ampl_for_row, i, j, o)
+                                .unwrap();
                         // set y
                         y[i][j] = u + e;
                         //set m
@@ -281,7 +282,6 @@ pub fn exec(
     );
     let last_row = path[m.len() - 1][last_col_f_node].1;
     let last_col = ampl_for_row[last_row].1 - ampl_for_row[last_row].0 - 1;
-    //FIXME: ampl control needs correction if sequence longer than path
     match ampl_is_enough(&path, &ampl_for_row, sequence.len()) {
         true => {
             println!("Alignment mk {:?}", m[m.len() - 1][last_col_f_node]);
@@ -297,9 +297,7 @@ pub fn exec(
 
             m[last_row][last_col]
         }
-        false => { 
-            exec(sequence, graph_struct, score_matrix, ampl * 2, o, e)
-        },
+        false => exec(sequence, graph_struct, score_matrix, ampl * 2, o, e),
     }
 }
 
@@ -394,7 +392,7 @@ fn ampl_is_enough(
 
     while path[row][col].0 != 'O' {
         //reached end of path, no need to continue
-        
+
         if ampl_for_row[row].0 == 0 {
             return true;
         }
@@ -578,6 +576,38 @@ fn left_equal_for_every_p(
     }
 }
 
+fn set_ampl_for_row_v2(i: usize, p_arr: &[usize]) {
+
+}
+
+fn set_r_values(lnz_len: usize, pred_hash: &HashMap<usize, Vec<usize>>) -> Vec<usize> {
+    let mut r_values = vec![0; lnz_len];
+    let mut i = lnz_len - 1;
+    let mut count = 0;
+    while i > 0 {
+        match pred_hash.get(&i) {
+            Some(arr) => {
+                i = arr[0];
+            }
+            _ => {
+                i -= 1;
+            }
+        }
+        count += 1;
+    }
+    r_values[0] = count;
+    for i in 1..r_values.len(){
+        match pred_hash.get(&i) {
+            Some(arr) => {
+                r_values[i] = r_values[arr[0]] - 1;
+            }
+            _ => {
+                r_values[i] = r_values[i-1] - 1;
+            }
+        }
+    };
+    r_values
+}
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -606,14 +636,15 @@ mod tests {
         };
         let mut score_matrix = HashMap::new();
         score_matrix.insert(('A', 'A'), 1);
-        
+
         let align = super::exec(&s, &graph, &score_matrix, 4, -4, -1);
 
         assert_eq!(align, 4);
     }
+
     #[test]
     fn gap_correctly_considered() {
-        let s = vec!['$', 'A', 'A', 'C', 'A', 'A','C'];
+        let s = vec!['$', 'A', 'A', 'C', 'A', 'A', 'C'];
 
         let lnz = vec!['$', 'A', 'A', 'C', 'A', 'A', 'A', 'F'];
 
@@ -676,7 +707,7 @@ mod tests {
         score_matrix.insert(('C', 'C'), 1);
         score_matrix.insert(('C', 'A'), -1);
         score_matrix.insert(('A', 'C'), -1);
-        let align = super::exec(&s, &graph, &score_matrix, 4, -4,-1);
+        let align = super::exec(&s, &graph, &score_matrix, 4, -4, -1);
 
         assert_eq!(align, 5);
     }
@@ -723,7 +754,7 @@ mod tests {
 
     #[test]
     fn gap_poa_same_result_as_normal_if_o_0() {
-        let s = vec!['$', 'A', 'A', 'C', 'A', 'A','C'];
+        let s = vec!['$', 'A', 'A', 'C', 'A', 'A', 'C'];
 
         let lnz = vec!['$', 'A', 'A', 'C', 'A', 'A', 'A', 'F'];
 
@@ -783,7 +814,7 @@ mod tests {
     }
     #[test]
     fn sequence_longer_than_graph() {
-        let s = vec!['$', 'A', 'A', 'A','A', 'A', 'A', 'A', 'A', 'A' ];
+        let s = vec!['$', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A'];
 
         let lnz = vec!['$', 'A', 'A', 'A', 'A', 'A', 'F'];
         let mut nwp = BitVec::from_elem(7, false);
