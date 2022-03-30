@@ -2,6 +2,7 @@ mod ab_gap_global_alignment;
 mod ab_global_alignment;
 mod args_parser;
 mod banded_gap_poa;
+mod banded_gap_poa_v2;
 mod banded_mk_poa;
 mod basic_output;
 mod gap_partial_order_alignment;
@@ -57,7 +58,7 @@ fn main() {
             );
         }
         4 => {
-            let mut sequence: Vec<char> = sequences[0].chars().collect();
+            let mut sequence: Vec<char> = sequences[15].chars().collect();
             sequence.insert(0, '$');
             let graph_path = args_parser::get_graph_path();
             let linearization = graph::get_linearization(&graph_path);
@@ -70,7 +71,7 @@ fn main() {
             banded_mk_poa::exec(&sequence, &graph_struct, &score_matrix, ampl * 2);
 
             let (g_open, g_ext) = args_parser::get_gap_open_gap_ext();
-            banded_gap_poa::exec(
+            banded_gap_poa_v2::exec(
                 &sequence,
                 &graph_struct,
                 &score_matrix,
