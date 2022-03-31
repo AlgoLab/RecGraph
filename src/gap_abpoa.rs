@@ -73,9 +73,11 @@ pub fn exec(
 
                 // try set and get l from x (j > left, if j == left same as j = 0)
                 let l_score_idx = get_best_l(&m, &x, &ampl_for_row, i, j, o);
+                let l_pred;
                 match l_score_idx {
-                    Some((l, l_idx)) => {
+                    Some((l, idx)) => {
                         x[i][j] = l + e;
+                        l_pred = idx;
                     }
                     _ => {
                         let best_p = if !nodes_w_pred[i] {
@@ -85,20 +87,24 @@ pub fn exec(
                         };
 
                         x[i][j] = if best_p == 0 { o + e } else { x[best_p][j] + e };
+                        l_pred = best_p;
                     }
                 }
                 // try set and get u from y (pred_left < j < pred_right else None)
-                let u_score_idx = get_best_u(p_arr, &m, &y, &ampl_for_row, i, j, o);
+                let u_score_idx = get_best_u(p_arr, &m, &y, &ampl_for_row, j, o);
+                let u_pred;
                 match u_score_idx {
-                    Some((u, u_idx)) => {
+                    Some((u, idx)) => {
                         y[i][j] = u + e;
+                        u_pred = idx;
                     }
                     _ => {
                         y[i][j] = o + e * j as i32;
+                        u_pred = 0;
                     }
                 }
                 // try get d from m (pred_left < j < pred_right else None)
-                let d_score_idx = get_best_d(p_arr, &m, &ampl_for_row, i, j);
+                let d_score_idx = get_best_d(p_arr, &m, &ampl_for_row, j);
                 match d_score_idx {
                     Some((mut d, d_idx)) => {
                         d += score_matrix.get(&(lnz[i], sequence[j])).unwrap();
@@ -106,12 +112,28 @@ pub fn exec(
                         let u = y[i][j];
                         m[i][j] = match d.cmp(&l) {
                             Ordering::Less => match l.cmp(&u) {
-                                Ordering::Less => u,
-                                _ => l,
+                                Ordering::Less => {
+                                    path[i][j] = ('U', u_pred);
+                                    u
+                                }
+                                _ => {
+                                    path[i][j] = ('L', l_pred);
+                                    l
+                                }
                             },
                             _ => match d.cmp(&u) {
-                                Ordering::Less => u,
-                                _ => d,
+                                Ordering::Less => {
+                                    path[i][j] = ('U', u_pred);
+                                    u
+                                }
+                                _ => {
+                                    if lnz[i] == sequence[j] {
+                                        path[i][j] = ('D', d_idx);
+                                    } else {
+                                        path[i][j] = ('d', d_idx);
+                                    }
+                                    d
+                                }
                             },
                         }
                     }
@@ -119,8 +141,14 @@ pub fn exec(
                         let l = x[i][j];
                         let u = y[i][j];
                         m[i][j] = match l.cmp(&u) {
-                            Ordering::Less => u,
-                            _ => l,
+                            Ordering::Less => {
+                                path[i][j] = ('U', u_pred);
+                                u
+                            }
+                            _ => {
+                                path[i][j] = ('L', l_pred);
+                                l
+                            }
                         }
                     }
                 }
@@ -144,20 +172,14 @@ pub fn exec(
             last_col = tmp_last_col;
         }
     }
-
+    path.iter().for_each(|line| println!("{:?}", line));
     println!("{}", m[last_row][last_col]);
-    //m.iter().for_each(|line|{println!("{:?}", line)});
-    //x.iter().for_each(|line|{println!("{:?}", line)});
-    //y.iter().for_each(|line|{println!("{:?}", line)});
-    ampl_for_row.iter().for_each(|line| println!("{:?}", line));
-
     m[last_row][last_col]
 }
 fn get_best_d(
     p_arr: &[usize],
     m: &[Vec<i32>],
     ampl_for_row: &[(usize, usize)],
-    i: usize,
     j: usize,
 ) -> Option<(i32, usize)> {
     let mut d = 0;
@@ -189,7 +211,6 @@ fn get_best_u(
     m: &[Vec<i32>],
     y: &[Vec<i32>],
     ampl_for_row: &[(usize, usize)],
-    i: usize,
     j: usize,
     o: i32,
 ) -> Option<(i32, usize)> {

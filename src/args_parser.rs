@@ -82,7 +82,7 @@ struct Args {
     //set banding parameter, with f set the number of extra bases added (b+f*L)
     #[clap(
         help_heading = "Adaptive banded",
-        default_value_t = 0,
+        default_value_t = 1,
         short = 'b',
         long = "extra-b",
         help = "First adaptive banding par, set < 0 to disable adaptive banded"
@@ -91,7 +91,7 @@ struct Args {
 
     #[clap(
         help_heading = "Adaptive banded",
-        default_value_t = 0.0,
+        default_value_t = 0.01,
         short = 'f',
         long = "extra-f",
         help = "Second adaptive banding par, number of basis added to both side of the band = b+f*L, l = length of the sequence"
