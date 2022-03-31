@@ -10,8 +10,8 @@ pub fn exec(
     score_matrix: &HashMap<(char, char), i32>,
     o: i32,
     e: i32,
-    bta: usize
-) -> i32{
+    bta: usize,
+) -> i32 {
     let lnz = &graph_struct.lnz;
     let nodes_w_pred = &graph_struct.nwp;
     let pred_hash = &graph_struct.pred_hash;
@@ -38,7 +38,7 @@ pub fn exec(
             &best_scoring_pos,
             &ampl_for_row,
             sequence.len(),
-            bta
+            bta,
         );
         ampl_for_row[i] = (left, right);
         let mut best_val_pos: usize = left;
@@ -137,8 +137,8 @@ pub fn exec(
     let mut last_row = m.len() - 2;
     let mut last_col = m[last_row].len() - 1;
 
-    for p in pred_hash.get(&(m.len()-1)).unwrap().iter(){
-        let tmp_last_col =ampl_for_row[*p].1 - 1;
+    for p in pred_hash.get(&(m.len() - 1)).unwrap().iter() {
+        let tmp_last_col = ampl_for_row[*p].1 - 1;
         if m[*p][tmp_last_col] > m[last_row][last_col] {
             last_row = *p;
             last_col = tmp_last_col;
@@ -149,8 +149,8 @@ pub fn exec(
     //m.iter().for_each(|line|{println!("{:?}", line)});
     //x.iter().for_each(|line|{println!("{:?}", line)});
     //y.iter().for_each(|line|{println!("{:?}", line)});
-    ampl_for_row.iter().for_each(|line|{println!("{:?}", line)});
-    
+    ampl_for_row.iter().for_each(|line| println!("{:?}", line));
+
     m[last_row][last_col]
 }
 fn get_best_d(
@@ -258,7 +258,7 @@ fn set_ampl_for_row(
     best_scoring_pos: &[usize],
     ampl_for_row: &Vec<(usize, usize)>,
     seq_len: usize,
-    bta: usize
+    bta: usize,
 ) -> (usize, usize) {
     let ms;
     let me;
