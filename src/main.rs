@@ -58,7 +58,7 @@ fn main() {
             );
         }
         4 => {
-            let mut sequence: Vec<char> = sequences[13].chars().collect();
+            let mut sequence: Vec<char> = sequences[15].chars().collect();
             sequence.insert(0, '$');
             let graph_path = args_parser::get_graph_path();
             let linearization = graph::get_linearization(&graph_path);
@@ -79,13 +79,7 @@ fn main() {
                 g_open,
                 g_ext,
             );
-            banded_gap_poa_v2::exec(
-                &sequence,
-                &graph_struct,
-                &score_matrix,
-                g_open,
-                g_ext,
-            );
+            banded_gap_poa_v2::exec(&sequence, &graph_struct, &score_matrix, g_open, g_ext);
         }
         _ => panic!("alignment mode must be 0, 1, 2 or 3"),
     }
