@@ -11,7 +11,7 @@ pub fn exec(
     o: i32,
     e: i32,
     bta: usize
-) {
+) -> i32{
     let lnz = &graph_struct.lnz;
     let nodes_w_pred = &graph_struct.nwp;
     let pred_hash = &graph_struct.pred_hash;
@@ -117,7 +117,7 @@ pub fn exec(
                     }
                     _ => {
                         let l = x[i][j];
-                        let u = x[i][j];
+                        let u = y[i][j];
                         m[i][j] = match l.cmp(&u) {
                             Ordering::Less => u,
                             _ => l,
@@ -134,14 +134,24 @@ pub fn exec(
         // set best scoring position for current row
         best_scoring_pos[i] = best_val_pos;
     }
-    //println!("{:?}", ampl_for_row);
-    let last_row = m.len() - 2;
-    let last_col = m[last_row].len() - 1;
-    println!("{}", m[last_row][last_col]);
-    println!("{:?}", m[0]);
-    println!("{:?}", ampl_for_row[0]);
+    let mut last_row = m.len() - 2;
+    let mut last_col = m[last_row].len() - 1;
 
-    ampl_for_row.iter().for_each(|l| {println!("{:?}", l)});
+    for p in pred_hash.get(&(m.len()-1)).unwrap().iter(){
+        let tmp_last_col =ampl_for_row[*p].1 - 1;
+        if m[*p][tmp_last_col] > m[last_row][last_col] {
+            last_row = *p;
+            last_col = tmp_last_col;
+        }
+    }
+
+    println!("{}", m[last_row][last_col]);
+    //m.iter().for_each(|line|{println!("{:?}", line)});
+    //x.iter().for_each(|line|{println!("{:?}", line)});
+    //y.iter().for_each(|line|{println!("{:?}", line)});
+    ampl_for_row.iter().for_each(|line|{println!("{:?}", line)});
+    
+    m[last_row][last_col]
 }
 fn get_best_d(
     p_arr: &[usize],
@@ -230,7 +240,7 @@ fn get_best_l(
 ) -> Option<(i32, usize)> {
     if j > ampl_for_row[i].0 {
         let l_x = x[i][j - 1];
-        let l_m = m[i][j - 1];
+        let l_m = m[i][j - 1] + o;
         if l_x > l_m {
             Some((l_x, i))
         } else {
@@ -330,4 +340,235 @@ fn set_r_values(lnz_len: usize, pred_hash: &HashMap<usize, Vec<usize>>) -> Vec<u
         }
     }
     r_values
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use bit_vec::BitVec;
+
+    use crate::graph::LnzGraph;
+
+    #[test]
+    fn test1() {
+        let s = vec!['$', 'A', 'A', 'A', 'A'];
+
+        let lnz = vec!['$', 'A', 'A', 'A', 'A', 'F'];
+
+        let mut nwp = BitVec::from_elem(6, false);
+        nwp.set(1, true);
+        nwp.set(5, true);
+
+        let mut pred_hash = HashMap::new();
+        pred_hash.insert(1, vec![0]);
+        pred_hash.insert(5, vec![4]);
+        let graph = LnzGraph {
+            lnz,
+            nwp,
+            pred_hash,
+        };
+        let mut score_matrix = HashMap::new();
+        score_matrix.insert(('A', 'A'), 1);
+
+        let align = super::exec(&s, &graph, &score_matrix, -4, -1, 1);
+
+        assert_eq!(align, 4);
+    }
+
+    #[test]
+    fn gap_correctly_considered() {
+        let s = vec!['$', 'A', 'A', 'C', 'A', 'A', 'C'];
+
+        let lnz = vec!['$', 'A', 'A', 'C', 'A', 'A', 'A', 'F'];
+
+        let mut nwp = BitVec::from_elem(8, false);
+        nwp.set(1, true);
+        nwp.set(3, true);
+        nwp.set(4, true);
+        nwp.set(5, true);
+        nwp.set(7, true);
+
+        let mut pred_hash = HashMap::new();
+        pred_hash.insert(1, vec![0]);
+        pred_hash.insert(3, vec![2]);
+        pred_hash.insert(4, vec![2]);
+        pred_hash.insert(5, vec![3, 4]);
+        pred_hash.insert(7, vec![6]);
+        let graph = LnzGraph {
+            lnz,
+            nwp,
+            pred_hash,
+        };
+        let mut score_matrix = HashMap::new();
+        score_matrix.insert(('A', 'A'), 1);
+        score_matrix.insert(('C', 'C'), 1);
+        score_matrix.insert(('C', 'A'), -1);
+        score_matrix.insert(('A', 'C'), -1);
+        let align = super::exec(&s, &graph, &score_matrix, -4, -1, 10);
+
+        assert_eq!(align, 0);
+    }
+
+    #[test]
+    fn multiple_starts() {
+        let s = vec!['$', 'C', 'A', 'C', 'A', 'A'];
+
+        let lnz = vec!['$', 'A', 'C', 'A', 'C', 'C', 'A', 'A', 'F'];
+
+        let mut nwp = BitVec::from_elem(9, false);
+        nwp.set(1, true);
+        nwp.set(2, true);
+        nwp.set(3, true);
+        nwp.set(4, true);
+        nwp.set(5, true);
+        nwp.set(8, true);
+
+        let mut pred_hash = HashMap::new();
+        pred_hash.insert(1, vec![0]);
+        pred_hash.insert(2, vec![0]);
+        pred_hash.insert(3, vec![1, 2]);
+        pred_hash.insert(4, vec![1, 2]);
+        pred_hash.insert(5, vec![3, 4]);
+        pred_hash.insert(8, vec![7]);
+        let graph = LnzGraph {
+            lnz,
+            nwp,
+            pred_hash,
+        };
+        let mut score_matrix = HashMap::new();
+        score_matrix.insert(('A', 'A'), 1);
+        score_matrix.insert(('C', 'C'), 1);
+        score_matrix.insert(('C', 'A'), -1);
+        score_matrix.insert(('A', 'C'), -1);
+        let align = super::exec(&s, &graph, &score_matrix, -4, -1, 1);
+
+        assert_eq!(align, 5);
+    }
+
+    #[test]
+    fn multiple_ends() {
+        let s = vec!['$', 'C', 'A', 'C', 'A', 'A'];
+
+        let lnz = vec!['$', 'A', 'C', 'A', 'C', 'C', 'A', 'A', 'C', 'F'];
+
+        let mut nwp = BitVec::from_elem(10, false);
+        nwp.set(1, true);
+        nwp.set(2, true);
+        nwp.set(3, true);
+        nwp.set(4, true);
+        nwp.set(5, true);
+        nwp.set(7, true);
+        nwp.set(8, true);
+        nwp.set(9, true);
+
+        let mut pred_hash = HashMap::new();
+        pred_hash.insert(1, vec![0]);
+        pred_hash.insert(2, vec![0]);
+        pred_hash.insert(3, vec![1, 2]);
+        pred_hash.insert(4, vec![1, 2]);
+        pred_hash.insert(5, vec![3, 4]);
+        pred_hash.insert(7, vec![6]);
+        pred_hash.insert(8, vec![6]);
+        pred_hash.insert(9, vec![7, 8]);
+        let graph = LnzGraph {
+            lnz,
+            nwp,
+            pred_hash,
+        };
+        let mut score_matrix = HashMap::new();
+        score_matrix.insert(('A', 'A'), 1);
+        score_matrix.insert(('C', 'C'), 1);
+        score_matrix.insert(('C', 'A'), -1);
+        score_matrix.insert(('A', 'C'), -1);
+        let align = super::exec(&s, &graph, &score_matrix, -4, -1, 1);
+
+        assert_eq!(align, 5);
+    }
+
+    #[test]
+    fn gap_poa_same_result_as_normal_if_o_0() {
+        let s = vec!['$', 'A', 'A', 'C', 'A', 'A', 'C'];
+
+        let lnz = vec!['$', 'A', 'A', 'C', 'A', 'A', 'A', 'F'];
+
+        let mut nwp = BitVec::from_elem(8, false);
+        nwp.set(1, true);
+        nwp.set(3, true);
+        nwp.set(4, true);
+        nwp.set(5, true);
+        nwp.set(7, true);
+
+        let mut pred_hash = HashMap::new();
+        pred_hash.insert(1, vec![0]);
+        pred_hash.insert(3, vec![2]);
+        pred_hash.insert(4, vec![2]);
+        pred_hash.insert(5, vec![3, 4]);
+        pred_hash.insert(7, vec![6]);
+        let graph = LnzGraph {
+            lnz,
+            nwp,
+            pred_hash,
+        };
+        let mut score_matrix = HashMap::new();
+        score_matrix.insert(('A', 'A'), 1);
+        score_matrix.insert(('C', 'C'), 1);
+        score_matrix.insert(('C', 'A'), -1);
+        score_matrix.insert(('A', 'C'), -1);
+        let align = super::exec(&s, &graph, &score_matrix, 0, -1, 1);
+
+        assert_eq!(align, 4);
+    }
+    #[test]
+    fn gap_open_only_once_if_penalty_high() {
+        let s = vec!['$', 'A', 'A', 'A'];
+
+        let lnz = vec!['$', 'A', 'C', 'A', 'C', 'A', 'F'];
+
+        let mut nwp = BitVec::from_elem(7, false);
+        nwp.set(1, true);
+        nwp.set(6, true);
+
+        let mut pred_hash = HashMap::new();
+        pred_hash.insert(1, vec![0]);
+        pred_hash.insert(6, vec![5]);
+        let graph = LnzGraph {
+            lnz,
+            nwp,
+            pred_hash,
+        };
+        let mut score_matrix = HashMap::new();
+        score_matrix.insert(('A', 'A'), 1);
+        score_matrix.insert(('C', 'C'), 1);
+        score_matrix.insert(('C', 'A'), -1);
+        score_matrix.insert(('A', 'C'), -1);
+        let align = super::exec(&s, &graph, &score_matrix, -100, -1, 10);
+
+        assert_eq!(align, -101);
+    }
+    #[test]
+    fn sequence_longer_than_graph() {
+        let s = vec!['$', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A'];
+
+        let lnz = vec!['$', 'A', 'A', 'A', 'A', 'A', 'F'];
+        let mut nwp = BitVec::from_elem(7, false);
+        nwp.set(1, true);
+        nwp.set(6, true);
+
+        let mut pred_hash = HashMap::new();
+        pred_hash.insert(1, vec![0]);
+        pred_hash.insert(6, vec![5]);
+        let graph = LnzGraph {
+            lnz,
+            nwp,
+            pred_hash,
+        };
+        let mut score_matrix = HashMap::new();
+        score_matrix.insert(('A', 'A'), 1);
+        score_matrix.insert(('C', 'C'), 1);
+        score_matrix.insert(('C', 'A'), -1);
+        score_matrix.insert(('A', 'C'), -1);
+        let align = super::exec(&s, &graph, &score_matrix, -4, -1, 7);
+        assert_eq!(align, -3);
+    }
 }
