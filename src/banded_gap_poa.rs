@@ -310,7 +310,7 @@ fn best_last_node(
     let mut best_idx = 0;
     let mut first = true;
     let m_len = m.len();
-    let last_row = ampl_for_row.len() - 1;
+    let _last_row = ampl_for_row.len() - 1;
 
     for p in p_arr.iter() {
         let last_col = ampl_for_row[*p].1 - ampl_for_row[*p].0 - 1;
@@ -566,11 +566,7 @@ fn left_equal_for_every_p(
         }
         check
     } else {
-        if ampl_for_row[i - 1].0 != ampl_for_row[i].0 {
-            false
-        } else {
-            true
-        }
+        ampl_for_row[i - 1].0 == ampl_for_row[i].0
     }
 }
 
