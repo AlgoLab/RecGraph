@@ -258,7 +258,7 @@ pub fn write_align_poa(path: &[Vec<(char, i32)>], sequence: &[char], graph: &[(c
                 sequence_align.push('-');
                 graph_align.push(graph[col].0);
                 alignment_moves.push(' ');
-                col = path[row][col].1 as usize;
+                col -= 1;
             }
             ('U', _) => {
                 row -= 1;

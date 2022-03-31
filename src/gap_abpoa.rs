@@ -172,7 +172,8 @@ pub fn exec(
             last_col = tmp_last_col;
         }
     }
-    path.iter().for_each(|line| println!("{:?}", line));
+    //TODO: if false try with double base_to_add?
+    band_ampl_enough(&path, last_row, last_col, &ampl_for_row);
     println!("{}", m[last_row][last_col]);
     m[last_row][last_col]
 }
@@ -362,7 +363,35 @@ fn set_r_values(lnz_len: usize, pred_hash: &HashMap<usize, Vec<usize>>) -> Vec<u
     }
     r_values
 }
-
+fn band_ampl_enough(path: &[Vec<(char, usize)>], start_row: usize, start_col: usize, ampl_for_row: &Vec<(usize, usize)>) -> bool {
+    let mut i = start_row;
+    let mut j = start_col;
+    while path[i][j].0 != 'O' {
+        if i == 0 || j == 0 {
+            return true
+        }
+        let (left, right) = ampl_for_row[i];
+        if (j == left && left != 0)|| (j == right - 1  && right != path[0].len()) {
+            return false
+        }
+        match path[i][j].0 {
+            'D'|'d' => {
+                j -= 1;
+                i = path[i][j].1;
+            }
+            'U' => {
+                i = path[i][j].1;
+            }
+            'L' => {
+                j -= 1;
+            }
+            _ => {
+                return false
+            }
+        }
+    }
+    true
+}
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
