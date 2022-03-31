@@ -10,6 +10,7 @@ pub fn exec(
     score_matrix: &HashMap<(char, char), i32>,
     o: i32,
     e: i32,
+    bta: usize
 ) {
     let lnz = &graph_struct.lnz;
     let nodes_w_pred = &graph_struct.nwp;
@@ -37,6 +38,7 @@ pub fn exec(
             &best_scoring_pos,
             &ampl_for_row,
             sequence.len(),
+            bta
         );
         ampl_for_row[i] = (left, right);
         let mut best_val_pos: usize = left;
@@ -45,7 +47,7 @@ pub fn exec(
                 path[i][j] = ('O', 0);
             } else if i == 0 {
                 // set y
-                y[i][j] = o + e * i as i32;
+                y[i][j] = o + e * j as i32;
                 // set m
                 m[i][j] = y[i][j];
                 path[i][j] = ('L', i);
@@ -92,7 +94,7 @@ pub fn exec(
                         y[i][j] = u + e;
                     }
                     _ => {
-                        y[i][j] = o + e * i as i32;
+                        y[i][j] = o + e * j as i32;
                     }
                 }
                 // try get d from m (pred_left < j < pred_right else None)
@@ -136,6 +138,10 @@ pub fn exec(
     let last_row = m.len() - 2;
     let last_col = m[last_row].len() - 1;
     println!("{}", m[last_row][last_col]);
+    println!("{:?}", m[0]);
+    println!("{:?}", ampl_for_row[0]);
+
+    ampl_for_row.iter().for_each(|l| {println!("{:?}", l)});
 }
 fn get_best_d(
     p_arr: &[usize],
@@ -242,6 +248,7 @@ fn set_ampl_for_row(
     best_scoring_pos: &[usize],
     ampl_for_row: &Vec<(usize, usize)>,
     seq_len: usize,
+    bta: usize
 ) -> (usize, usize) {
     let ms;
     let me;
@@ -279,13 +286,16 @@ fn set_ampl_for_row(
     }
     let band_start;
     let band_end;
-    // TODO: change +10 with add_base as abpoa
-    if seq_len > r_val + 10 {
-        band_start = cmp::max(0, cmp::min(ms, seq_len - r_val) - 10);
-        band_end = cmp::min(seq_len, cmp::max(me, seq_len - r_val) + 10);
-    } else {
+    let tmp_bs = cmp::min(ms as i32, (seq_len as i32 - r_val as i32) - bta as i32);
+    if tmp_bs < 0 {
         band_start = 0;
-        band_end = cmp::min(seq_len, me + 10);
+    } else {
+        band_start = cmp::max(0, tmp_bs as usize);
+    }
+    if seq_len > r_val {
+        band_end = cmp::min(seq_len, cmp::max(me, seq_len - r_val) + bta);
+    } else {
+        band_end = cmp::min(seq_len, me + bta);
     }
 
     (band_start, band_end)
