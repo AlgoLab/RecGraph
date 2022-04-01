@@ -1,3 +1,5 @@
+use clap::Values;
+
 use crate::graph::LnzGraph;
 use std::{
     cmp::{self, Ordering},
@@ -19,8 +21,7 @@ pub fn exec(
     let mut m = vec![vec![0; sequence.len()]; lnz.len()]; // best alignment
     let mut x = vec![vec![0; sequence.len()]; lnz.len()]; //best alignment final gap in graph
     let mut y = vec![vec![0; sequence.len()]; lnz.len()]; // best alignment final gap in sequence
-
-    let r_values = set_r_values(lnz.len(), pred_hash);
+    let r_values = set_r_values_v2(lnz.len(), pred_hash);
     let mut best_scoring_pos = vec![0; lnz.len()];
 
     let mut path = vec![vec![('X', 0); sequence.len()]; lnz.len()];
@@ -335,7 +336,7 @@ fn set_ampl_for_row(
 
     (band_start, band_end)
 }
-
+/*
 fn set_r_values(lnz_len: usize, pred_hash: &HashMap<usize, Vec<usize>>) -> Vec<usize> {
     let mut r_values = vec![0; lnz_len];
     let mut i = lnz_len - 1;
@@ -364,6 +365,52 @@ fn set_r_values(lnz_len: usize, pred_hash: &HashMap<usize, Vec<usize>>) -> Vec<u
         }
     }
     r_values
+}
+*/
+fn set_r_values_v2(lnz_len: usize, pred_hash: &HashMap<usize, Vec<usize>>) -> Vec<usize> {
+    let mut r_values = vec![0; lnz_len];
+    let final_nodes = pred_hash.get(&(lnz_len - 1)).unwrap();
+    for n in final_nodes {
+        r_values[*n] = 0;
+        let mut idx = n - 1;
+        let mut r = 1;
+        while pred_hash.get(&idx).is_none() {
+            r_values[idx] = r;
+            r += 1;
+            idx -= 1;
+        }
+        if r_values[idx] == 0 || r_values[idx] > r {
+            r_values[idx] = r;
+        }
+        set_r_predecessor(&mut r_values, pred_hash, pred_hash.get(&idx).unwrap(), r);
+    }
+    r_values[0] = r_values.iter().max().unwrap() + 1;
+
+    r_values
+}
+fn set_r_predecessor(
+    r_values: &mut Vec<usize>,
+    pred_hash: &HashMap<usize, Vec<usize>>,
+    p_arr: &[usize],
+    r: usize,
+) {
+    for n in p_arr {
+        if *n > 0 {
+            let mut new_r = r + 1;
+            let mut idx = *n;
+            while pred_hash.get(&idx).is_none() {
+                if r_values[idx] == 0 || r_values[idx] > new_r {
+                    r_values[idx] = new_r;
+                }
+                new_r += 1;
+                idx -= 1;
+            }
+            if r_values[idx] == 0 || r_values[idx] > new_r {
+                r_values[idx] = new_r;
+            }
+            set_r_predecessor(r_values, pred_hash, pred_hash.get(&idx).unwrap(), new_r);
+        } 
+    }
 }
 fn band_ampl_enough(
     path: &[Vec<(char, usize)>],
