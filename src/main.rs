@@ -58,11 +58,11 @@ fn main() {
             );
         }
         4 => {
-            let mut sequence: Vec<char> = sequences[15].chars().collect();
+            let mut sequence: Vec<char> = sequences[17].chars().collect();
             sequence.insert(0, '$');
             let graph_path = args_parser::get_graph_path();
             let linearization = graph::get_linearization(&graph_path);
-            let graph_struct = graph::create_graph_struct(&graph_path);
+            let graph_struct = graph::create_graph_struct(&graph_path, false);
             let ampl = match sequence.len() < linearization.len() {
                 true => linearization.len() - 1 - sequence.len(),
                 _ => sequence.len() - linearization.len() + 1,
@@ -81,7 +81,7 @@ fn main() {
             );
             let (b, f) = args_parser::get_b_f();
             let bases_to_add = (b + f * sequence.len() as f32) as usize;
-            gap_abpoa::exec(
+            let align_score = gap_abpoa::exec(
                 &sequence,
                 &graph_struct,
                 &score_matrix,
@@ -89,6 +89,18 @@ fn main() {
                 g_ext,
                 bases_to_add,
             );
+            let amb_strand = args_parser::get_amb_strand_mode();
+            if amb_strand && align_score < 0 {
+                let rev_graph_struct = graph::create_graph_struct(&graph_path, true);
+                /*
+                for i in 0..linearization.len() {
+                println!("{}\t{}\t{:?}", rev_graph_struct.lnz[i], rev_graph_struct.nwp[i], rev_graph_struct.pred_hash.get(&i));
+
+                }
+                */
+                
+                gap_abpoa::exec(&sequence, &rev_graph_struct, &score_matrix, g_open, g_ext, bases_to_add);
+            }
         }
         _ => panic!("alignment mode must be 0, 1, 2 or 3"),
     }

@@ -352,11 +352,10 @@ fn set_r_values(lnz_len: usize, pred_hash: &HashMap<usize, Vec<usize>>) -> Vec<u
         count += 1;
     }
     r_values[0] = count;
-
     for i in 1..r_values.len() {
         match pred_hash.get(&i) {
             Some(arr) => {
-                let best_p = arr.iter().max().unwrap();
+                let best_p = arr.iter().min().unwrap();
                 r_values[i] = r_values[*best_p] - 1;
             }
             _ => {

@@ -76,9 +76,12 @@ pub struct LnzGraph {
     pub nwp: BitVec,
     pub pred_hash: HashMap<usize, Vec<usize>>,
 }
-pub fn create_graph_struct(file_path: &str) -> LnzGraph {
-    let (graph, sorted_handles) = read_graph(file_path);
-
+pub fn create_graph_struct(file_path: &str, amb_mode: bool) -> LnzGraph {
+    let (graph, mut sorted_handles) = read_graph(file_path);
+    if amb_mode {
+        sorted_handles.reverse();
+        sorted_handles = sorted_handles.iter().map(|h|{h.flip()}).collect::<Vec<Handle>>();
+    }
     let mut last_index = 1;
     let mut visited_node: HashMap<NodeId, i32> = HashMap::new();
     let mut last_nodes: HashMap<NodeId, i32> = HashMap::new();
@@ -139,6 +142,7 @@ pub fn create_graph_struct(file_path: &str) -> LnzGraph {
         pred_hash: predecessor_hash,
     }
 }
+
 
 fn update_hash(hashmap: &mut HashMap<usize, Vec<usize>>, k: usize, val: usize) {
     if let Some(arr) = hashmap.get_mut(&k) {

@@ -67,7 +67,6 @@ struct Args {
     )]
     gap_extension: i32,
 
-    //TODO: command below yet to implement
     //Ambigous strand mode
     #[clap(
         help_heading = "Alignment",
@@ -132,4 +131,13 @@ pub fn get_b_f() -> (f32, f32) {
 pub fn get_graph_path() -> String {
     let args = Args::parse();
     args.graph_path
+}
+
+pub fn get_amb_strand_mode() -> bool {
+    let args = Args::parse();
+    let amb_strand = args.amb_strand.as_str();
+    match amb_strand {
+        "true" => true,
+        _ => false
+    }
 }
