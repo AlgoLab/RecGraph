@@ -138,6 +138,6 @@ pub fn get_amb_strand_mode() -> bool {
     let amb_strand = args.amb_strand.as_str();
     match amb_strand {
         "true" => true,
-        _ => false
+        _ => false,
     }
 }

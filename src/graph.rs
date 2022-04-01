@@ -80,7 +80,10 @@ pub fn create_graph_struct(file_path: &str, amb_mode: bool) -> LnzGraph {
     let (graph, mut sorted_handles) = read_graph(file_path);
     if amb_mode {
         sorted_handles.reverse();
-        sorted_handles = sorted_handles.iter().map(|h|{h.flip()}).collect::<Vec<Handle>>();
+        sorted_handles = sorted_handles
+            .iter()
+            .map(|h| h.flip())
+            .collect::<Vec<Handle>>();
     }
     let mut last_index = 1;
     let mut visited_node: HashMap<NodeId, i32> = HashMap::new();
@@ -142,7 +145,6 @@ pub fn create_graph_struct(file_path: &str, amb_mode: bool) -> LnzGraph {
         pred_hash: predecessor_hash,
     }
 }
-
 
 fn update_hash(hashmap: &mut HashMap<usize, Vec<usize>>, k: usize, val: usize) {
     if let Some(arr) = hashmap.get_mut(&k) {

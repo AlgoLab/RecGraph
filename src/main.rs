@@ -98,8 +98,15 @@ fn main() {
 
                 }
                 */
-                
-                gap_abpoa::exec(&sequence, &rev_graph_struct, &score_matrix, g_open, g_ext, bases_to_add);
+
+                gap_abpoa::exec(
+                    &sequence,
+                    &rev_graph_struct,
+                    &score_matrix,
+                    g_open,
+                    g_ext,
+                    bases_to_add,
+                );
             }
         }
         _ => panic!("alignment mode must be 0, 1, 2 or 3"),

@@ -1,4 +1,4 @@
-use crate::{graph::LnzGraph};
+use crate::graph::LnzGraph;
 use std::{
     cmp::{self, Ordering},
     collections::HashMap,
