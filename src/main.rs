@@ -1,15 +1,15 @@
 mod args_parser;
+mod banded_mk_poa;
 mod basic_output;
+mod gap_abpoa;
 mod graph;
+mod local_poa;
 mod matrix;
 mod sequences;
-mod banded_mk_poa;
-mod gap_abpoa;
-mod local_poa;
 fn main() {
     // get sequence
     let sequences = sequences::get_sequences();
-    let seq: &Vec<char> = &sequences[15];
+    let seq: &Vec<char> = &sequences[18];
 
     //get graph
     let graph_path = args_parser::get_graph_path();

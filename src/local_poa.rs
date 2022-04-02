@@ -1,6 +1,5 @@
 use std::{cmp::Ordering, collections::HashMap};
 
-use ndarray::Order;
 
 use crate::{basic_output, graph::LnzGraph};
 
@@ -16,7 +15,7 @@ pub fn exec(
     let mut m = vec![vec![0; sequence.len()]; lnz.len()];
     let mut path = vec![vec![('x', 0); sequence.len()]; lnz.len()];
     let (mut best_row, mut best_col) = (0,0);
-    for i in 0..lnz.len() {
+    for i in 0..lnz.len() - 1{
         for j in 0..sequence.len() - 1 {
             match (i, j) {
                 (0, _) | (_, 0) => path[i][j] = ('O', 0),
@@ -24,11 +23,11 @@ pub fn exec(
                     let l = m[i][j-1] + scores_matrix.get(&(sequence[j], '-')).unwrap();
                     let l_idx = i;
 
-                    let mut d = 0;
-                    let mut d_idx = 0;
+                    let mut d;
+                    let d_idx;
 
-                    let mut u = 0;
-                    let mut u_idx = 0;
+                    let mut u;
+                    let u_idx;
                     if !nodes_with_pred[i] {
                         d = m[i-1][j-1] + scores_matrix.get(&(sequence[j], lnz[i])).unwrap();
                         d_idx = i-1;
@@ -38,6 +37,8 @@ pub fn exec(
                     } else {
                         (d, d_idx) = get_best_d(&m, pred_hash.get(&i).unwrap(), j);
                         (u, u_idx) = get_best_u(&m, pred_hash.get(&i).unwrap(), j);
+                        d += scores_matrix.get(&(sequence[j], lnz[i])).unwrap();
+                        u += scores_matrix.get(&('-', lnz[i])).unwrap();
                     }
                     if d < 0 && l < 0 && u < 0 {
                         m[i][j] = 0;
@@ -72,7 +73,7 @@ pub fn exec(
     
     println!("Best alignment: {}", m[best_row][best_col]);
 
-    //basic_output::write_align_poa(&path, sequence, graph);
+    basic_output::write_align_local_poa(&path, sequence, lnz, best_row, best_col);
     m[best_row][best_col]
 }
 

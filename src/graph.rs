@@ -8,7 +8,6 @@ use handlegraph::{
     hashgraph::HashGraph,
 };
 
-
 pub fn read_graph(file_path: &str, amb_mode: bool) -> LnzGraph {
     let parser = GFAParser::new();
     let gfa: GFA<usize, ()> = parser.parse_file(file_path).unwrap();
@@ -119,7 +118,7 @@ fn get_idx(visited_node: &HashMap<NodeId, i32>, pred_id: NodeId) -> i32 {
 
 #[cfg(test)]
 mod tests {
-    use handlegraph::{hashgraph::HashGraph, mutablehandlegraph::MutableHandleGraph, handle::Edge};
+    use handlegraph::{handle::Edge, hashgraph::HashGraph, mutablehandlegraph::MutableHandleGraph};
 
     #[test]
     fn graph_struct_correctly_created() {
@@ -138,7 +137,7 @@ mod tests {
         assert!(graph_struct.nwp[5]);
         assert_eq!(graph_struct.pred_hash.get(&1).unwrap()[0], 0);
         assert_eq!(graph_struct.pred_hash.get(&5).unwrap()[0], 4);
-        assert_eq!(graph_struct.lnz, ['$','A', 'T', 'C', 'G', 'F']);
+        assert_eq!(graph_struct.lnz, ['$', 'A', 'T', 'C', 'G', 'F']);
     }
     #[test]
     fn rev_graph_struct_correctly_created() {
