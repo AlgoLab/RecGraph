@@ -8,26 +8,22 @@ use handlegraph::{
     hashgraph::HashGraph,
 };
 
-fn get_idx(visited_node: &HashMap<NodeId, i32>, pred_id: NodeId) -> i32 {
-    *visited_node.get(&pred_id).unwrap()
-}
 
-fn read_graph(file_path: &str) -> (HashGraph, Vec<Handle>) {
+pub fn read_graph(file_path: &str, amb_mode: bool) -> LnzGraph {
     let parser = GFAParser::new();
     let gfa: GFA<usize, ()> = parser.parse_file(file_path).unwrap();
 
     let graph: HashGraph = HashGraph::from_gfa(&gfa);
-    let mut handles: Vec<Handle> = graph.handles_iter().collect();
-    handles.sort();
-    (graph, handles)
+    create_graph_struct(&graph, amb_mode)
 }
 pub struct LnzGraph {
     pub lnz: Vec<char>,
     pub nwp: BitVec,
     pub pred_hash: HashMap<usize, Vec<usize>>,
 }
-pub fn create_graph_struct(file_path: &str, amb_mode: bool) -> LnzGraph {
-    let (graph, mut sorted_handles) = read_graph(file_path);
+pub fn create_graph_struct(graph: &HashGraph, amb_mode: bool) -> LnzGraph {
+    let mut sorted_handles: Vec<Handle> = graph.handles_iter().collect();
+    sorted_handles.sort();
     if amb_mode {
         sorted_handles.reverse();
         sorted_handles = sorted_handles
@@ -114,5 +110,53 @@ fn set_last_node(
     nodes_with_predecessor.set(linearization.len() - 1, true);
     for (_, idx) in last_nodes.iter() {
         update_hash(predecessor_hash, linearization.len() - 1, *idx as usize);
+    }
+}
+
+fn get_idx(visited_node: &HashMap<NodeId, i32>, pred_id: NodeId) -> i32 {
+    *visited_node.get(&pred_id).unwrap()
+}
+
+#[cfg(test)]
+mod tests {
+    use handlegraph::{hashgraph::HashGraph, mutablehandlegraph::MutableHandleGraph, handle::Edge};
+
+    #[test]
+    fn graph_struct_correctly_created() {
+        let mut graph: HashGraph = HashGraph::new();
+        let h1 = graph.append_handle("A".as_bytes());
+        let h2 = graph.append_handle("T".as_bytes());
+        let h3 = graph.append_handle("C".as_bytes());
+        let h4 = graph.append_handle("G".as_bytes());
+
+        graph.create_edge(&Edge(h1, h2));
+        graph.create_edge(&Edge(h2, h3));
+        graph.create_edge(&Edge(h3, h4));
+
+        let graph_struct = super::create_graph_struct(&graph, false);
+        assert!(graph_struct.nwp[1]);
+        assert!(graph_struct.nwp[5]);
+        assert_eq!(graph_struct.pred_hash.get(&1).unwrap()[0], 0);
+        assert_eq!(graph_struct.pred_hash.get(&5).unwrap()[0], 4);
+        assert_eq!(graph_struct.lnz, ['$','A', 'T', 'C', 'G', 'F']);
+    }
+    #[test]
+    fn rev_graph_struct_correctly_created() {
+        let mut graph: HashGraph = HashGraph::new();
+        let h1 = graph.append_handle("A".as_bytes());
+        let h2 = graph.append_handle("T".as_bytes());
+        let h3 = graph.append_handle("C".as_bytes());
+        let h4 = graph.append_handle("G".as_bytes());
+
+        graph.create_edge(&Edge(h1, h2));
+        graph.create_edge(&Edge(h2, h3));
+        graph.create_edge(&Edge(h3, h4));
+
+        let graph_struct = super::create_graph_struct(&graph, true);
+        assert!(graph_struct.nwp[1]);
+        assert!(graph_struct.nwp[5]);
+        assert_eq!(graph_struct.pred_hash.get(&1).unwrap()[0], 0);
+        assert_eq!(graph_struct.pred_hash.get(&5).unwrap()[0], 4);
+        assert_eq!(graph_struct.lnz, ['$', 'C', 'G', 'A', 'T', 'F']);
     }
 }

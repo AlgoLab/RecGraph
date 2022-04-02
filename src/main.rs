@@ -13,7 +13,7 @@ fn main() {
 
     //get graph
     let graph_path = args_parser::get_graph_path();
-    let graph_struct = graph::create_graph_struct(&graph_path, false);
+    let graph_struct = graph::read_graph(&graph_path, false);
 
     //get score matrix
     let score_matrix = matrix::create_score_matrix();
@@ -33,7 +33,7 @@ fn main() {
             };
             let align_score = banded_mk_poa::exec(seq, &graph_struct, &score_matrix, ampl * 2);
             if amb_strand && align_score < 0 {
-                let rev_graph_struct = graph::create_graph_struct(&graph_path, true);
+                let rev_graph_struct = graph::read_graph(&graph_path, true);
                 banded_mk_poa::exec(seq, &rev_graph_struct, &score_matrix, ampl * 2);
             }
         }
@@ -53,7 +53,7 @@ fn main() {
                 bases_to_add,
             );
             if amb_strand && align_score < 0 {
-                let rev_graph_struct = graph::create_graph_struct(&graph_path, true);
+                let rev_graph_struct = graph::read_graph(&graph_path, true);
                 gap_abpoa::exec(
                     seq,
                     &rev_graph_struct,
