@@ -13,7 +13,7 @@ struct Args {
         short = 'm',
         long = "aln-mode",
         default_value_t = 0,
-        help = "0: global, 1: local, 2: edit distance, 3: affine gap"
+        help = "0: global, 1: local, 2: affine gap"
     )]
     alignment_mode: i32,
 
@@ -136,8 +136,5 @@ pub fn get_graph_path() -> String {
 pub fn get_amb_strand_mode() -> bool {
     let args = Args::parse();
     let amb_strand = args.amb_strand.as_str();
-    match amb_strand {
-        "true" => true,
-        _ => false,
-    }
+    matches!(amb_strand, "true")
 }

@@ -1,5 +1,3 @@
-use clap::Values;
-
 use crate::graph::LnzGraph;
 use std::{
     cmp::{self, Ordering},
@@ -282,7 +280,7 @@ fn set_ampl_for_row(
     p_arr: &[usize],
     r_val: usize,
     best_scoring_pos: &[usize],
-    ampl_for_row: &Vec<(usize, usize)>,
+    ampl_for_row: &[(usize, usize)],
     seq_len: usize,
     bta: usize,
 ) -> (usize, usize) {
@@ -320,53 +318,22 @@ fn set_ampl_for_row(
         ms = pl + 1;
         me = pr + 1;
     }
-    let band_start;
-    let band_end;
     let tmp_bs = cmp::min(ms as i32, (seq_len as i32 - r_val as i32) - bta as i32);
-    if tmp_bs < 0 {
-        band_start = 0;
+    let band_start = if tmp_bs < 0 {
+        0
     } else {
-        band_start = cmp::max(0, tmp_bs as usize);
-    }
-    if seq_len > r_val {
-        band_end = cmp::min(seq_len, cmp::max(me, seq_len - r_val) + bta);
+        cmp::max(0, tmp_bs as usize)
+    };
+
+    let band_end = if seq_len > r_val {
+        cmp::min(seq_len, cmp::max(me, seq_len - r_val) + bta)
     } else {
-        band_end = cmp::min(seq_len, me + bta);
-    }
+        cmp::min(seq_len, me + bta)
+    };
 
     (band_start, band_end)
 }
-/*
-fn set_r_values(lnz_len: usize, pred_hash: &HashMap<usize, Vec<usize>>) -> Vec<usize> {
-    let mut r_values = vec![0; lnz_len];
-    let mut i = lnz_len - 1;
-    let mut count = 0;
-    while i > 0 {
-        match pred_hash.get(&i) {
-            Some(arr) => {
-                i = *arr.iter().max().unwrap();
-            }
-            _ => {
-                i -= 1;
-            }
-        }
-        count += 1;
-    }
-    r_values[0] = count;
-    for i in 1..r_values.len() {
-        match pred_hash.get(&i) {
-            Some(arr) => {
-                let best_p = arr.iter().min().unwrap();
-                r_values[i] = r_values[*best_p] - 1;
-            }
-            _ => {
-                r_values[i] = r_values[i - 1] - 1;
-            }
-        }
-    }
-    r_values
-}
-*/
+
 fn set_r_values_v2(lnz_len: usize, pred_hash: &HashMap<usize, Vec<usize>>) -> Vec<usize> {
     let mut r_values = vec![0; lnz_len];
     let final_nodes = pred_hash.get(&(lnz_len - 1)).unwrap();
@@ -409,7 +376,7 @@ fn set_r_predecessor(
                 r_values[idx] = new_r;
             }
             set_r_predecessor(r_values, pred_hash, pred_hash.get(&idx).unwrap(), new_r);
-        } 
+        }
     }
 }
 fn band_ampl_enough(

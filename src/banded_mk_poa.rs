@@ -482,7 +482,7 @@ fn get_max_d_u_l(d: i32, u: i32, l: i32) -> (i32, char) {
 }
 fn left_equal_for_every_p(
     p_arr: Option<&Vec<usize>>,
-    ampl_for_row: &Vec<(usize, usize)>,
+    ampl_for_row: &[(usize, usize)],
     i: usize,
 ) -> bool {
     if let Some(arr) = p_arr {
