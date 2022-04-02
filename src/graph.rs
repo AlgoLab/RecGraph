@@ -21,7 +21,7 @@ pub struct LnzGraph {
     pub nwp: BitVec,
     pub pred_hash: HashMap<usize, Vec<usize>>,
 }
-pub fn create_graph_struct(graph: &HashGraph, amb_mode: bool) -> LnzGraph {
+fn create_graph_struct(graph: &HashGraph, amb_mode: bool) -> LnzGraph {
     let mut sorted_handles: Vec<Handle> = graph.handles_iter().collect();
     sorted_handles.sort();
     if amb_mode {

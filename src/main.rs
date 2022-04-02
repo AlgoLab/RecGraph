@@ -1,11 +1,11 @@
 mod args_parser;
-mod banded_mk_poa;
 mod basic_output;
-mod gap_abpoa;
 mod graph;
 mod matrix;
 mod sequences;
-
+mod banded_mk_poa;
+mod gap_abpoa;
+mod local_poa;
 fn main() {
     // get sequence
     let sequences = sequences::get_sequences();
@@ -39,7 +39,7 @@ fn main() {
         }
         //local alignment
         1 => {
-            println!("Yet to be implemented");
+            local_poa::exec(seq, &graph_struct, &score_matrix);
         }
         //affine gap alignment
         2 => {
