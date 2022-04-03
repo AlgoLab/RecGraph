@@ -35,7 +35,6 @@ pub fn exec(
             p_arr,
             r_values[i],
             &best_scoring_pos,
-            &ampl_for_row,
             sequence.len(),
             bta,
         );
@@ -176,6 +175,7 @@ pub fn exec(
     if !check {
         println!("Band length probably too short, maybe try with larger b and f");
     }
+    ampl_for_row.iter().for_each(|t|{println!("{:?}", t)});
     println!("{}", m[last_row][last_col]);
     m[last_row][last_col]
 }
@@ -280,7 +280,6 @@ fn set_ampl_for_row(
     p_arr: &[usize],
     r_val: usize,
     best_scoring_pos: &[usize],
-    ampl_for_row: &[(usize, usize)],
     seq_len: usize,
     bta: usize,
 ) -> (usize, usize) {
@@ -296,23 +295,19 @@ fn set_ampl_for_row(
     } else {
         let mut pl = 0;
         let mut pr = 0;
-        let mut left = 0;
         let mut first = true;
         for p in p_arr.iter() {
             let current_best = best_scoring_pos[*p];
             if first {
                 pl = current_best;
                 pr = current_best;
-                left = ampl_for_row[*p].0;
                 first = false;
             }
-            if current_best + ampl_for_row[*p].0 < pl + left {
+            if current_best < pl  {
                 pl = current_best;
-                left = ampl_for_row[*p].0;
             }
-            if current_best + ampl_for_row[*p].0 > pr + left {
+            if current_best > pr {
                 pr = current_best;
-                left = ampl_for_row[*p].0;
             }
         }
         ms = pl + 1;
