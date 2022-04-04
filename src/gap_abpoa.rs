@@ -38,7 +38,6 @@ pub fn exec(
             bta,
         );
         ampl_for_row[i] = (left, right);
-        println!("row: {} :: l:{} r:{} pred: {:?}",i,  left, right, pred_hash.get(&i));
         m[i] = vec![0; right];
         x[i] = vec![0; right];
         y[i] = vec![0; right];
@@ -163,7 +162,6 @@ pub fn exec(
         }
         // set best scoring position for current row
         best_scoring_pos[i] = best_val_pos;
-        println!("\t{}", best_val_pos);
     }
     let mut last_row = m.len() - 2;
     let mut last_col = m[last_row].len() - 1;
@@ -180,6 +178,8 @@ pub fn exec(
     if !check {
         println!("Band length probably too short, maybe try with larger b and f");
     }
+    ampl_for_row.iter().for_each(|t|{println!("{:?}", t)});
+
     println!("{}", m[last_row][last_col]);
     m[last_row][last_col]
 }

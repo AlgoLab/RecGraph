@@ -182,6 +182,7 @@ pub fn exec(
     if !check {
         println!("Band length probably too short, maybe try with larger b and f");
     }
+    ampl_for_row.iter().for_each(|t|{println!("{:?}", t)});
     println!("{}", m[last_row][last_col]);
     m[last_row][last_col]
 }
@@ -199,10 +200,13 @@ fn get_best_d(
 
     for p in p_arr.iter() {
         let (left_p, right_p) = ampl_for_row[*p];
-        let delta = left_i as i32 - left_p as i32;
-        let j_pos = j as i32 + delta;
-        if j_pos > ampl_for_row[*p].0 as i32 && j_pos < (right_p - left_p) as i32 {
-            let curr_d = m[*p][j_pos as usize - 1];
+        if j +left_i > ampl_for_row[*p].0 && j +left_i <= ampl_for_row[*p].1{
+            let j_pos = if left_p < left_i {
+                j+(left_i-left_p)
+            } else {
+                j-(left_p-left_i)
+            };
+            let curr_d = m[*p][j_pos-1];
             if first {
                 d = curr_d;
                 d_idx = *p;
@@ -238,10 +242,12 @@ fn get_best_u(
     let left_i = ampl_for_row[i].0;
     for p in p_arr.iter() {
         let (left_p, right_p) = ampl_for_row[*p];
-        let delta = left_i as i32 - left_p as i32;
-        let j_pos = j as i32 + delta;
-
-        if j_pos >= left_p as i32 && j_pos < (right_p - left_p) as i32 {
+        if j +left_i >= ampl_for_row[*p].0 && j +left_i < ampl_for_row[*p].1{
+            let j_pos = if left_p < left_i {
+                j+(left_i-left_p)
+            } else {
+                j-(left_p-left_i)
+            };
             let current_u_m = m[*p][j_pos as usize] + o;
             let current_u_y = y[*p][j_pos as usize];
             if first {
