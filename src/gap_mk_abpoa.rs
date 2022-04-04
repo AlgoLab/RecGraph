@@ -18,10 +18,11 @@ pub fn exec(
     let mut m = vec![vec![]; lnz.len()]; // best alignment
     let mut x = vec![vec![]; lnz.len()]; //best alignment final gap in graph
     let mut y = vec![vec![]; lnz.len()]; // best alignment final gap in sequence
-    let r_values = set_r_values_v2(lnz.len(), pred_hash);
-    let mut best_scoring_pos = vec![0; lnz.len()];
 
-    let mut path = vec![vec![('X', 0); sequence.len()]; lnz.len()];
+    let r_values = set_r_values_v2(lnz.len(), pred_hash);
+
+    let mut best_scoring_pos = vec![0; lnz.len()];
+    let mut path = vec![vec![]; lnz.len()];
     let mut ampl_for_row: Vec<(usize, usize)> = vec![(0, 0); lnz.len()];
 
     for i in 0..lnz.len() - 1 {
@@ -34,26 +35,28 @@ pub fn exec(
             p_arr,
             r_values[i],
             &best_scoring_pos,
+            &ampl_for_row,
             sequence.len(),
             bta,
         );
         ampl_for_row[i] = (left, right);
-        println!("row: {} :: l:{} r:{} pred: {:?}",i,  left, right, pred_hash.get(&i));
-        m[i] = vec![0; right];
-        x[i] = vec![0; right];
-        y[i] = vec![0; right];
-        path[i] = vec![('X', 0); right];
-        let mut best_val_pos: usize = left;
-        for j in left..right {
+        let mut best_val_pos: usize = 0;
+        m[i] = vec![0; right-left];
+        x[i] = vec![0; right-left];
+        y[i] = vec![0; right-left];
+        path[i] = vec![('X', 0); right-left];
+        if i > 0 {
+        }
+        for j in 0..right - left {
             if i == 0 && j == 0 {
                 path[i][j] = ('O', 0);
             } else if i == 0 {
                 // set y
-                y[i][j] = o + e * j as i32;
+                y[i][j] = o + e * (j+left) as i32;
                 // set m
                 m[i][j] = y[i][j];
                 path[i][j] = ('L', i);
-            } else if j == 0 {
+            } else if j == 0 && left == 0{
                 // set x
 
                 let best_p = if !nodes_w_pred[i] {
@@ -62,7 +65,7 @@ pub fn exec(
                     *pred_hash.get(&i).unwrap().iter().min().unwrap()
                 };
 
-                x[i][j] = if best_p == 0 { o + e } else { x[best_p][j] + e };
+                x[i][j] =  o + e*(best_p+1) as i32;
 
                 // set m
                 m[i][j] = x[i][j];
@@ -88,12 +91,12 @@ pub fn exec(
                             *pred_hash.get(&i).unwrap().iter().min().unwrap()
                         };
 
-                        x[i][j] = if best_p == 0 { o + e } else { x[best_p][j] + e };
+                        x[i][j] = o + e*(best_p+1) as i32;
                         l_pred = best_p;
                     }
                 }
                 // try set and get u from y (pred_left < j < pred_right else None)
-                let u_score_idx = get_best_u(p_arr, &m, &y, &ampl_for_row, j, o);
+                let u_score_idx = get_best_u(p_arr, &m, &y, &ampl_for_row, i, j, o);
                 let u_pred;
                 match u_score_idx {
                     Some((u, idx)) => {
@@ -101,15 +104,15 @@ pub fn exec(
                         u_pred = idx;
                     }
                     _ => {
-                        y[i][j] = o + e * j as i32;
+                        y[i][j] = o + e * (j+left) as i32;
                         u_pred = 0;
                     }
                 }
                 // try get d from m (pred_left < j < pred_right else None)
-                let d_score_idx = get_best_d(p_arr, &m, &ampl_for_row, j);
+                let d_score_idx = get_best_d(p_arr, &m, &ampl_for_row, i, j);
                 match d_score_idx {
                     Some((mut d, d_idx)) => {
-                        d += score_matrix.get(&(lnz[i], sequence[j])).unwrap();
+                        d += score_matrix.get(&(lnz[i], sequence[j+left])).unwrap();
                         let l = x[i][j];
                         let u = y[i][j];
                         m[i][j] = match d.cmp(&l) {
@@ -162,14 +165,13 @@ pub fn exec(
             }
         }
         // set best scoring position for current row
-        best_scoring_pos[i] = best_val_pos;
-        println!("\t{}", best_val_pos);
+        best_scoring_pos[i] = best_val_pos + left;
     }
     let mut last_row = m.len() - 2;
     let mut last_col = m[last_row].len() - 1;
 
     for p in pred_hash.get(&(m.len() - 1)).unwrap().iter() {
-        let tmp_last_col = ampl_for_row[*p].1 - 1;
+        let tmp_last_col = (ampl_for_row[*p].1 - ampl_for_row[*p].0) - 1;
         if m[*p][tmp_last_col] > m[last_row][last_col] {
             last_row = *p;
             last_col = tmp_last_col;
@@ -187,14 +189,20 @@ fn get_best_d(
     p_arr: &[usize],
     m: &[Vec<i32>],
     ampl_for_row: &[(usize, usize)],
+    i: usize,
     j: usize,
 ) -> Option<(i32, usize)> {
     let mut d = 0;
     let mut d_idx = 0;
     let mut first = true;
+    let left_i = ampl_for_row[i].0;
+
     for p in p_arr.iter() {
-        if j > ampl_for_row[*p].0 && j <= ampl_for_row[*p].1 {
-            let curr_d = m[*p][j - 1];
+        let (left_p, right_p) = ampl_for_row[*p];
+        let delta = left_i as i32 - left_p as i32;
+        let j_pos = j as i32 + delta;
+        if j_pos > ampl_for_row[*p].0 as i32 && j_pos < (right_p - left_p) as i32 {
+            let curr_d = m[*p][j_pos as usize - 1];
             if first {
                 d = curr_d;
                 d_idx = *p;
@@ -218,6 +226,7 @@ fn get_best_u(
     m: &[Vec<i32>],
     y: &[Vec<i32>],
     ampl_for_row: &[(usize, usize)],
+    i: usize,
     j: usize,
     o: i32,
 ) -> Option<(i32, usize)> {
@@ -226,11 +235,15 @@ fn get_best_u(
     let mut u_m_idx = 0;
     let mut u_y_idx = 0;
     let mut first = true;
+    let left_i = ampl_for_row[i].0;
     for p in p_arr.iter() {
-        if j >= ampl_for_row[*p].0 && j < ampl_for_row[*p].1 {
-            let current_u_m = m[*p][j] + o;
-            let current_u_y = y[*p][j];
+        let (left_p, right_p) = ampl_for_row[*p];
+        let delta = left_i as i32 - left_p as i32;
+        let j_pos = j as i32 + delta;
 
+        if j_pos >= left_p as i32 && j_pos < (right_p - left_p) as i32 {
+            let current_u_m = m[*p][j_pos as usize] + o;
+            let current_u_y = y[*p][j_pos as usize];
             if first {
                 first = false;
                 u_m = current_u_m;
@@ -252,8 +265,10 @@ fn get_best_u(
     if first {
         None
     } else if u_y > u_m {
+
         Some((u_y, u_y_idx))
     } else {
+
         Some((u_m, u_m_idx))
     }
 }
@@ -284,6 +299,7 @@ fn set_ampl_for_row(
     p_arr: &[usize],
     r_val: usize,
     best_scoring_pos: &[usize],
+    ampl_for_row: &[(usize, usize)],
     seq_len: usize,
     bta: usize,
 ) -> (usize, usize) {
@@ -299,19 +315,23 @@ fn set_ampl_for_row(
     } else {
         let mut pl = 0;
         let mut pr = 0;
+        let mut left = 0;
         let mut first = true;
         for p in p_arr.iter() {
             let current_best = best_scoring_pos[*p];
             if first {
                 pl = current_best;
                 pr = current_best;
+                left = ampl_for_row[*p].0;
                 first = false;
             }
-            if current_best < pl  {
+            if current_best < pl {
                 pl = current_best;
+                left = ampl_for_row[*p].0;
             }
             if current_best > pr {
                 pr = current_best;
+                left = ampl_for_row[*p].0;
             }
         }
         ms = pl + 1;
@@ -323,13 +343,11 @@ fn set_ampl_for_row(
     } else {
         cmp::max(0, tmp_bs as usize)
     };
-
     let band_end = if seq_len > r_val {
         cmp::min(seq_len, cmp::max(me, seq_len - r_val) + bta)
     } else {
         cmp::min(seq_len, me + bta)
     };
-
     (band_start, band_end)
 }
 
@@ -351,6 +369,7 @@ fn set_r_values_v2(lnz_len: usize, pred_hash: &HashMap<usize, Vec<usize>>) -> Ve
         set_r_predecessor(&mut r_values, pred_hash, pred_hash.get(&idx).unwrap(), r);
     }
     r_values[0] = r_values.iter().max().unwrap() + 1;
+
     r_values
 }
 fn set_r_predecessor(
@@ -438,7 +457,7 @@ mod tests {
         let mut score_matrix = HashMap::new();
         score_matrix.insert(('A', 'A'), 1);
 
-        let align = super::exec(&s, &graph, &score_matrix, -4, -1, 1);
+        let align = super::exec(&s, &graph, &score_matrix, -4, -1, 3);
 
         assert_eq!(align, 4);
     }
@@ -508,7 +527,7 @@ mod tests {
         score_matrix.insert(('C', 'C'), 1);
         score_matrix.insert(('C', 'A'), -1);
         score_matrix.insert(('A', 'C'), -1);
-        let align = super::exec(&s, &graph, &score_matrix, -4, -1, 1);
+        let align = super::exec(&s, &graph, &score_matrix, -4, -1, 3);
 
         assert_eq!(align, 5);
     }
@@ -548,7 +567,7 @@ mod tests {
         score_matrix.insert(('C', 'C'), 1);
         score_matrix.insert(('C', 'A'), -1);
         score_matrix.insert(('A', 'C'), -1);
-        let align = super::exec(&s, &graph, &score_matrix, -4, -1, 1);
+        let align = super::exec(&s, &graph, &score_matrix, -4, -1, 3);
 
         assert_eq!(align, 5);
     }
@@ -582,7 +601,7 @@ mod tests {
         score_matrix.insert(('C', 'C'), 1);
         score_matrix.insert(('C', 'A'), -1);
         score_matrix.insert(('A', 'C'), -1);
-        let align = super::exec(&s, &graph, &score_matrix, 0, -1, 1);
+        let align = super::exec(&s, &graph, &score_matrix, 0, -1, 5);
 
         assert_eq!(align, 4);
     }
