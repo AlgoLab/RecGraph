@@ -1,6 +1,6 @@
 use bit_vec::BitVec;
 
-use crate::graph::LnzGraph;
+use crate::{basic_output, graph::LnzGraph};
 use std::{
     cmp::{self, Ordering},
     collections::HashMap,
@@ -17,7 +17,7 @@ pub fn exec(
     let lnz = &graph_struct.lnz;
     let nodes_w_pred = &graph_struct.nwp;
     let pred_hash = &graph_struct.pred_hash;
-    
+
     let mut m = vec![vec![]; lnz.len()]; // best alignment
     let mut x = vec![vec![]; lnz.len()]; //best alignment final gap in graph
     let mut y = vec![vec![]; lnz.len()]; // best alignment final gap in sequence
@@ -145,7 +145,7 @@ pub fn exec(
                                     u
                                 }
                                 _ => {
-                                    if lnz[i] == sequence[j] {
+                                    if lnz[i] == sequence[j+left] {
                                         path[i][j] = ('D', d_idx);
                                     } else {
                                         path[i][j] = ('d', d_idx);
@@ -196,6 +196,18 @@ pub fn exec(
     }
 
     println!("{}", m[last_row][last_col]);
+    /* 
+    basic_output::write_align_gap_mk_abpoa(
+        &path,
+        &path_x,
+        &path_y,
+        &ampl_for_row,
+        sequence,
+        lnz,
+        last_row,
+        last_col,
+    );
+    */
     m[last_row][last_col]
 }
 fn get_best_d(
@@ -391,7 +403,7 @@ fn band_ampl_enough(
     start_row: usize,
     start_col: usize,
     ampl_for_row: &[(usize, usize)],
-    sequence_len: usize
+    sequence_len: usize,
 ) -> bool {
     let mut i = start_row;
     let mut j = start_col;
