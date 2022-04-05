@@ -4,7 +4,7 @@ use crate::graph::LnzGraph;
 use std::{
     cmp::{self, Ordering},
     collections::HashMap,
-    vec
+    vec,
 };
 pub fn exec(
     sequence: &[char],
@@ -20,13 +20,13 @@ pub fn exec(
     let mut m = vec![vec![]; lnz.len()]; // best alignment
     let mut x = vec![vec![]; lnz.len()]; //best alignment final gap in graph
     let mut y = vec![vec![]; lnz.len()]; // best alignment final gap in sequence
-    
+
     let r_values = set_r_values(nodes_w_pred, pred_hash, lnz.len());
 
     let mut best_scoring_pos = vec![0; lnz.len()];
     let mut path = vec![vec![]; lnz.len()];
     let mut ampl_for_row: Vec<(usize, usize)> = vec![(0, 0); lnz.len()];
-    
+
     for i in 0..lnz.len() - 1 {
         let mut p_arr = &vec![];
         if nodes_w_pred[i] {
@@ -37,28 +37,26 @@ pub fn exec(
             p_arr,
             r_values[i],
             &best_scoring_pos,
-            &ampl_for_row,
             sequence.len(),
             bta,
         );
         ampl_for_row[i] = (left, right);
         let mut best_val_pos: usize = 0;
-        m[i] = vec![0; right-left];
-        x[i] = vec![0; right-left];
-        y[i] = vec![0; right-left];
-        path[i] = vec![('X', 0); right-left];
-        if i > 0 {
-        }
+        m[i] = vec![0; right - left];
+        x[i] = vec![0; right - left];
+        y[i] = vec![0; right - left];
+        path[i] = vec![('X', 0); right - left];
+        if i > 0 {}
         for j in 0..right - left {
             if i == 0 && j == 0 {
                 path[i][j] = ('O', 0);
             } else if i == 0 {
                 // set y
-                y[i][j] = o + e * (j+left) as i32;
+                y[i][j] = o + e * (j + left) as i32;
                 // set m
                 m[i][j] = y[i][j];
                 path[i][j] = ('L', i);
-            } else if j == 0 && left == 0{
+            } else if j == 0 && left == 0 {
                 // set x
 
                 let best_p = if !nodes_w_pred[i] {
@@ -67,7 +65,7 @@ pub fn exec(
                     *pred_hash.get(&i).unwrap().iter().min().unwrap()
                 };
 
-                x[i][j] =  o + e*(best_p+1) as i32;
+                x[i][j] = o + e * (best_p + 1) as i32;
 
                 // set m
                 m[i][j] = x[i][j];
@@ -93,7 +91,7 @@ pub fn exec(
                             *pred_hash.get(&i).unwrap().iter().min().unwrap()
                         };
 
-                        x[i][j] = o + e*(best_p+1) as i32;
+                        x[i][j] = o + e * (best_p + 1) as i32;
                         l_pred = best_p;
                     }
                 }
@@ -106,7 +104,7 @@ pub fn exec(
                         u_pred = idx;
                     }
                     _ => {
-                        y[i][j] = o + e * (j+left) as i32;
+                        y[i][j] = o + e * (j + left) as i32;
                         u_pred = 0;
                     }
                 }
@@ -114,7 +112,7 @@ pub fn exec(
                 let d_score_idx = get_best_d(p_arr, &m, &ampl_for_row, i, j);
                 match d_score_idx {
                     Some((mut d, d_idx)) => {
-                        d += score_matrix.get(&(lnz[i], sequence[j+left])).unwrap();
+                        d += score_matrix.get(&(lnz[i], sequence[j + left])).unwrap();
                         let l = x[i][j];
                         let u = y[i][j];
                         m[i][j] = match d.cmp(&l) {
@@ -179,11 +177,12 @@ pub fn exec(
             last_col = tmp_last_col;
         }
     }
-    //TODO: if false try with double base_to_add?
+    //FIXME: band_ampl_enough for mk matrix
     let check = band_ampl_enough(&path, last_row, last_col, &ampl_for_row);
     if !check {
         println!("Band length probably too short, maybe try with larger b and f");
     }
+
     println!("{}", m[last_row][last_col]);
     m[last_row][last_col]
 }
@@ -200,14 +199,14 @@ fn get_best_d(
     let left_i = ampl_for_row[i].0;
 
     for p in p_arr.iter() {
-        let (left_p, right_p) = ampl_for_row[*p];
-        if j +left_i > ampl_for_row[*p].0 && j +left_i <= ampl_for_row[*p].1{
+        let left_p = ampl_for_row[*p].0;
+        if j + left_i > ampl_for_row[*p].0 && j + left_i <= ampl_for_row[*p].1 {
             let j_pos = if left_p < left_i {
-                j+(left_i-left_p)
+                j + (left_i - left_p)
             } else {
-                j-(left_p-left_i)
+                j - (left_p - left_i)
             };
-            let curr_d = m[*p][j_pos-1];
+            let curr_d = m[*p][j_pos - 1];
             if first {
                 d = curr_d;
                 d_idx = *p;
@@ -242,12 +241,12 @@ fn get_best_u(
     let mut first = true;
     let left_i = ampl_for_row[i].0;
     for p in p_arr.iter() {
-        let (left_p, right_p) = ampl_for_row[*p];
-        if j +left_i >= ampl_for_row[*p].0 && j +left_i < ampl_for_row[*p].1{
+        let left_p = ampl_for_row[*p].0;
+        if j + left_i >= ampl_for_row[*p].0 && j + left_i < ampl_for_row[*p].1 {
             let j_pos = if left_p < left_i {
-                j+(left_i-left_p)
+                j + (left_i - left_p)
             } else {
-                j-(left_p-left_i)
+                j - (left_p - left_i)
             };
             let current_u_m = m[*p][j_pos as usize] + o;
             let current_u_y = y[*p][j_pos as usize];
@@ -272,10 +271,8 @@ fn get_best_u(
     if first {
         None
     } else if u_y > u_m {
-
         Some((u_y, u_y_idx))
     } else {
-
         Some((u_m, u_m_idx))
     }
 }
@@ -306,7 +303,6 @@ fn set_ampl_for_row(
     p_arr: &[usize],
     r_val: usize,
     best_scoring_pos: &[usize],
-    ampl_for_row: &[(usize, usize)],
     seq_len: usize,
     bta: usize,
 ) -> (usize, usize) {
@@ -322,23 +318,19 @@ fn set_ampl_for_row(
     } else {
         let mut pl = 0;
         let mut pr = 0;
-        let mut left = 0;
         let mut first = true;
         for p in p_arr.iter() {
             let current_best = best_scoring_pos[*p];
             if first {
                 pl = current_best;
                 pr = current_best;
-                left = ampl_for_row[*p].0;
                 first = false;
             }
             if current_best < pl {
                 pl = current_best;
-                left = ampl_for_row[*p].0;
             }
             if current_best > pr {
                 pr = current_best;
-                left = ampl_for_row[*p].0;
             }
         }
         ms = pl + 1;
@@ -358,32 +350,35 @@ fn set_ampl_for_row(
     (band_start, band_end)
 }
 
-fn set_r_values(nwp:&BitVec, pred_hash: &HashMap<usize, Vec<usize>>, lnz_len: usize) -> Vec<usize>{
-    let mut r_values:Vec<isize> = vec![-1; lnz_len];
-    r_values[lnz_len-1] = 0;
-    for p in pred_hash.get(&(lnz_len-1)).unwrap(){
+fn set_r_values(
+    nwp: &BitVec,
+    pred_hash: &HashMap<usize, Vec<usize>>,
+    lnz_len: usize,
+) -> Vec<usize> {
+    let mut r_values: Vec<isize> = vec![-1; lnz_len];
+    r_values[lnz_len - 1] = 0;
+    for p in pred_hash.get(&(lnz_len - 1)).unwrap() {
         r_values[*p] = 0;
     }
-    for i in (1..lnz_len-1).rev() {
-        if r_values[i] == -1 || r_values[i] > r_values[i+1]+1{
-            r_values[i] = r_values[i+1]+1;
+    for i in (1..lnz_len - 1).rev() {
+        if r_values[i] == -1 || r_values[i] > r_values[i + 1] + 1 {
+            r_values[i] = r_values[i + 1] + 1;
         }
         if nwp[i] {
-            for p in pred_hash.get(&i).unwrap(){
-                if r_values[*p] == -1 || r_values[*p] > r_values[i]+1 {
-                    r_values[*p] = r_values[i]+1;
+            for p in pred_hash.get(&i).unwrap() {
+                if r_values[*p] == -1 || r_values[*p] > r_values[i] + 1 {
+                    r_values[*p] = r_values[i] + 1;
                 }
             }
         }
-
     }
-    r_values.iter().map(|x|{*x as usize}).collect()
+    r_values.iter().map(|x| *x as usize).collect()
 }
 fn band_ampl_enough(
     path: &[Vec<(char, usize)>],
     start_row: usize,
     start_col: usize,
-    ampl_for_row: &Vec<(usize, usize)>,
+    ampl_for_row: &[(usize, usize)],
 ) -> bool {
     let mut i = start_row;
     let mut j = start_col;

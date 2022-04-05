@@ -1,7 +1,6 @@
 mod args_parser;
 mod banded_mk_poa;
 mod basic_output;
-mod gap_abpoa;
 mod gap_mk_abpoa;
 mod graph;
 mod local_poa;
