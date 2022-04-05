@@ -103,6 +103,7 @@ pub fn exec(
 
                         x[i][j] = o + e * (best_p + 1) as i32;
                         l_pred = best_p;
+                        path_x[i][j] = ('X', i);
                     }
                 }
                 // try set and get u from y (pred_left < j < pred_right else None)
@@ -119,6 +120,7 @@ pub fn exec(
                     _ => {
                         y[i][j] = o + e * (j + left) as i32;
                         u_pred = 0;
+                        path_y[i][j] = ('Y', 0);
                     }
                 }
                 // try get d from m (pred_left < j < pred_right else None)
@@ -194,9 +196,9 @@ pub fn exec(
     if !check {
         println!("Band length probably too short, maybe try with larger b and f");
     }
+    
 
     println!("{}", m[last_row][last_col]);
-    /* 
     basic_output::write_align_gap_mk_abpoa(
         &path,
         &path_x,
@@ -207,7 +209,6 @@ pub fn exec(
         last_row,
         last_col,
     );
-    */
     m[last_row][last_col]
 }
 fn get_best_d(
@@ -425,7 +426,7 @@ fn band_ampl_enough(
                     j - (left_p - left)
                 };
                 j = j_pos - 1;
-                i = path[i][j].1;
+                i = p;
             }
             'U' => {
                 let p = path[i][j].1;
@@ -436,7 +437,7 @@ fn band_ampl_enough(
                     j - (left_p - left)
                 };
                 j = j_pos;
-                i = path[i][j].1;
+                i = p;
             }
             'L' => {
                 j -= 1;

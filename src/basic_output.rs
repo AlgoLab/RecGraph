@@ -156,17 +156,17 @@ pub fn write_align_gap_mk_abpoa(
             }
             ('L', _) => {
                 if path_x[row][col].0 == 'X' {
-                    while path_x[row][col].0 == 'X' {
+                    while path_x[row][col].0 == 'X' && col > 0 {
                         graph_align.push('-');
                         sequence_align.push(sequence[col + left]);
                         alignment_moves.push(' ');
-                        row -= 1
+                        col -= 1
                     }
                 } else {
                     graph_align.push('-');
                     sequence_align.push(sequence[col + left]);
                     alignment_moves.push(' ');
-                    row -= 1
+                    col -= 1
                 }
             }
             ('U', _) => {
