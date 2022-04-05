@@ -26,3 +26,40 @@ pub fn get_sequences() -> Vec<Vec<char>> {
     }
     sequences
 }
+//TODO: verify score from rev&cmpl string equal score from rev&cmpl graph
+pub fn rev_and_compl(seq: &[char]) -> Vec<char>{
+    let mut rev_seq = seq[1..].iter().map(
+        |c| {
+            match *c {
+                'A' => {'T'},
+                'C' => {'G'},
+                'G' => {'C'},
+                'T' => {'A'},
+                'N' => {'N'},
+                _ => {panic!("wrong char: {}, unable to rev&compl", c)}
+            }
+        }
+    ).collect::<Vec<char>>();
+    rev_seq.reverse();
+    rev_seq.insert(0, '$');
+    rev_seq
+}
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn rev_and_compl_of_seq_correct(){
+        let s1 = ['$', 'A', 'A', 'T'];
+        let s1_rc = super::rev_and_compl(&s1);
+        for i in 0..s1_rc.len(){
+            assert_eq!(['$', 'A', 'T', 'T'][i], s1_rc[i]);
+        }
+    }
+    #[test]
+    fn rev_and_compl_with_every_symbol() {
+        let s1 = ['$', 'A', 'T', 'C', 'G', 'N'];
+        let s1_rc = super::rev_and_compl(&s1);
+        for i in 0..s1_rc.len(){
+            assert_eq!(['$', 'N', 'C', 'G', 'A', 'T'][i], s1_rc[i]);
+        }
+    }
+}
