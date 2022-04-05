@@ -177,8 +177,7 @@ pub fn exec(
             last_col = tmp_last_col;
         }
     }
-    //FIXME: band_ampl_enough for mk matrix
-    let check = band_ampl_enough(&path, last_row, last_col, &ampl_for_row);
+    let check = band_ampl_enough(&path, last_row, last_col, &ampl_for_row, sequence.len());
     if !check {
         println!("Band length probably too short, maybe try with larger b and f");
     }
@@ -379,23 +378,39 @@ fn band_ampl_enough(
     start_row: usize,
     start_col: usize,
     ampl_for_row: &[(usize, usize)],
+    sequence_len: usize
 ) -> bool {
     let mut i = start_row;
     let mut j = start_col;
     while path[i][j].0 != 'O' {
-        if i == 0 || j == 0 {
+        let (left, right) = ampl_for_row[i];
+        if i == 0 || j == 0 && left == 0 {
             return true;
         }
-        let (left, right) = ampl_for_row[i];
-        if (j == left && left != 0) || (j == right - 1 && right != path[0].len()) {
+        if (j == left && left != 0) || (j == right - left - 1 && right != sequence_len) {
             return false;
         }
         match path[i][j].0 {
             'D' | 'd' => {
-                j -= 1;
+                let p = path[i][j].1;
+                let left_p = ampl_for_row[p].0;
+                let j_pos = if left_p < left {
+                    j + (left - left_p)
+                } else {
+                    j - (left_p - left)
+                };
+                j = j_pos - 1;
                 i = path[i][j].1;
             }
             'U' => {
+                let p = path[i][j].1;
+                let left_p = ampl_for_row[p].0;
+                let j_pos = if left_p < left {
+                    j + (left - left_p)
+                } else {
+                    j - (left_p - left)
+                };
+                j = j_pos;
                 i = path[i][j].1;
             }
             'L' => {
