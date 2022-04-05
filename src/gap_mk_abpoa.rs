@@ -1,8 +1,10 @@
+use bit_vec::BitVec;
+
 use crate::graph::LnzGraph;
 use std::{
     cmp::{self, Ordering},
     collections::HashMap,
-    vec,
+    vec
 };
 pub fn exec(
     sequence: &[char],
@@ -18,13 +20,13 @@ pub fn exec(
     let mut m = vec![vec![]; lnz.len()]; // best alignment
     let mut x = vec![vec![]; lnz.len()]; //best alignment final gap in graph
     let mut y = vec![vec![]; lnz.len()]; // best alignment final gap in sequence
-
-    let r_values = set_r_values_v2(lnz.len(), pred_hash);
+    
+    let r_values = set_r_values(nodes_w_pred, pred_hash, lnz.len());
 
     let mut best_scoring_pos = vec![0; lnz.len()];
     let mut path = vec![vec![]; lnz.len()];
     let mut ampl_for_row: Vec<(usize, usize)> = vec![(0, 0); lnz.len()];
-
+    
     for i in 0..lnz.len() - 1 {
         let mut p_arr = &vec![];
         if nodes_w_pred[i] {
@@ -182,7 +184,6 @@ pub fn exec(
     if !check {
         println!("Band length probably too short, maybe try with larger b and f");
     }
-    ampl_for_row.iter().for_each(|t|{println!("{:?}", t)});
     println!("{}", m[last_row][last_col]);
     m[last_row][last_col]
 }
@@ -357,50 +358,26 @@ fn set_ampl_for_row(
     (band_start, band_end)
 }
 
-fn set_r_values_v2(lnz_len: usize, pred_hash: &HashMap<usize, Vec<usize>>) -> Vec<usize> {
-    let mut r_values = vec![0; lnz_len];
-    let final_nodes = pred_hash.get(&(lnz_len - 1)).unwrap();
-    for n in final_nodes {
-        r_values[*n] = 0;
-        let mut idx = n - 1;
-        let mut r = 1;
-        while pred_hash.get(&idx).is_none() {
-            r_values[idx] = r;
-            r += 1;
-            idx -= 1;
-        }
-        if r_values[idx] == 0 || r_values[idx] > r {
-            r_values[idx] = r;
-        }
-        set_r_predecessor(&mut r_values, pred_hash, pred_hash.get(&idx).unwrap(), r);
+fn set_r_values(nwp:&BitVec, pred_hash: &HashMap<usize, Vec<usize>>, lnz_len: usize) -> Vec<usize>{
+    let mut r_values:Vec<isize> = vec![-1; lnz_len];
+    r_values[lnz_len-1] = 0;
+    for p in pred_hash.get(&(lnz_len-1)).unwrap(){
+        r_values[*p] = 0;
     }
-    r_values[0] = r_values.iter().max().unwrap() + 1;
-
-    r_values
-}
-fn set_r_predecessor(
-    r_values: &mut Vec<usize>,
-    pred_hash: &HashMap<usize, Vec<usize>>,
-    p_arr: &[usize],
-    r: usize,
-) {
-    for n in p_arr {
-        if *n > 0 {
-            let mut new_r = r + 1;
-            let mut idx = *n;
-            while pred_hash.get(&idx).is_none() {
-                if r_values[idx] == 0 || r_values[idx] > new_r {
-                    r_values[idx] = new_r;
+    for i in (1..lnz_len-1).rev() {
+        if r_values[i] == -1 || r_values[i] > r_values[i+1]+1{
+            r_values[i] = r_values[i+1]+1;
+        }
+        if nwp[i] {
+            for p in pred_hash.get(&i).unwrap(){
+                if r_values[*p] == -1 || r_values[*p] > r_values[i]+1 {
+                    r_values[*p] = r_values[i]+1;
                 }
-                new_r += 1;
-                idx -= 1;
             }
-            if r_values[idx] == 0 || r_values[idx] > new_r {
-                r_values[idx] = new_r;
-            }
-            set_r_predecessor(r_values, pred_hash, pred_hash.get(&idx).unwrap(), new_r);
         }
+
     }
+    r_values.iter().map(|x|{*x as usize}).collect()
 }
 fn band_ampl_enough(
     path: &[Vec<(char, usize)>],
