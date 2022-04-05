@@ -17,14 +17,17 @@ pub fn exec(
     let lnz = &graph_struct.lnz;
     let nodes_w_pred = &graph_struct.nwp;
     let pred_hash = &graph_struct.pred_hash;
+    
     let mut m = vec![vec![]; lnz.len()]; // best alignment
     let mut x = vec![vec![]; lnz.len()]; //best alignment final gap in graph
     let mut y = vec![vec![]; lnz.len()]; // best alignment final gap in sequence
 
-    let r_values = set_r_values(nodes_w_pred, pred_hash, lnz.len());
-
-    let mut best_scoring_pos = vec![0; lnz.len()];
     let mut path = vec![vec![]; lnz.len()];
+    let mut path_x = vec![vec![]; lnz.len()];
+    let mut path_y = vec![vec![]; lnz.len()];
+
+    let r_values = set_r_values(nodes_w_pred, pred_hash, lnz.len());
+    let mut best_scoring_pos = vec![0; lnz.len()];
     let mut ampl_for_row: Vec<(usize, usize)> = vec![(0, 0); lnz.len()];
 
     for i in 0..lnz.len() - 1 {
@@ -45,7 +48,11 @@ pub fn exec(
         m[i] = vec![0; right - left];
         x[i] = vec![0; right - left];
         y[i] = vec![0; right - left];
+
         path[i] = vec![('X', 0); right - left];
+        path_x[i] = vec![('M', 0); right - left];
+        path_y[i] = vec![('M', 0); right - left];
+
         if i > 0 {}
         for j in 0..right - left {
             if i == 0 && j == 0 {
@@ -80,9 +87,12 @@ pub fn exec(
                 let l_score_idx = get_best_l(&m, &x, &ampl_for_row, i, j, o);
                 let l_pred;
                 match l_score_idx {
-                    Some((l, idx)) => {
+                    Some((l, idx, from_m)) => {
                         x[i][j] = l + e;
                         l_pred = idx;
+                        if !from_m {
+                            path_x[i][j] = ('X', i);
+                        }
                     }
                     _ => {
                         let best_p = if !nodes_w_pred[i] {
@@ -99,9 +109,12 @@ pub fn exec(
                 let u_score_idx = get_best_u(p_arr, &m, &y, &ampl_for_row, i, j, o);
                 let u_pred;
                 match u_score_idx {
-                    Some((u, idx)) => {
+                    Some((u, idx, from_m)) => {
                         y[i][j] = u + e;
                         u_pred = idx;
+                        if !from_m {
+                            path_y[i][j] = ('Y', idx);
+                        }
                     }
                     _ => {
                         y[i][j] = o + e * (j + left) as i32;
@@ -232,7 +245,7 @@ fn get_best_u(
     i: usize,
     j: usize,
     o: i32,
-) -> Option<(i32, usize)> {
+) -> Option<(i32, usize, bool)> {
     let mut u_m = 0;
     let mut u_y = 0;
     let mut u_m_idx = 0;
@@ -270,9 +283,9 @@ fn get_best_u(
     if first {
         None
     } else if u_y > u_m {
-        Some((u_y, u_y_idx))
+        Some((u_y, u_y_idx, false))
     } else {
-        Some((u_m, u_m_idx))
+        Some((u_m, u_m_idx, true))
     }
 }
 
@@ -283,14 +296,14 @@ fn get_best_l(
     i: usize,
     j: usize,
     o: i32,
-) -> Option<(i32, usize)> {
+) -> Option<(i32, usize, bool)> {
     if j > ampl_for_row[i].0 {
         let l_x = x[i][j - 1];
         let l_m = m[i][j - 1] + o;
         if l_x > l_m {
-            Some((l_x, i))
+            Some((l_x, i, false))
         } else {
-            Some((l_m, i))
+            Some((l_m, i, true))
         }
     } else {
         None
