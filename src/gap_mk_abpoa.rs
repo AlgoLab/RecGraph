@@ -30,6 +30,8 @@ pub fn exec(
     let mut best_scoring_pos = vec![0; lnz.len()];
     let mut ampl_for_row: Vec<(usize, usize)> = vec![(0, 0); lnz.len()];
 
+    // TODO: set true if using simd
+    let simd_version = false;
     for i in 0..lnz.len() - 1 {
         let mut p_arr = &vec![];
         if nodes_w_pred[i] {
@@ -42,6 +44,7 @@ pub fn exec(
             &best_scoring_pos,
             sequence.len(),
             bta,
+            simd_version,
         );
         ampl_for_row[i] = (left, right);
         let mut best_val_pos: usize = 0;
@@ -147,7 +150,7 @@ pub fn exec(
                                     u
                                 }
                                 _ => {
-                                    if lnz[i] == sequence[j+left] {
+                                    if lnz[i] == sequence[j + left] {
                                         path[i][j] = ('D', d_idx);
                                     } else {
                                         path[i][j] = ('d', d_idx);
@@ -196,7 +199,6 @@ pub fn exec(
     if !check {
         println!("Band length probably too short, maybe try with larger b and f");
     }
-    
 
     println!("{}", m[last_row][last_col]);
     basic_output::write_align_gap_mk_abpoa(
@@ -330,6 +332,7 @@ fn set_ampl_for_row(
     best_scoring_pos: &[usize],
     seq_len: usize,
     bta: usize,
+    simd_version: bool,
 ) -> (usize, usize) {
     let ms;
     let me;
@@ -372,9 +375,27 @@ fn set_ampl_for_row(
     } else {
         cmp::min(seq_len, me + bta)
     };
-    (band_start, band_end)
+    if simd_version {
+        set_left_right_x64(band_start, band_end, seq_len)
+    } else {
+        (band_start, band_end)
+    }
 }
 
+fn set_left_right_x64(left: usize, right: usize, seq_len: usize) -> (usize, usize) {
+    let mut new_right = right;
+    let mut new_left = left;
+    while (new_right - new_left) % 64 != 0 {
+        if (new_right - new_left) % 2 == 0 && new_right < seq_len {
+            new_right += 1;
+        } else if new_left > 0 {
+            new_left -= 1;
+        } else {
+            break;
+        }
+    }
+    (new_left, new_right)
+}
 fn set_r_values(
     nwp: &BitVec,
     pred_hash: &HashMap<usize, Vec<usize>>,
@@ -675,5 +696,36 @@ mod tests {
         score_matrix.insert(('A', 'C'), -1);
         let align = super::exec(&s, &graph, &score_matrix, -4, -1, 7);
         assert_eq!(align, -3);
+    }
+    #[test]
+    fn ampl_for_row_multiple_of_64_if_simd() {
+        let seq_len = 1000;
+        let l1 = 100;
+        let r1 = 200;
+        let ampl1 = super::set_left_right_x64(l1, r1, seq_len);
+        let delta1 = ampl1.1 - ampl1.0;
+
+        let l2 = 5;
+        let r2 = 15;
+        let ampl2 = super::set_left_right_x64(l2, r2, seq_len);
+        let delta2 = ampl1.1 - ampl1.0;
+
+        let l3 = 989;
+        let r3 = 990;
+        let ampl3 = super::set_left_right_x64(l3, r3, seq_len);
+        let delta3 = ampl1.1 - ampl1.0;
+
+        let ampl4 = super::set_left_right_x64(5, 10, 15);
+
+        assert_eq!(delta1 % 64, 0);
+
+        assert_eq!(delta2 % 64, 0);
+        assert_eq!(ampl2.0, 0);
+
+        assert_eq!(delta3 % 64, 0);
+        assert_eq!(ampl3.1, 1000);
+
+        assert_eq!(ampl4.0, 0);
+        assert_eq!(ampl4.1, 15);
     }
 }
