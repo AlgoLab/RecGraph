@@ -172,15 +172,16 @@ pub fn write_align_gap_mk_abpoa(
             ('U', _) => {
                 if path_y[row][col].0 == 'Y' {
                     while path_y[row][col].0 == 'Y' {
+                        let left_row = ampl_for_row[row].0;
                         graph_align.push(graph[row]);
                         sequence_align.push('-');
                         alignment_moves.push(' ');
-                        let p = path[row][col].1;
+                        let p = path_y[row][col].1;
                         let left_p = ampl_for_row[p].0;
-                        let j_pos = if left_p < left {
-                            col + (left - left_p)
+                        let j_pos = if left_p < left_row {
+                            col + (left_row - left_p)
                         } else {
-                            col - (left_p - left)
+                            col - (left_p - left_row)
                         };
                         col = j_pos;
                         row = p;
@@ -215,8 +216,8 @@ fn reverse_and_write(mut s1_al: String, mut s2_al: String, mut al_moves: String,
     let file_name = String::from(align_type) + "_alignment.txt";
 
     let path = project_root::get_project_root().unwrap().join(file_name);
-    let f = File::create(path).expect("unable to create file");
-    let mut f = BufWriter::new(f);
+    let file = File::create(path).expect("unable to create file");
+    let mut f = BufWriter::new(file);
     let mut i = 0;
     while i < s1_al.len() {
         if i + 80 < s1_al.len() {
@@ -250,4 +251,5 @@ fn reverse_and_write(mut s1_al: String, mut s2_al: String, mut al_moves: String,
         }
         i += 80;
     }
+    drop(f)
 }
