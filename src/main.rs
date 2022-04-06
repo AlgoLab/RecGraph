@@ -52,6 +52,7 @@ fn main() {
                 g_ext,
                 bases_to_add,
             );
+
             if amb_strand && align_score < 0 {
                 let rev_graph_struct = graph::read_graph(&graph_path, true);
                 gap_mk_abpoa::exec(

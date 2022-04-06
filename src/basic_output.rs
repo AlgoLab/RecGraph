@@ -207,6 +207,7 @@ pub fn write_align_gap_mk_abpoa(
         }
     }
     reverse_and_write(graph_align, sequence_align, alignment_moves, "gap_mk_abpoa");
+    println!("finish 1");
 }
 
 fn reverse_and_write(mut s1_al: String, mut s2_al: String, mut al_moves: String, align_type: &str) {
@@ -217,7 +218,7 @@ fn reverse_and_write(mut s1_al: String, mut s2_al: String, mut al_moves: String,
 
     let path = project_root::get_project_root().unwrap().join(file_name);
     let file = File::create(path).expect("unable to create file");
-    let mut f = BufWriter::new(file);
+    let f = &mut BufWriter::new(&file);
     let mut i = 0;
     while i < s1_al.len() {
         if i + 80 < s1_al.len() {
@@ -251,5 +252,5 @@ fn reverse_and_write(mut s1_al: String, mut s2_al: String, mut al_moves: String,
         }
         i += 80;
     }
-    drop(f)
+    drop(f);
 }

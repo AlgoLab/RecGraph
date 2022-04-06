@@ -187,7 +187,6 @@ pub fn exec(
     }
     let mut last_row = m.len() - 2;
     let mut last_col = m[last_row].len() - 1;
-
     for p in pred_hash.get(&(m.len() - 1)).unwrap().iter() {
         let tmp_last_col = (ampl_for_row[*p].1 - ampl_for_row[*p].0) - 1;
         if m[*p][tmp_last_col] > m[last_row][last_col] {
@@ -195,12 +194,18 @@ pub fn exec(
             last_col = tmp_last_col;
         }
     }
+    let best_value = m[last_row][last_col];
     let check = band_ampl_enough(&path, last_row, last_col, &ampl_for_row, sequence.len());
     if !check {
         println!("Band length probably too short, maybe try with larger b and f");
     }
+    drop(m);
+    drop(x);
+    drop(y);
+    drop(pred_hash);
+    drop(nodes_w_pred);
 
-    println!("{}", m[last_row][last_col]);
+    println!("{}", best_value);
     basic_output::write_align_gap_mk_abpoa(
         &path,
         &path_x,
@@ -211,7 +216,7 @@ pub fn exec(
         last_row,
         last_col,
     );
-    m[last_row][last_col]
+    best_value
 }
 fn get_best_d(
     p_arr: &[usize],
