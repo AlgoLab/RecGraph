@@ -16,28 +16,38 @@ pub fn exec(
     let mut m = vec![vec![0; sequence.len()]; lnz.len()];
     let mut x = vec![vec![0; sequence.len()]; lnz.len()];
     let mut y = vec![vec![0; sequence.len()]; lnz.len()];
+
     let mut path = vec![vec![('x', 0); sequence.len()]; lnz.len()];
+    let mut path_x = vec![vec![('M', 0); sequence.len()]; lnz.len()];
+    let mut path_y = vec![vec![('M', 0); sequence.len()]; lnz.len()];
 
     let (mut best_row, mut best_col) = (0, 0);
     for i in 0..lnz.len() - 1 {
         for j in 0..sequence.len() - 1 {
             match (i, j) {
-                (0, _) | (_, 0) => path[i][j] = ('O', 0),
+                (0, _) | (_, 0) => {
+                    path[i][j] = ('O', 0);
+                    path_x[i][j] = ('O', 0);
+                    path_y[i][j] = ('O', 0);
+                },
                 _ => {
                     // set x
                     let l_x = x[i][j-1] + e;
                     let l_m = m[i][j-1] + o + e;
+                    let l_idx = i;
                     let l = match l_x.cmp(&l_m) {
                         Ordering::Greater => {
+                            path_x[i][j] = ('X', i);
                             l_x
                         }
                         _ => {
+                            path_x[i][j] = ('M', i);
                             l_m
                         }
                     };
-                    let l_idx = i;
+                    x[i][j] = l;
 
-                    //set y and m
+                    //set y and get d
                     let mut d;
                     let d_idx;
 
@@ -49,22 +59,34 @@ pub fn exec(
 
                         let u_y =  y[i - 1][j] + e;
                         let u_m = m[i-1][j] + o + e;
+                        u_idx = i - 1;
 
                         u = match u_y.cmp(&u_m) {
                             Ordering::Greater => {
+                                path_y[i][j] = ('Y', u_idx);
                                 u_y
                             }
                             _ => {
+                                path_y[i][j] = ('M', u_idx);
                                 u_m
                             }
                         };
-                        u_idx = i - 1;
+                        y[i][j] = u;
                     } else {
+                        let from_m; 
                         (d, d_idx) = get_best_d(&m, pred_hash.get(&i).unwrap(), j);
-                        (u, u_idx) = get_best_u(&m, &y, pred_hash.get(&i).unwrap(), j, o);
+                        (u, u_idx, from_m) = get_best_u(&m, &y, pred_hash.get(&i).unwrap(), j, o);
                         d += scores_matrix.get(&(sequence[j], lnz[i])).unwrap();
                         u += e;
+                        y[i][j] = u;
+                        if from_m{
+                            path_y[i][j] = ('M', u_idx);
+                        } else {
+                            path_y[i][j] = ('Y', u_idx);
+                        }
                     }
+
+                    // set m
                     if d < 0 && l < 0 && u < 0 {
                         m[i][j] = 0;
                         path[i][j] = ('O', 0);
@@ -115,7 +137,7 @@ fn get_best_d(m: &[Vec<i32>], p_arr: &[usize], j: usize) -> (i32, usize) {
     (d, d_idx)
 }
 
-fn get_best_u(m: &[Vec<i32>], y: &[Vec<i32>], p_arr: &[usize], j: usize, o: i32) -> (i32, usize) {
+fn get_best_u(m: &[Vec<i32>], y: &[Vec<i32>], p_arr: &[usize], j: usize, o: i32) -> (i32, usize, bool) {
     let mut u_m = 0;
     let mut u_y = 0;
     let mut u_m_idx = 0;
@@ -142,9 +164,9 @@ fn get_best_u(m: &[Vec<i32>], y: &[Vec<i32>], p_arr: &[usize], j: usize, o: i32)
     }
 
     if u_m > u_y {
-        (u_m, u_m_idx)
+        (u_m, u_m_idx, true)
     } else {
-        (u_y, u_y_idx)
+        (u_y, u_y_idx, false)
     }
 }
 
