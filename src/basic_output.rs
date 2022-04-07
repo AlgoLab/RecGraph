@@ -207,7 +207,6 @@ pub fn write_align_gap_mk_abpoa(
         }
     }
     reverse_and_write(graph_align, sequence_align, alignment_moves, "gap_mk_abpoa");
-    println!("finish 1");
 }
 
 fn reverse_and_write(mut s1_al: String, mut s2_al: String, mut al_moves: String, align_type: &str) {

@@ -4,6 +4,7 @@ mod basic_output;
 mod gap_mk_abpoa;
 mod graph;
 mod local_poa;
+mod gap_local_poa;
 mod matrix;
 mod sequences;
 fn main() {
@@ -41,7 +42,7 @@ fn main() {
         1 => {
             local_poa::exec(seq, &graph_struct, &score_matrix);
         }
-        //affine gap alignment
+        //affine gap global alignment
         2 => {
             let (g_open, g_ext) = args_parser::get_gap_open_gap_ext();
             let align_score = gap_mk_abpoa::exec(
@@ -65,8 +66,31 @@ fn main() {
                 );
             }
         }
+        //affine gap global alignment
+        3 => {
+            let (g_open, g_ext) = args_parser::get_gap_open_gap_ext();
+            let align_score = gap_local_poa::exec(
+                seq,
+                &graph_struct,
+                &score_matrix,
+                g_open,
+                g_ext,
+            );
+
+            if amb_strand && align_score < 0 {
+                let rev_graph_struct = graph::read_graph(&graph_path, true);
+                gap_mk_abpoa::exec(
+                    seq,
+                    &rev_graph_struct,
+                    &score_matrix,
+                    g_open,
+                    g_ext,
+                    bases_to_add,
+                );
+            }
+        }
         _ => {
-            panic!("alignment mode must be 0, 1 or 2");
+            panic!("alignment mode must be 0, 1, 2 or 3");
         }
     }
 }

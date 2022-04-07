@@ -44,7 +44,6 @@ fn create_graph_struct(graph: &HashGraph, amb_mode: bool) -> LnzGraph {
         visited_node.insert(handle.id(), last_index - 1);
         last_nodes.insert(handle.id(), last_index - 1);
     }
-
     let mut nodes_with_predecessor = BitVec::from_elem(linearization.len() + 1, false);
     let mut predecessor_hash: HashMap<usize, Vec<usize>> = HashMap::new();
 
