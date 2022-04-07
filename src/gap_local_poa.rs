@@ -63,7 +63,7 @@ pub fn exec(
                         (d, d_idx) = get_best_d(&m, pred_hash.get(&i).unwrap(), j);
                         (u, u_idx) = get_best_u(&m, &y, pred_hash.get(&i).unwrap(), j, o);
                         d += scores_matrix.get(&(sequence[j], lnz[i])).unwrap();
-                        u += scores_matrix.get(&('-', lnz[i])).unwrap();
+                        u += e;
                     }
                     if d < 0 && l < 0 && u < 0 {
                         m[i][j] = 0;
@@ -160,7 +160,6 @@ fn get_best_d_u_l(d: i32, u: i32, l: i32) -> (i32, char) {
         },
     }
 }
-/* 
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -170,7 +169,7 @@ mod tests {
     use crate::graph::LnzGraph;
 
     #[test]
-    fn test_local_poa_consider_substrings() {
+    fn test_gap_local_poa_consider_substrings() {
         let s = vec!['$', 'A', 'A', 'C', 'C', 'C', 'A', 'A'];
 
         let lnz = vec!['$', 'G', 'G', 'C', 'C', 'C', 'G', 'G', 'F'];
@@ -186,8 +185,8 @@ mod tests {
             pred_hash,
         };
         let mut score_matrix = HashMap::new();
-        for c1 in ['A', 'C', 'G', '-'] {
-            for c2 in ['A', 'C', 'G', '-'] {
+        for c1 in ['A', 'C', 'G'] {
+            for c2 in ['A', 'C', 'G'] {
                 if c1 == c2 {
                     score_matrix.insert((c1, c2), 1);
                 } else {
@@ -195,12 +194,12 @@ mod tests {
                 }
             }
         }
-        let align_score = super::exec(&s, &graph_struct, &score_matrix);
+        let align_score = super::exec(&s, &graph_struct, &score_matrix, -4, -2);
         assert_eq!(align_score, 3);
     }
 
     #[test]
-    fn local_poa_consider_best_predecessor() {
+    fn gap_local_poa_consider_best_predecessor() {
         let s = vec!['$', 'A', 'A', 'C', 'C', 'C', 'A', 'A'];
 
         let lnz = vec!['$', 'G', 'G', 'G', 'C', 'C', 'C', 'G', 'G', 'F'];
@@ -218,8 +217,8 @@ mod tests {
             pred_hash,
         };
         let mut score_matrix = HashMap::new();
-        for c1 in ['A', 'C', 'G', '-'] {
-            for c2 in ['A', 'C', 'G', '-'] {
+        for c1 in ['A', 'C', 'G'] {
+            for c2 in ['A', 'C', 'G'] {
                 if c1 == c2 {
                     score_matrix.insert((c1, c2), 1);
                 } else {
@@ -227,8 +226,7 @@ mod tests {
                 }
             }
         }
-        let align_score = super::exec(&s, &graph_struct, &score_matrix);
+        let align_score = super::exec(&s, &graph_struct, &score_matrix, -4, -2);
         assert_eq!(align_score, 2);
     }
 }
-*/
