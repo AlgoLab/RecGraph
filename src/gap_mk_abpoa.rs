@@ -218,6 +218,8 @@ pub fn exec(
     );
     best_value
 }
+
+#[inline(always)]
 fn get_best_d(
     p_arr: &[usize],
     m: &[Vec<i32>],
@@ -257,6 +259,8 @@ fn get_best_d(
         Some((d, d_idx))
     }
 }
+
+#[inline(always)]
 fn get_best_u(
     p_arr: &[usize],
     m: &[Vec<i32>],
@@ -309,6 +313,7 @@ fn get_best_u(
     }
 }
 
+#[inline(always)]
 fn get_best_l(
     m: &[Vec<i32>],
     x: &[Vec<i32>],

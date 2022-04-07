@@ -11,3 +11,4 @@ Cargo.lock
 *alignment.txt
 odgi
 *.og
+*valgrind*
