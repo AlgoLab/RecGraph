@@ -7,7 +7,7 @@ pub fn exec(
     graph: &LnzGraph,
     scores_matrix: &HashMap<(char, char), i32>,
     o: i32,
-    e: i32
+    e: i32,
 ) -> i32 {
     let lnz = &graph.lnz;
     let nodes_with_pred = &graph.nwp;
@@ -29,11 +29,11 @@ pub fn exec(
                     path[i][j] = ('O', 0);
                     path_x[i][j] = ('O', 0);
                     path_y[i][j] = ('O', 0);
-                },
+                }
                 _ => {
                     // set x
-                    let l_x = x[i][j-1] + e;
-                    let l_m = m[i][j-1] + o + e;
+                    let l_x = x[i][j - 1] + e;
+                    let l_m = m[i][j - 1] + o + e;
                     let l_idx = i;
                     let l = match l_x.cmp(&l_m) {
                         Ordering::Greater => {
@@ -57,8 +57,8 @@ pub fn exec(
                         d = m[i - 1][j - 1] + scores_matrix.get(&(sequence[j], lnz[i])).unwrap();
                         d_idx = i - 1;
 
-                        let u_y =  y[i - 1][j] + e;
-                        let u_m = m[i-1][j] + o + e;
+                        let u_y = y[i - 1][j] + e;
+                        let u_m = m[i - 1][j] + o + e;
                         u_idx = i - 1;
 
                         u = match u_y.cmp(&u_m) {
@@ -73,13 +73,13 @@ pub fn exec(
                         };
                         y[i][j] = u;
                     } else {
-                        let from_m; 
+                        let from_m;
                         (d, d_idx) = get_best_d(&m, pred_hash.get(&i).unwrap(), j);
                         (u, u_idx, from_m) = get_best_u(&m, &y, pred_hash.get(&i).unwrap(), j, o);
                         d += scores_matrix.get(&(sequence[j], lnz[i])).unwrap();
                         u += e;
                         y[i][j] = u;
-                        if from_m{
+                        if from_m {
                             path_y[i][j] = ('M', u_idx);
                         } else {
                             path_y[i][j] = ('Y', u_idx);
@@ -114,7 +114,9 @@ pub fn exec(
 
     println!("Best alignment: {}", m[best_row][best_col]);
 
-    basic_output::write_align_local_poa(&path, sequence, lnz, best_row, best_col);
+    basic_output::write_align_gap_local_poa(
+        &path, &path_x, &path_y, sequence, lnz, best_row, best_col,
+    );
     m[best_row][best_col]
 }
 
@@ -137,7 +139,13 @@ fn get_best_d(m: &[Vec<i32>], p_arr: &[usize], j: usize) -> (i32, usize) {
     (d, d_idx)
 }
 
-fn get_best_u(m: &[Vec<i32>], y: &[Vec<i32>], p_arr: &[usize], j: usize, o: i32) -> (i32, usize, bool) {
+fn get_best_u(
+    m: &[Vec<i32>],
+    y: &[Vec<i32>],
+    p_arr: &[usize],
+    j: usize,
+    o: i32,
+) -> (i32, usize, bool) {
     let mut u_m = 0;
     let mut u_y = 0;
     let mut u_m_idx = 0;

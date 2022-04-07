@@ -1,10 +1,10 @@
 mod args_parser;
 mod banded_mk_poa;
 mod basic_output;
+mod gap_local_poa;
 mod gap_mk_abpoa;
 mod graph;
 mod local_poa;
-mod gap_local_poa;
 mod matrix;
 mod sequences;
 fn main() {
@@ -69,13 +69,7 @@ fn main() {
         //affine gap global alignment
         3 => {
             let (g_open, g_ext) = args_parser::get_gap_open_gap_ext();
-            let align_score = gap_local_poa::exec(
-                seq,
-                &graph_struct,
-                &score_matrix,
-                g_open,
-                g_ext,
-            );
+            let align_score = gap_local_poa::exec(seq, &graph_struct, &score_matrix, g_open, g_ext);
 
             if amb_strand && align_score < 0 {
                 let rev_graph_struct = graph::read_graph(&graph_path, true);

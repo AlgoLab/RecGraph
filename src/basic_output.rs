@@ -108,6 +108,79 @@ pub fn write_align_local_poa(
     reverse_and_write(graph_align, sequence_align, alignment_moves, "local_poa");
 }
 
+pub fn write_align_gap_local_poa(
+    path: &[Vec<(char, usize)>],
+    path_x: &[Vec<(char, usize)>],
+    path_y: &[Vec<(char, usize)>],
+    sequence: &[char],
+    graph: &[char],
+    best_row: usize,
+    best_col: usize,
+) {
+    let mut col = best_col;
+    let mut row = best_row;
+    let mut sequence_align = String::new();
+    let mut graph_align = String::new();
+    let mut alignment_moves = String::new();
+    while path[row][col] != ('O', 0) {
+        match path[row][col] {
+            ('D', _) => {
+                sequence_align.push(sequence[col]);
+                graph_align.push(graph[row]);
+                alignment_moves.push('|');
+                row = path[row][col].1;
+                col -= 1;
+            }
+            ('d', _) => {
+                sequence_align.push(sequence[col]);
+                graph_align.push(graph[row]);
+                alignment_moves.push('.');
+                row = path[row][col].1;
+                col -= 1;
+            }
+            ('L', _) => {
+                if path_x[row][col].0 == 'X' {
+                    while path_x[row][col].0 == 'X' {
+                        graph_align.push('-');
+                        sequence_align.push(sequence[col]);
+                        alignment_moves.push(' ');
+                        col -= 1;
+                    }
+                } else {
+                    graph_align.push('-');
+                    sequence_align.push(sequence[col]);
+                    alignment_moves.push(' ');
+                    col -= 1;
+                }
+            }
+            ('U', _) => {
+                if path_y[row][col].0 == 'Y' {
+                    while path_y[row][col].0 == 'Y' {
+                        graph_align.push(graph[row]);
+                        sequence_align.push('-');
+                        alignment_moves.push(' ');
+                        row = path_y[row][col].1;
+                    }
+                } else {
+                    graph_align.push(graph[row]);
+                    sequence_align.push('-');
+                    alignment_moves.push(' ');
+                    row = path_y[row][col].1;
+                }
+            }
+            _ => {
+                panic!("impossible value in poa path")
+            }
+        }
+    }
+    reverse_and_write(
+        graph_align,
+        sequence_align,
+        alignment_moves,
+        "gap_local_poa",
+    );
+}
+
 pub fn write_align_gap_mk_abpoa(
     path: &[Vec<(char, usize)>],
     path_x: &[Vec<(char, usize)>],
