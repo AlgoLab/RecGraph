@@ -123,7 +123,6 @@ pub fn exec(
                     _ => {
                         y[i][j] = o + e * (j + left) as i32;
                         u_pred = 0;
-                        path_y[i][j] = ('Y', 0);
                     }
                 }
                 // try get d from m (pred_left < j < pred_right else None)
@@ -136,7 +135,11 @@ pub fn exec(
                         m[i][j] = match d.cmp(&l) {
                             Ordering::Less => match l.cmp(&u) {
                                 Ordering::Less => {
-                                    path[i][j] = ('U', u_pred);
+                                    if u_pred == 0 {
+                                        path[i][j] = ('u', u_pred);
+                                    } else {
+                                        path[i][j] = ('U', u_pred);
+                                    }
                                     u
                                 }
                                 _ => {
@@ -146,7 +149,11 @@ pub fn exec(
                             },
                             _ => match d.cmp(&u) {
                                 Ordering::Less => {
-                                    path[i][j] = ('U', u_pred);
+                                    if u_pred == 0 {
+                                        path[i][j] = ('u', u_pred);
+                                    } else {
+                                        path[i][j] = ('U', u_pred);
+                                    }
                                     u
                                 }
                                 _ => {
@@ -165,7 +172,11 @@ pub fn exec(
                         let u = y[i][j];
                         m[i][j] = match l.cmp(&u) {
                             Ordering::Less => {
-                                path[i][j] = ('U', u_pred);
+                                if u_pred == 0 {
+                                    path[i][j] = ('u', u_pred);
+                                } else {
+                                    path[i][j] = ('U', u_pred);
+                                }
                                 u
                             }
                             _ => {
@@ -195,14 +206,16 @@ pub fn exec(
         }
     }
     let best_value = m[last_row][last_col];
+    /*
     let check = band_ampl_enough(&path, last_row, last_col, &ampl_for_row, sequence.len());
     if !check {
         println!("Band length probably too short, maybe try with larger b and f");
     }
+    */
+    
     drop(m);
     drop(x);
     drop(y);
-    drop(pred_hash);
     drop(nodes_w_pred);
 
     println!("{}", best_value);
@@ -215,6 +228,7 @@ pub fn exec(
         lnz,
         last_row,
         last_col,
+        pred_hash
     );
     best_value
 }

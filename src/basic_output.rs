@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::{prelude::*, BufWriter};
 
@@ -190,6 +191,7 @@ pub fn write_align_gap_mk_abpoa(
     graph: &[char],
     best_row: usize,
     best_col: usize,
+    pred_hash: &HashMap<usize, Vec<usize>>
 ) {
     let mut col = best_col;
     let mut row = best_row;
@@ -272,6 +274,22 @@ pub fn write_align_gap_mk_abpoa(
                     };
                     col = j_pos;
                     row = p;
+                }
+            }
+            ('u', _) => {
+                col = 0;
+                while row > 0 {
+                    graph_align.push(graph[row]);
+                    sequence_align.push('-');
+                    alignment_moves.push(' ');
+                    match pred_hash.get(&row) {
+                        Some(p_arr) => {
+                            row = *p_arr.iter().min().unwrap();
+                        },
+                        _ => {
+                            row -= 1;
+                        }
+                    }
                 }
             }
             _ => {
