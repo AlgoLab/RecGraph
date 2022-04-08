@@ -22,8 +22,8 @@ pub fn create_score_matrix() -> HashMap<(char, char), i32> {
 // TODO: remove '-' after local_alignment with gap O/E
 fn create_score_matrix_match_mis(m: i32, x: i32) -> HashMap<(char, char), i32> {
     let mut score_matrix: HashMap<(char, char), i32> = HashMap::new();
-    for i in ['A', 'C', 'G', 'T', '-'].iter() {
-        for j in ['A', 'C', 'G', 'T', '-'].iter() {
+    for i in ['A', 'C', 'G', 'T', 'N', '-'].iter() {
+        for j in ['A', 'C', 'G', 'T', 'N', '-'].iter() {
             if i == j {
                 score_matrix.insert((*i, *j), m);
             } else {
@@ -31,6 +31,8 @@ fn create_score_matrix_match_mis(m: i32, x: i32) -> HashMap<(char, char), i32> {
             }
         }
     }
+    score_matrix.insert(('N', 'N'), x);
+    score_matrix.remove(&('-', '-'));
     score_matrix
 }
 
@@ -71,6 +73,7 @@ fn create_score_matrix_from_matrix_file(matrix_file: &str) -> HashMap<(char, cha
         matrix_score.insert((*ch, '-'), -200);
         matrix_score.insert(('-', *ch), -200);
     }
+    matrix_score.remove(&('-', '-'));
     matrix_score
 }
 
@@ -81,6 +84,8 @@ mod tests {
         let score_matrix = super::create_score_matrix_match_mis(10, -10);
         assert_eq!(*score_matrix.get(&('A', 'A')).unwrap(), 10);
         assert_eq!(*score_matrix.get(&('A', 'C')).unwrap(), -10);
+        assert_eq!(*score_matrix.get(&('N', 'N')).unwrap(), -10);
+        assert_eq!(score_matrix.get(&('-', '-')), None);
     }
     #[test]
     fn hoxd_correct() {
@@ -92,5 +97,8 @@ mod tests {
 
         assert_eq!(*score_matrix_d55.get(&('A', 'A')).unwrap(), 91);
         assert_eq!(*score_matrix_d55.get(&('T', 'G')).unwrap(), -90);
+
+        assert_eq!(score_matrix_d70.get(&('-', '-')), None);
+        assert_eq!(score_matrix_d55.get(&('-', '-')), None);
     }
 }
