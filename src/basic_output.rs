@@ -191,7 +191,7 @@ pub fn write_align_gap_mk_abpoa(
     graph: &[char],
     best_row: usize,
     best_col: usize,
-    pred_hash: &HashMap<usize, Vec<usize>>
+    pred_hash: &HashMap<usize, Vec<usize>>,
 ) {
     let mut col = best_col;
     let mut row = best_row;
@@ -285,7 +285,7 @@ pub fn write_align_gap_mk_abpoa(
                     match pred_hash.get(&row) {
                         Some(p_arr) => {
                             row = *p_arr.iter().min().unwrap();
-                        },
+                        }
                         _ => {
                             row -= 1;
                         }
