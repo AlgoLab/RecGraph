@@ -1,3 +1,5 @@
+use bit_vec::BitVec;
+
 use crate::{basic_output, graph::LnzGraph};
 use std::{
     cmp::{self, Ordering},
@@ -9,26 +11,38 @@ pub fn exec(
     sequence: &[char],
     graph_struct: &LnzGraph,
     score_matrix: &HashMap<(char, char), i32>,
-    ampl: usize,
+    bta: usize,
 ) -> i32 {
     let lnz = &graph_struct.lnz;
     let nodes_w_pred = &graph_struct.nwp;
     let pred_hash = &graph_struct.pred_hash;
+
+    let r_values = set_r_values(nodes_w_pred, pred_hash, lnz.len());
+    let mut best_scoring_pos = vec![0; lnz.len()];
+
     let mut m = vec![vec![]; lnz.len()];
     let mut path = vec![vec![]; lnz.len()];
     let mut ampl_for_row: Vec<(usize, usize)> = vec![(0, 0); lnz.len()];
-    for i in 0..lnz.len() {
+
+    let simd_version = false;
+    for i in 0..lnz.len() - 1 {
         let mut p_arr = &vec![];
         if nodes_w_pred[i] {
             p_arr = pred_hash.get(&i).unwrap()
         }
-        let (left, right) = set_left_right(ampl, i, p_arr, sequence.len(), &mut ampl_for_row);
+        let (left, right) = set_ampl_for_row(
+            i,
+            p_arr,
+            r_values[i],
+            &best_scoring_pos,
+            sequence.len(),
+            bta,
+            simd_version,
+        );
+        ampl_for_row[i] = (left, right);
+        let mut best_val_pos: usize = 0;
         m[i] = vec![0; right - left];
         path[i] = vec![('X', 0); right - left];
-    }
-
-    for i in 0..lnz.len() - 1 {
-        let (left, right) = ampl_for_row[i];
         for j in 0..right - left {
             match (i, j) {
                 (0, 0) => {
@@ -213,125 +227,41 @@ pub fn exec(
                     }
                 }
             }
-        }
-    }
-    let last_col_f_node = ampl_for_row[m.len() - 1].1 - ampl_for_row[m.len() - 1].0 - 1;
-    best_last_node(
-        pred_hash.get(&(lnz.len() - 1)).unwrap(),
-        &mut m,
-        &mut path,
-        last_col_f_node,
-        &ampl_for_row,
-    );
-    let last_row = path[m.len() - 1][last_col_f_node].1;
-    let last_col = ampl_for_row[last_row].1 - ampl_for_row[last_row].0 - 1;
-
-    match ampl_is_enough(&path, &ampl_for_row, sequence.len()) {
-        true => {
-            println!("Alignment mk {:?}", m[m.len() - 1][last_col_f_node]);
-            basic_output::write_align_banded_poa(
-                &path,
-                sequence,
-                lnz,
-                &ampl_for_row,
-                last_row,
-                last_col,
-            );
-
-            m[last_row][last_col]
-        }
-        false => exec(sequence, graph_struct, score_matrix, ampl * 2),
-    }
-}
-
-fn best_last_node(
-    p_arr: &[usize],
-    m: &mut [Vec<i32>],
-    path: &mut [Vec<(char, usize)>],
-    j: usize,
-    ampl_for_row: &[(usize, usize)],
-) {
-    let mut best_align = 0;
-    let mut best_idx = 0;
-    let mut first = true;
-    let m_len = m.len();
-    let _last_row = ampl_for_row.len() - 1;
-
-    for p in p_arr.iter() {
-        let last_col = ampl_for_row[*p].1 - ampl_for_row[*p].0 - 1;
-        if first {
-            best_align = m[*p][last_col];
-            best_idx = *p;
-            first = false;
-        }
-        if m[*p][last_col] > best_align {
-            best_align = m[*p][last_col];
-            best_idx = *p;
-        }
-    }
-    m[m_len - 1][j] = best_align;
-    path[m_len - 1][j] = ('F', best_idx);
-}
-
-fn set_left_right(
-    ampl: usize,
-    i: usize,
-    pred_array: &[usize],
-    sequence_len: usize,
-    ampl_for_row: &mut [(usize, usize)],
-) -> (usize, usize) {
-    let mut left = 0;
-    let mut right = sequence_len;
-    if ampl < sequence_len {
-        if i == 0 {
-            right = cmp::min(ampl / 2, sequence_len);
-        } else if pred_array.is_empty() {
-            if i >= ampl / 2 {
-                left = ampl_for_row[i - 1].0 + 1
-            }
-            right = cmp::min(ampl_for_row[i - 1].1 + 1, sequence_len);
-            if right <= left + ampl / 2 {
-                (left, right) = (right - ampl / 2, right);
-            }
-        } else {
-            let mut first = true;
-            for p in pred_array.iter() {
-                let (current_l, current_r);
-                if p + 1 < ampl / 2 {
-                    current_l = 0;
-                } else {
-                    current_l = ampl_for_row[*p].0 + 1
-                }
-                current_r = cmp::min(ampl_for_row[*p].1 + 1, sequence_len);
-                if first {
-                    first = false;
-                    (left, right) = (current_l, current_r)
-                }
-                if current_l < left {
-                    left = current_l;
-                }
-                if current_r > right {
-                    right = current_r;
-                }
-            }
-            if right <= left + ampl / 2 {
-                (left, right) = (right - ampl / 2, right);
+            if m[i][j] >= m[i][best_val_pos] {
+                best_val_pos = j
             }
         }
+        best_scoring_pos[i] = best_val_pos + left;
     }
-    ampl_for_row[i] = (left, right);
-    (left, right)
+    let mut last_row = m.len() - 2;
+    let mut last_col = m[last_row].len() - 1;
+    for p in pred_hash.get(&(m.len() - 1)).unwrap().iter() {
+        let tmp_last_col = (ampl_for_row[*p].1 - ampl_for_row[*p].0) - 1;
+        if m[*p][tmp_last_col] > m[last_row][last_col] {
+            last_row = *p;
+            last_col = tmp_last_col;
+        }
+    }
+    let best_value = m[last_row][last_col];
+    let check = ampl_is_enough(&path, &ampl_for_row, sequence.len(), last_row, last_col);
+    if !check {
+        println!("Band length probably too short, maybe try with larger b and f");
+    }
+    println!("Alignment mk {:?}", best_value);
+    basic_output::write_align_banded_poa(&path, sequence, lnz, &ampl_for_row, last_row, last_col);
+
+    m[last_row][last_col]
 }
 
 fn ampl_is_enough(
     path: &[Vec<(char, usize)>],
     ampl_for_row: &[(usize, usize)],
     seq_len: usize,
+    last_row: usize,
+    last_col: usize,
 ) -> bool {
-    let last_row = path.len() - 1;
-    let last_col = ampl_for_row[last_row].1 - ampl_for_row[last_row].0 - 1;
-    let mut row = path[last_row][last_col].1;
-    let mut col = path[row].len() - 1;
+    let mut row = last_row;
+    let mut col = last_col;
 
     while path[row][col].0 != 'O' {
         //reached end of path, no need to continue
@@ -496,6 +426,101 @@ fn left_equal_for_every_p(
     } else {
         ampl_for_row[i - 1].0 == ampl_for_row[i].0
     }
+}
+
+fn set_r_values(
+    nwp: &BitVec,
+    pred_hash: &HashMap<usize, Vec<usize>>,
+    lnz_len: usize,
+) -> Vec<usize> {
+    let mut r_values: Vec<isize> = vec![-1; lnz_len];
+    r_values[lnz_len - 1] = 0;
+    for p in pred_hash.get(&(lnz_len - 1)).unwrap() {
+        r_values[*p] = 0;
+    }
+    for i in (1..lnz_len - 1).rev() {
+        if r_values[i] == -1 || r_values[i] > r_values[i + 1] + 1 {
+            r_values[i] = r_values[i + 1] + 1;
+        }
+        if nwp[i] {
+            for p in pred_hash.get(&i).unwrap() {
+                if r_values[*p] == -1 || r_values[*p] > r_values[i] + 1 {
+                    r_values[*p] = r_values[i] + 1;
+                }
+            }
+        }
+    }
+    r_values.iter().map(|x| *x as usize).collect()
+}
+fn set_ampl_for_row(
+    i: usize,
+    p_arr: &[usize],
+    r_val: usize,
+    best_scoring_pos: &[usize],
+    seq_len: usize,
+    bta: usize,
+    simd_version: bool,
+) -> (usize, usize) {
+    let ms;
+    let me;
+    if i == 0 {
+        ms = 0;
+        me = 0;
+    } else if p_arr.is_empty() {
+        let pl = best_scoring_pos[i - 1];
+        ms = pl + 1;
+        me = pl + 1;
+    } else {
+        let mut pl = 0;
+        let mut pr = 0;
+        let mut first = true;
+        for p in p_arr.iter() {
+            let current_best = best_scoring_pos[*p];
+            if first {
+                pl = current_best;
+                pr = current_best;
+                first = false;
+            }
+            if current_best < pl {
+                pl = current_best;
+            }
+            if current_best > pr {
+                pr = current_best;
+            }
+        }
+        ms = pl + 1;
+        me = pr + 1;
+    }
+    let tmp_bs = cmp::min(ms as i32, (seq_len as i32 - r_val as i32) - bta as i32);
+    let band_start = if tmp_bs < 0 {
+        0
+    } else {
+        cmp::max(0, tmp_bs as usize)
+    };
+    let band_end = if seq_len > r_val {
+        cmp::min(seq_len, cmp::max(me, seq_len - r_val) + bta)
+    } else {
+        cmp::min(seq_len, me + bta)
+    };
+    if simd_version {
+        set_left_right_x64(band_start, band_end, seq_len)
+    } else {
+        (band_start, band_end)
+    }
+}
+fn set_left_right_x64(left: usize, right: usize, seq_len: usize) -> (usize, usize) {
+    let mut new_right = right;
+    let mut new_left = left;
+    while (new_right - new_left) % 64 != 0 {
+        if (new_right - new_left) % 2 == 0 && new_right < seq_len {
+            new_right += 1;
+        } else if new_left > 0 {
+            new_left -= 1;
+        } else {
+            break;
+        }
+    }
+    (new_left, new_right)
 }
 #[cfg(test)]
 mod tests {

@@ -12,3 +12,4 @@ Cargo.lock
 odgi
 *.og
 *valgrind*
+*massif*

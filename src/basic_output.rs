@@ -277,6 +277,7 @@ pub fn write_align_gap_mk_abpoa(
                 }
             }
             ('u', _) => {
+                println!("u");
                 col = 0;
                 while row > 0 {
                     graph_align.push(graph[row]);

@@ -56,7 +56,6 @@ pub fn exec(
         path_x[i] = vec![('M', 0); right - left];
         path_y[i] = vec![('M', 0); right - left];
 
-        if i > 0 {}
         for j in 0..right - left {
             if i == 0 && j == 0 {
                 path[i][j] = ('O', 0);
@@ -206,11 +205,19 @@ pub fn exec(
         }
     }
     let best_value = m[last_row][last_col];
-    let check = band_ampl_enough(&path, &path_x, &path_y,last_row, last_col, &ampl_for_row, sequence.len());
+    let check = band_ampl_enough(
+        &path,
+        &path_x,
+        &path_y,
+        last_row,
+        last_col,
+        &ampl_for_row,
+        sequence.len(),
+    );
     if !check {
         println!("Band length probably too short, maybe try with larger b and f");
     }
-    
+
     drop(m);
     drop(x);
     drop(y);
@@ -226,12 +233,12 @@ pub fn exec(
         lnz,
         last_row,
         last_col,
-        pred_hash
+        pred_hash,
     );
     best_value
 }
 
-#[inline(always)]
+#[inline]
 fn get_best_d(
     p_arr: &[usize],
     m: &[Vec<i32>],
@@ -272,7 +279,7 @@ fn get_best_d(
     }
 }
 
-#[inline(always)]
+#[inline]
 fn get_best_u(
     p_arr: &[usize],
     m: &[Vec<i32>],
@@ -325,7 +332,7 @@ fn get_best_u(
     }
 }
 
-#[inline(always)]
+#[inline]
 fn get_best_l(
     m: &[Vec<i32>],
     x: &[Vec<i32>],
@@ -347,6 +354,7 @@ fn get_best_l(
     }
 }
 
+#[inline]
 fn set_ampl_for_row(
     i: usize,
     p_arr: &[usize],
@@ -466,31 +474,31 @@ fn band_ampl_enough(
                 let p = path[i][j].1;
                 let left_p = ampl_for_row[p].0;
                 let j_pos = if left_p < left {
-                    j+ (left - left_p)
+                    j + (left - left_p)
                 } else {
-                    j- (left_p - left)
+                    j - (left_p - left)
                 };
-                j= j_pos - 1;
-               i = p;
+                j = j_pos - 1;
+                i = p;
             }
             ('d', _) => {
                 let p = path[i][j].1;
                 let left_p = ampl_for_row[p].0;
                 let j_pos = if left_p < left {
-                    j+ (left - left_p)
+                    j + (left - left_p)
                 } else {
-                    j- (left_p - left)
+                    j - (left_p - left)
                 };
-                j= j_pos - 1;
-               i = p;
+                j = j_pos - 1;
+                i = p;
             }
             ('L', _) => {
                 if path_x[i][j].0 == 'X' {
-                    while path_x[i][j].0 == 'X' && j> 0 {
-                        j-= 1
+                    while path_x[i][j].0 == 'X' && j > 0 {
+                        j -= 1
                     }
                 } else {
-                    j-= 1
+                    j -= 1
                 }
             }
             ('U', _) => {
@@ -500,23 +508,23 @@ fn band_ampl_enough(
                         let p = path_y[i][j].1;
                         let left_p = ampl_for_row[p].0;
                         let j_pos = if left_p < left_row {
-                            j+ (left_row - left_p)
+                            j + (left_row - left_p)
                         } else {
-                            j- (left_p - left_row)
+                            j - (left_p - left_row)
                         };
-                        j= j_pos;
-                       i = p;
+                        j = j_pos;
+                        i = p;
                     }
                 } else {
                     let p = path[i][j].1;
                     let left_p = ampl_for_row[p].0;
                     let j_pos = if left_p < left {
-                        j+ (left - left_p)
+                        j + (left - left_p)
                     } else {
-                        j- (left_p - left)
+                        j - (left_p - left)
                     };
-                    j= j_pos;
-                   i = p;
+                    j = j_pos;
+                    i = p;
                 }
             }
             _ => {
