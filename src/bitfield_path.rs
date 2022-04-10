@@ -4,6 +4,7 @@ use crate::bitfield_path;
 
 
 bitfield! {
+    #[derive(Debug)]
     struct BestChoice (MSB0 [u32]);
     u32;
     get_pred, set_pred: 16, 0;
@@ -40,21 +41,50 @@ pub fn test1() {
 
     assert_eq!(best_choice.get_pred(),1000);
     assert_eq!(best_choice.get_dir(),1);
+    
 }
 
 pub fn example_path() {
     let mut path: Vec<Vec<BestChoice<[u32; 2]>>> = Vec::with_capacity(2);
     let mut path_line = Vec::with_capacity(3);
-    path_line.insert(0, BestChoice([0, dir('O')]));
-    path_line.insert(1, BestChoice([0, dir('L')]));
-    path_line.insert(2, BestChoice([0, dir('L')]));
+    
+    let mut bc = BestChoice([0,0]);
+    bc.set_dir(dir('O'));
+    bc.set_pred(0);
+    path_line.insert(0, bc);
+    
+    let mut bc = BestChoice([0,0]);
+    bc.set_dir(dir('L'));
+    bc.set_pred(0);
+    path_line.insert(1, bc);
+
+    let mut bc = BestChoice([0,0]);
+    bc.set_dir(dir('L'));
+    bc.set_pred(0);
+    path_line.insert(2, bc);
+
     path.insert(0,path_line);
     
     let mut path_line = Vec::with_capacity(3);
-    path_line.insert(0, BestChoice([0, dir('U')]));
-    path_line.insert(1, BestChoice([0, dir('D')]));
-    path_line.insert(2, BestChoice([1, dir('L')]));
+    
+    let mut bc = BestChoice([0,0]);
+    bc.set_dir(dir('U'));
+    bc.set_pred(0);
+    path_line.insert(0, bc);
+
+    let mut bc = BestChoice([0,0]);
+    bc.set_dir(dir('D'));
+    bc.set_pred(0);
+    path_line.insert(1, bc);
+
+    let mut bc = BestChoice([0,0]);
+    bc.set_dir(dir('L'));
+    bc.set_pred(0);
+    path_line.insert(2, bc);
+
     path.insert(1, path_line);
+    
+    build_path(path);
 }
 
 fn build_path(path: Vec<Vec<BestChoice<[u32; 2]>>>) {
