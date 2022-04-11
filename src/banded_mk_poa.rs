@@ -1,6 +1,7 @@
-use bit_vec::BitVec;
-
+use crate::bitfield_path::{self as bf, pred_from_bitvec};
 use crate::{basic_output, graph::LnzGraph};
+use bit_vec::*;
+use bitvec::prelude::*;
 use std::{
     cmp::{self, Ordering},
     collections::HashMap,
@@ -42,17 +43,18 @@ pub fn exec(
         ampl_for_row[i] = (left, right);
         let mut best_val_pos: usize = 0;
         m[i] = vec![0; right - left];
-        path[i] = vec![('X', 0); right - left];
+        let bv = bitvec![u16, Msb0; 0; 32];
+        path[i] = vec![bv; right - left];
         for j in 0..right - left {
             match (i, j) {
                 (0, 0) => {
                     m[i][j] = 0;
-                    path[i][j] = ('O', 0);
+                    path[i][j] = bf::set_path_cell(0, 'O');
                 }
                 (0, _) => {
                     //only left
                     m[i][j] = m[i][j - 1] + score_matrix.get(&('-', sequence[j + left])).unwrap();
-                    path[i][j] = ('L', i);
+                    path[i][j] = bf::set_path_cell(i, 'L');
                 }
                 (_, 0)
                     if left == 0 || left_equal_for_every_p(pred_hash.get(&i), &ampl_for_row, i) =>
@@ -60,11 +62,11 @@ pub fn exec(
                     // only upper
                     if !nodes_w_pred[i] {
                         m[i][j] = m[i - 1][j] + score_matrix.get(&(lnz[i], '-')).unwrap();
-                        path[i][j] = ('U', i - 1);
+                        path[i][j] = bf::set_path_cell(i - 1, 'U');
                     } else {
                         let p = pred_hash.get(&i).unwrap().iter().min().unwrap();
                         m[i][j] = m[*p][j] + score_matrix.get(&(lnz[i], '-')).unwrap();
-                        path[i][j] = ('U', *p);
+                        path[i][j] = bf::set_path_cell(*p, 'U');
                     }
                 }
                 (_, 0) if left > 0 => {
@@ -86,14 +88,14 @@ pub fn exec(
                         }
                         m[i][j] = match d.cmp(&u) {
                             Ordering::Less => {
-                                path[i][j] = ('U', i - 1);
+                                path[i][j] = bf::set_path_cell(i - 1, 'U');
                                 u
                             }
                             _ => {
                                 if lnz[i] == sequence[j + left] {
-                                    path[i][j] = ('D', i - 1);
+                                    path[i][j] = bf::set_path_cell(i - 1, 'D');
                                 } else {
-                                    path[i][j] = ('d', i - 1);
+                                    path[i][j] = bf::set_path_cell(i - 1, 'd');
                                 }
                                 d
                             }
@@ -106,14 +108,14 @@ pub fn exec(
                         u += score_matrix.get(&(lnz[i], '-')).unwrap();
                         m[i][j] = match d.cmp(&u) {
                             Ordering::Less => {
-                                path[i][j] = ('U', u_idx);
+                                path[i][j] = bf::set_path_cell(u_idx, 'U');
                                 u
                             }
                             _ => {
                                 if lnz[i] == sequence[j + left] {
-                                    path[i][j] = ('D', d_idx);
+                                    path[i][j] = bf::set_path_cell(d_idx, 'D');
                                 } else {
-                                    path[i][j] = ('d', d_idx);
+                                    path[i][j] = bf::set_path_cell(d_idx, 'd');
                                 }
                                 d
                             }
@@ -142,14 +144,14 @@ pub fn exec(
 
                         m[i][j] = match d.cmp(&l) {
                             Ordering::Less => {
-                                path[i][j] = ('L', i);
+                                path[i][j] = bf::set_path_cell(i, 'L');
                                 l
                             }
                             _ => {
                                 if lnz[i] == sequence[j + left] {
-                                    path[i][j] = ('D', i - 1);
+                                    path[i][j] = bf::set_path_cell(i - 1, 'D');
                                 } else {
-                                    path[i][j] = ('d', i - 1);
+                                    path[i][j] = bf::set_path_cell(i - 1, 'd');
                                 }
                                 d
                             }
@@ -161,14 +163,14 @@ pub fn exec(
 
                         m[i][j] = match d.cmp(&l) {
                             Ordering::Less => {
-                                path[i][j] = ('L', i);
+                                path[i][j] = bf::set_path_cell(i, 'L');
                                 l
                             }
                             _ => {
                                 if lnz[i] == sequence[j + left] {
-                                    path[i][j] = ('D', d_idx);
+                                    path[i][j] = bf::set_path_cell(d_idx, 'D');
                                 } else {
-                                    path[i][j] = ('d', d_idx);
+                                    path[i][j] = bf::set_path_cell(d_idx, 'd');
                                 }
                                 d
                             }
@@ -202,10 +204,10 @@ pub fn exec(
                         }
                         m[i][j] = best_val;
                         path[i][j] = match dir {
-                            'D' => ('D', i - 1),
-                            'd' => ('d', i - 1),
-                            'U' => ('U', i - 1),
-                            _ => ('L', i),
+                            'D' => bf::set_path_cell(i - 1, 'D'),
+                            'd' => bf::set_path_cell(i - 1, 'd'),
+                            'U' => bf::set_path_cell(i - 1, 'U'),
+                            _ => bf::set_path_cell(i, 'L'),
                         };
                     } else if let (Some((mut d, d_idx)), Some((mut u, u_idx))) = (
                         get_best_d(pred_hash.get(&i).unwrap(), &m, &ampl_for_row, i, j),
@@ -219,10 +221,10 @@ pub fn exec(
                         }
                         m[i][j] = best_val;
                         path[i][j] = match dir {
-                            'D' => ('D', d_idx),
-                            'd' => ('d', d_idx),
-                            'U' => ('U', u_idx),
-                            _ => ('L', i),
+                            'D' => bf::set_path_cell(d_idx, 'D'),
+                            'd' => bf::set_path_cell(d_idx, 'd'),
+                            'U' => bf::set_path_cell(u_idx, 'U'),
+                            _ => bf::set_path_cell(i, 'L'),
                         };
                     }
                 }
@@ -248,13 +250,13 @@ pub fn exec(
         println!("Band length probably too short, maybe try with larger b and f");
     }
     println!("Alignment mk {:?}", best_value);
-    basic_output::write_align_banded_poa(&path, sequence, lnz, &ampl_for_row, last_row, last_col);
+    //basic_output::write_align_banded_poa(&path, sequence, lnz, &ampl_for_row, last_row, last_col);
 
     m[last_row][last_col]
 }
 
 fn ampl_is_enough(
-    path: &[Vec<(char, usize)>],
+    path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
     ampl_for_row: &[(usize, usize)],
     seq_len: usize,
     last_row: usize,
@@ -263,13 +265,13 @@ fn ampl_is_enough(
     let mut row = last_row;
     let mut col = last_col;
 
-    while path[row][col].0 != 'O' {
+    while bf::dir_from_bitvec(&path[row][col]) != 'O' {
         //reached end of path, no need to continue
         if ampl_for_row[row].0 == 0 {
             return true;
         }
 
-        let p_left = ampl_for_row[path[row][col].1].0;
+        let p_left = ampl_for_row[bf::pred_from_bitvec(&path[row][col])].0;
         let j_pos = if ampl_for_row[row].0 < p_left {
             let delta = p_left - ampl_for_row[row].0;
             col - delta
@@ -282,21 +284,24 @@ fn ampl_is_enough(
                 && ampl_for_row[row].1 != seq_len - 1)
         {
             // != from path_len because couldn't go larger
-            if path[row][col].0 == 'D' {
-                row = path[row][col].1 as usize;
+            if bf::dir_from_bitvec(&path[row][col]) == 'D' {
+                row = pred_from_bitvec(&path[row][col]);
                 col = j_pos - 1;
                 // finchè ho match posso continuare anche se sul margine
             } else {
                 return false;
             }
         } else {
-            match path[row][col].0 {
+            let curr_bv = &path[row][col];
+            let pred = bf::pred_from_bitvec(curr_bv);
+            let dir = bf::dir_from_bitvec(&curr_bv);
+            match dir {
                 'D' | 'd' => {
-                    row = path[row][col].1 as usize;
+                    row = pred;
                     col = j_pos - 1;
                 }
                 'U' => {
-                    row = path[row][col].1 as usize;
+                    row = pred;
                     col = j_pos;
                 }
                 'L' => {
@@ -429,7 +434,7 @@ fn left_equal_for_every_p(
 }
 
 fn set_r_values(
-    nwp: &BitVec,
+    nwp: &bit_vec::BitVec,
     pred_hash: &HashMap<usize, Vec<usize>>,
     lnz_len: usize,
 ) -> Vec<usize> {

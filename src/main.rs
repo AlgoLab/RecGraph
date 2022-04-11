@@ -1,13 +1,13 @@
 mod args_parser;
 mod banded_mk_poa;
 mod basic_output;
+mod bitfield_path;
 mod gap_local_poa;
 mod gap_mk_abpoa;
 mod graph;
 mod local_poa;
 mod matrix;
 mod sequences;
-mod bitfield_path;
 fn main() {
     bitfield_path::test1();
     bitfield_path::example_path();
