@@ -1,11 +1,11 @@
-use bit_vec::BitVec;
-
-use crate::{basic_output, graph::LnzGraph};
+use bitvec::prelude::*;
+use crate::{basic_output, graph::LnzGraph, bitfield_path as bf};
 use std::{
     cmp::{self, Ordering},
     collections::HashMap,
     vec,
 };
+
 pub fn exec(
     sequence: &[char],
     graph_struct: &LnzGraph,
@@ -52,19 +52,20 @@ pub fn exec(
         x[i] = vec![0; right - left];
         y[i] = vec![0; right - left];
 
-        path[i] = vec![('X', 0); right - left];
-        path_x[i] = vec![('M', 0); right - left];
-        path_y[i] = vec![('M', 0); right - left];
+        path[i] = vec![bitvec![u16, Msb0; 0; 32]; right - left];
+        path_x[i] = vec![bitvec![u16, Msb0; 0; 32]; right - left];
+        path_y[i] = vec![bitvec![u16, Msb0; 0; 32]; right - left];
 
         for j in 0..right - left {
             if i == 0 && j == 0 {
-                path[i][j] = ('O', 0);
+                m[i][j] = 0;
+                path[i][j] = bf::set_path_cell(0, 'O');
             } else if i == 0 {
                 // set y
                 y[i][j] = o + e * (j + left) as i32;
                 // set m
                 m[i][j] = y[i][j];
-                path[i][j] = ('L', i);
+                path[i][j] = bf::set_path_cell(i, 'L');
             } else if j == 0 && left == 0 {
                 // set x
 
@@ -78,7 +79,7 @@ pub fn exec(
 
                 // set m
                 m[i][j] = x[i][j];
-                path[i][j] = ('U', best_p);
+                path[i][j] = bf::set_path_cell(best_p, 'U');
             } else {
                 let mut p_arr = &vec![i - 1];
                 if nodes_w_pred[i] {
@@ -93,7 +94,7 @@ pub fn exec(
                         x[i][j] = l + e;
                         l_pred = idx;
                         if !from_m {
-                            path_x[i][j] = ('X', i);
+                            path_x[i][j] = bf::set_path_cell(i, 'X');
                         }
                     }
                     _ => {
@@ -105,7 +106,7 @@ pub fn exec(
 
                         x[i][j] = o + e * (best_p + 1) as i32;
                         l_pred = best_p;
-                        path_x[i][j] = ('X', i);
+                        path_x[i][j] = bf::set_path_cell(i, 'X');
                     }
                 }
                 // try set and get u from y (pred_left < j < pred_right else None)
@@ -116,7 +117,7 @@ pub fn exec(
                         y[i][j] = u + e;
                         u_pred = idx;
                         if !from_m {
-                            path_y[i][j] = ('Y', idx);
+                            path_y[i][j] = bf::set_path_cell(idx, 'Y');
                         }
                     }
                     _ => {
@@ -135,31 +136,31 @@ pub fn exec(
                             Ordering::Less => match l.cmp(&u) {
                                 Ordering::Less => {
                                     if u_pred == 0 {
-                                        path[i][j] = ('u', u_pred);
+                                        path[i][j] = bf::set_path_cell(u_pred, 'u');
                                     } else {
-                                        path[i][j] = ('U', u_pred);
+                                        path[i][j] = bf::set_path_cell(u_pred, 'U');
                                     }
                                     u
                                 }
                                 _ => {
-                                    path[i][j] = ('L', l_pred);
+                                    path[i][j] = bf::set_path_cell(l_pred, 'L');
                                     l
                                 }
                             },
                             _ => match d.cmp(&u) {
                                 Ordering::Less => {
                                     if u_pred == 0 {
-                                        path[i][j] = ('u', u_pred);
+                                        path[i][j] = bf::set_path_cell(u_pred, 'u');
                                     } else {
-                                        path[i][j] = ('U', u_pred);
+                                        path[i][j] = bf::set_path_cell(u_pred, 'U');
                                     }
                                     u
                                 }
                                 _ => {
                                     if lnz[i] == sequence[j + left] {
-                                        path[i][j] = ('D', d_idx);
+                                        path[i][j] = bf::set_path_cell(d_idx, 'D');
                                     } else {
-                                        path[i][j] = ('d', d_idx);
+                                        path[i][j] = bf::set_path_cell(d_idx, 'D');
                                     }
                                     d
                                 }
@@ -172,14 +173,14 @@ pub fn exec(
                         m[i][j] = match l.cmp(&u) {
                             Ordering::Less => {
                                 if u_pred == 0 {
-                                    path[i][j] = ('u', u_pred);
+                                    path[i][j] = bf::set_path_cell(u_pred, 'u');
                                 } else {
-                                    path[i][j] = ('U', u_pred);
+                                    path[i][j] = bf::set_path_cell(u_pred, 'U');
                                 }
                                 u
                             }
                             _ => {
-                                path[i][j] = ('L', l_pred);
+                                path[i][j] = bf::set_path_cell(l_pred, 'L');
                                 l
                             }
                         }
@@ -205,6 +206,7 @@ pub fn exec(
         }
     }
     let best_value = m[last_row][last_col];
+    /*
     let check = band_ampl_enough(
         &path,
         &path_x,
@@ -217,14 +219,14 @@ pub fn exec(
     if !check {
         println!("Band length probably too short, maybe try with larger b and f");
     }
-
+    */
     drop(m);
     drop(x);
     drop(y);
     drop(nodes_w_pred);
 
     println!("{}", best_value);
-    basic_output::write_align_gap_mk_abpoa(
+    /*basic_output::write_align_gap_mk_abpoa(
         &path,
         &path_x,
         &path_y,
@@ -234,7 +236,7 @@ pub fn exec(
         last_row,
         last_col,
         pred_hash,
-    );
+    );*/
     best_value
 }
 
@@ -427,7 +429,7 @@ fn set_left_right_x64(left: usize, right: usize, seq_len: usize) -> (usize, usiz
     (new_left, new_right)
 }
 fn set_r_values(
-    nwp: &BitVec,
+    nwp: &bit_vec::BitVec,
     pred_hash: &HashMap<usize, Vec<usize>>,
     lnz_len: usize,
 ) -> Vec<usize> {

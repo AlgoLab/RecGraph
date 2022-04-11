@@ -68,6 +68,10 @@ fn dir_u16_from_char(c: char) -> u16 {
         'd' => 2,
         'L' => 3,
         'U' => 4,
+        'u' => 5,
+        'X' => 6,
+        'Y' => 7,
+        'M' => 8,
         _ => panic! {"impossible direction char"},
     }
 }
@@ -80,6 +84,10 @@ fn char_from_bitslice(bs: &BitSlice<u16, Msb0>) -> char {
         2 => 'd',
         3 => 'L',
         4 => 'U',
+        5 => 'u',
+        6 => 'X',
+        7 => 'Y',
+        8 => 'M',
         _ => panic! {"impossible direction bitslice"},
     }
 }

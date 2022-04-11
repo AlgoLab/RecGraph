@@ -1,4 +1,4 @@
-use crate::bitfield_path::{self as bf, pred_from_bitvec};
+use crate::bitfield_path as bf;
 use crate::{basic_output, graph::LnzGraph};
 use bitvec::prelude::*;
 use std::{
@@ -6,6 +6,7 @@ use std::{
     collections::HashMap,
     vec,
 };
+
 //TODO: remove last row, only best value needed
 pub fn exec(
     sequence: &[char],
@@ -284,7 +285,7 @@ fn ampl_is_enough(
         {
             // != from path_len because couldn't go larger
             if bf::dir_from_bitvec(&path[row][col]) == 'D' {
-                row = pred_from_bitvec(&path[row][col]);
+                row = bf::pred_from_bitvec(&path[row][col]);
                 col = j_pos - 1;
                 // finchè ho match posso continuare anche se sul margine
             } else {
