@@ -1,9 +1,11 @@
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{prelude::*, BufWriter};
+use bitvec::prelude::*;
+use crate::bitfield_path as bf;
 
 pub fn write_align_banded_poa(
-    path: &[Vec<(char, usize)>],
+    path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
     sequence: &[char],
     graph: &[char],
     ampl_for_row: &[(usize, usize)],
@@ -15,9 +17,14 @@ pub fn write_align_banded_poa(
     let mut sequence_align = String::new();
     let mut graph_align = String::new();
     let mut alignment_moves = String::new();
-    while path[row][col] != ('O', 0) {
-        let (left, _) = ampl_for_row[row];
-        let p_left = ampl_for_row[path[row][col].1].0;
+
+    while bf::dir_from_bitvec(&path[row][col]) != 'O' {
+        let curr_bv = &path[row][col];
+        let pred = bf::pred_from_bitvec(curr_bv);
+        let dir = bf::dir_from_bitvec(&curr_bv);
+
+        let left = ampl_for_row[row].0;
+        let p_left = ampl_for_row[pred].0;
         let j_pos = if ampl_for_row[row].0 < p_left {
             let delta = p_left - ampl_for_row[row].0;
             col - delta
@@ -25,32 +32,33 @@ pub fn write_align_banded_poa(
             let delta = ampl_for_row[row].0 - p_left;
             col + delta
         };
-        match path[row][col] {
-            ('D', _) => {
+        
+        match dir {
+            'D' => {
                 sequence_align.push(sequence[col + left]);
                 graph_align.push(graph[row]);
                 alignment_moves.push('|');
-                row = path[row][col].1 as usize;
+                row = pred;
                 col = j_pos - 1;
             }
-            ('d', _) => {
+            'd' => {
                 sequence_align.push(sequence[col + left]);
                 graph_align.push(graph[row]);
                 alignment_moves.push('.');
-                row = path[row][col].1 as usize;
+                row = pred;
                 col = j_pos - 1;
             }
-            ('L', _) => {
+            'L' => {
                 graph_align.push('-');
                 sequence_align.push(sequence[col + left]);
                 alignment_moves.push(' ');
                 col -= 1;
             }
-            ('U', _) => {
+            'U' => {
                 graph_align.push(graph[row]);
                 sequence_align.push('-');
                 alignment_moves.push(' ');
-                row = path[row][col].1 as usize;
+                row = pred;
                 col = j_pos;
             }
             _ => {

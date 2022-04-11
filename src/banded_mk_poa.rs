@@ -1,6 +1,5 @@
 use crate::bitfield_path::{self as bf, pred_from_bitvec};
 use crate::{basic_output, graph::LnzGraph};
-use bit_vec::*;
 use bitvec::prelude::*;
 use std::{
     cmp::{self, Ordering},
@@ -250,7 +249,7 @@ pub fn exec(
         println!("Band length probably too short, maybe try with larger b and f");
     }
     println!("Alignment mk {:?}", best_value);
-    //basic_output::write_align_banded_poa(&path, sequence, lnz, &ampl_for_row, last_row, last_col);
+    basic_output::write_align_banded_poa(&path, sequence, lnz, &ampl_for_row, last_row, last_col);
 
     m[last_row][last_col]
 }
