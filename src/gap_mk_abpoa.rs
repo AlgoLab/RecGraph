@@ -1,5 +1,5 @@
+use crate::{basic_output, bitfield_path as bf, graph::LnzGraph};
 use bitvec::prelude::*;
-use crate::{basic_output, graph::LnzGraph, bitfield_path as bf};
 use std::{
     cmp::{self, Ordering},
     collections::HashMap,
@@ -206,7 +206,6 @@ pub fn exec(
         }
     }
     let best_value = m[last_row][last_col];
-    /*
     let check = band_ampl_enough(
         &path,
         &path_x,
@@ -219,7 +218,6 @@ pub fn exec(
     if !check {
         println!("Band length probably too short, maybe try with larger b and f");
     }
-    */
     drop(m);
     drop(x);
     drop(y);
@@ -453,9 +451,9 @@ fn set_r_values(
     r_values.iter().map(|x| *x as usize).collect()
 }
 fn band_ampl_enough(
-    path: &[Vec<(char, usize)>],
-    path_x: &[Vec<(char, usize)>],
-    path_y: &[Vec<(char, usize)>],
+    path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
+    path_x: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
+    path_y: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
     start_row: usize,
     start_col: usize,
     ampl_for_row: &[(usize, usize)],
@@ -463,7 +461,7 @@ fn band_ampl_enough(
 ) -> bool {
     let mut i = start_row;
     let mut j = start_col;
-    while path[i][j].0 != 'O' {
+    while bf::dir_from_bitvec(&path[i][j]) != 'O' {
         let (left, right) = ampl_for_row[i];
         if i == 0 || j == 0 && left == 0 {
             return true;
@@ -471,43 +469,44 @@ fn band_ampl_enough(
         if (j == left && left != 0) || (j == right - left - 1 && right != sequence_len) {
             return false;
         }
-        match path[i][j] {
-            ('D', _) => {
-                let p = path[i][j].1;
-                let left_p = ampl_for_row[p].0;
+        let curr_bv = &path[i][j];
+        let pred = bf::pred_from_bitvec(curr_bv);
+        let dir = bf::dir_from_bitvec(&curr_bv);
+        match dir {
+            'D' => {
+                let left_p = ampl_for_row[pred].0;
                 let j_pos = if left_p < left {
                     j + (left - left_p)
                 } else {
                     j - (left_p - left)
                 };
                 j = j_pos - 1;
-                i = p;
+                i = pred;
             }
-            ('d', _) => {
-                let p = path[i][j].1;
-                let left_p = ampl_for_row[p].0;
+            'd' => {
+                let left_p = ampl_for_row[pred].0;
                 let j_pos = if left_p < left {
                     j + (left - left_p)
                 } else {
                     j - (left_p - left)
                 };
                 j = j_pos - 1;
-                i = p;
+                i = pred;
             }
-            ('L', _) => {
-                if path_x[i][j].0 == 'X' {
-                    while path_x[i][j].0 == 'X' && j > 0 {
-                        j -= 1
+            'L' => {
+                if bf::dir_from_bitvec(&path_x[i][j]) == 'X' {
+                    while bf::dir_from_bitvec(&path_x[i][j]) == 'X' && j > 0 {
+                        j -= 1;
                     }
                 } else {
                     j -= 1
                 }
             }
-            ('U', _) => {
-                if path_y[i][j].0 == 'Y' {
-                    while path_y[i][j].0 == 'Y' {
+            'U' => {
+                if bf::dir_from_bitvec(&path_y[i][j]) == 'Y' {
+                    while bf::dir_from_bitvec(&path_y[i][j]) == 'Y' {
                         let left_row = ampl_for_row[i].0;
-                        let p = path_y[i][j].1;
+                        let p = bf::pred_from_bitvec(&path_y[i][j]);
                         let left_p = ampl_for_row[p].0;
                         let j_pos = if left_p < left_row {
                             j + (left_row - left_p)
@@ -518,7 +517,7 @@ fn band_ampl_enough(
                         i = p;
                     }
                 } else {
-                    let p = path[i][j].1;
+                    let p = bf::pred_from_bitvec(&path_y[i][j]);
                     let left_p = ampl_for_row[p].0;
                     let j_pos = if left_p < left {
                         j + (left - left_p)

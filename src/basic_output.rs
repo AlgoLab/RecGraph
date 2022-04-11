@@ -1,8 +1,8 @@
+use crate::bitfield_path as bf;
+use bitvec::prelude::*;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{prelude::*, BufWriter};
-use bitvec::prelude::*;
-use crate::bitfield_path as bf;
 
 pub fn write_align_banded_poa(
     path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
@@ -32,7 +32,7 @@ pub fn write_align_banded_poa(
             let delta = ampl_for_row[row].0 - p_left;
             col + delta
         };
-        
+
         match dir {
             'D' => {
                 sequence_align.push(sequence[col + left]);
