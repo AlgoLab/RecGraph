@@ -9,8 +9,6 @@ mod local_poa;
 mod matrix;
 mod sequences;
 fn main() {
-    bitfield_path::test1();
-    bitfield_path::example_path();
     // get sequence
     let sequences = sequences::get_sequences();
     let seq: &Vec<char> = &sequences[0];
