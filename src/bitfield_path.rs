@@ -1,118 +1,86 @@
-use bitfield::bitfield;
-
-use crate::bitfield_path;
-
-
-bitfield! {
-    #[derive(Debug)]
-    struct BestChoice (MSB0 [u32]);
-    u32;
-    get_pred, set_pred: 16, 0;
-    get_dir, set_dir: 21, 17;
-}
-
-fn dir(c: char) -> u32 {
-    match c {
-        'D' => {
-            0
-        }
-        'd' => {
-            1
-        }
-        'L' => {
-            2
-        }
-        'U' => {
-            3
-        }
-        'O' => {
-            4
-        }
-        _ => {
-            5
-        }
-    }
-}
+use bitvec::{prelude::*, view::BitView};
 
 pub fn test1() {
-    let mut best_choice = BestChoice([0, 0]);
-    best_choice.set_pred(1000);
-    best_choice.set_dir(dir('d'));
+    let mut bv = bitvec![u16, Msb0; 0; 32];
+    bv[..16].store::<u16>(1821); //first 16 bits pred
+    bv[16..].store::<u16>(dir_u16_from_char('L')); //last 16 bits (will be last 5) direction
+    let (pred, dir) = bv.split_at(16);
+    let pred: u16 = pred.load_be();
+    assert_eq!(pred, 1821);
+    assert_eq!('L', char_from_bitslice(dir));
 
-    assert_eq!(best_choice.get_pred(),1000);
-    assert_eq!(best_choice.get_dir(),1);
-    
 }
 
 pub fn example_path() {
-    let mut path: Vec<Vec<BestChoice<[u32; 2]>>> = Vec::with_capacity(2);
-    let mut path_line = Vec::with_capacity(3);
-    
-    let mut bc = BestChoice([0,0]);
-    bc.set_dir(dir('O'));
-    bc.set_pred(0);
-    path_line.insert(0, bc);
-    
-    let mut bc = BestChoice([0,0]);
-    bc.set_dir(dir('L'));
-    bc.set_pred(0);
-    path_line.insert(1, bc);
+    let bv = bitvec![u16, Msb0; 0; 32];
+    let mut path = vec![vec![bv; 5]; 5];
+    for i in 1..path.len() {
+        path[i][0][..16].store::<u16>((i-1) as u16);
+        path[i][0][16..].store::<u16>(dir_u16_from_char('U'));
+    }
+    for j in 1..path[0].len() {
+        path[0][j][16..].store::<u16>(dir_u16_from_char('L'));
+    }
 
-    let mut bc = BestChoice([0,0]);
-    bc.set_dir(dir('L'));
-    bc.set_pred(0);
-    path_line.insert(2, bc);
-
-    path.insert(0,path_line);
-    
-    let mut path_line = Vec::with_capacity(3);
-    
-    let mut bc = BestChoice([0,0]);
-    bc.set_dir(dir('U'));
-    bc.set_pred(0);
-    path_line.insert(0, bc);
-
-    let mut bc = BestChoice([0,0]);
-    bc.set_dir(dir('D'));
-    bc.set_pred(0);
-    path_line.insert(1, bc);
-
-    let mut bc = BestChoice([0,0]);
-    bc.set_dir(dir('L'));
-    bc.set_pred(0);
-    path_line.insert(2, bc);
-
-    path.insert(1, path_line);
-    
-    build_path(path);
-}
-
-fn build_path(path: Vec<Vec<BestChoice<[u32; 2]>>>) {
-    let mut row = path.len() - 1;
-    let mut col = path[row].len() - 1;
-    let mut moves = Vec::new();
-    while path[row][col].get_dir() != 4 {
-        match path[row][col].get_dir() {
-            0 | 1=> {
-                moves.push('D');
-                row -= 1;
-                col -= 1;
-            }
-            2 => {
-                moves.push('L');
-                col -= 1;
-            }
-            3 => {
-                moves.push('U');
-                row -= 1;
-            }
-            _ => {
-                panic!();
+    for i in 1..path.len(){
+        for j in 1..path[i].len() {
+            path[i][j][..16].store::<u16>((i-1) as u16);
+            if (i+j)%3 == 0 {
+                path[i][j][16..].store::<u16>(dir_u16_from_char('D'));
+            } else {
+                path[i][j][16..].store::<u16>(dir_u16_from_char('d'));
             }
         }
     }
-    assert_eq!('L', moves[0]);
-    assert_eq!('D', moves[1]);
+    build_path(&path);
+}
+fn build_path(path: &Vec<Vec<BitVec<u16, Msb0>>>) {
+    let mut row = path.len() - 1;
+    let mut col = path[row].len() - 1;
+    let mut moves = Vec::new();
+    while char_from_bitslice(&path[row][col][16..]) != 'O' {
+        let dir = char_from_bitslice(&path[row][col][16..]);
+        moves.push(dir);
+        match dir {
+            'D' | 'd' => {
+                col -= 1;
+                let pred: u16 = path[row][col][..16].load_be();
+                row = pred as usize;
+            }
+            'U' => {
+                let pred: u16 = path[row][col][..16].load_be();
+                row = pred as usize;
+            }
+            'L' => {
+                col -= 1;
+            }
+            _ => panic!("impossible value while building path")
+        }
+    }
+    let expected = ['d', 'D', 'd', 'd'];
+    for i in 0..moves.len() {
+        assert_eq!(moves[i], expected[i])
+    }
+}
+fn dir_u16_from_char(c: char) -> u16 {
+    match c {
+        'O' => 0,
+        'D' => 1,
+        'd' => 2,
+        'L' => 3,
+        'U' => 4,
+        _  => panic!{"impossible direction char"}
+    }
 }
 
-
+fn char_from_bitslice(bs: &BitSlice<u16, Msb0>) -> char {
+    let dir: u16 = bs.load_be();
+    match dir {
+        0 => 'O',
+        1 => 'D',
+        2 => 'd',
+        3 => 'L',
+        4 => 'U',
+        _ => panic!{"impossible direction bitslice"}
+    }
+}
