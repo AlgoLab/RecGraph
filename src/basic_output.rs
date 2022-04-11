@@ -191,9 +191,9 @@ pub fn write_align_gap_local_poa(
 }
 
 pub fn write_align_gap_mk_abpoa(
-    path: &[Vec<(char, usize)>],
-    path_x: &[Vec<(char, usize)>],
-    path_y: &[Vec<(char, usize)>],
+    path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
+    path_x: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
+    path_y: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
     ampl_for_row: &[(usize, usize)],
     sequence: &[char],
     graph: &[char],
@@ -206,40 +206,42 @@ pub fn write_align_gap_mk_abpoa(
     let mut sequence_align = String::new();
     let mut graph_align = String::new();
     let mut alignment_moves = String::new();
-    while path[row][col] != ('O', 0) {
+    while bf::dir_from_bitvec(&path[row][col]) != 'O' {
         let left = ampl_for_row[row].0;
-        match path[row][col] {
-            ('D', _) => {
+        let curr_bv = &path[row][col];
+        let pred = bf::pred_from_bitvec(curr_bv);
+        let dir = bf::dir_from_bitvec(&curr_bv);
+
+        match dir {
+            'D' => {
                 sequence_align.push(sequence[col + left]);
                 graph_align.push(graph[row]);
                 alignment_moves.push('|');
-                let p = path[row][col].1;
-                let left_p = ampl_for_row[p].0;
+                let left_p = ampl_for_row[pred].0;
                 let j_pos = if left_p < left {
                     col + (left - left_p)
                 } else {
                     col - (left_p - left)
                 };
                 col = j_pos - 1;
-                row = p;
+                row = pred;
             }
-            ('d', _) => {
+            'd' => {
                 sequence_align.push(sequence[col + left]);
                 graph_align.push(graph[row]);
                 alignment_moves.push('.');
-                let p = path[row][col].1;
-                let left_p = ampl_for_row[p].0;
+                let left_p = ampl_for_row[pred].0;
                 let j_pos = if left_p < left {
                     col + (left - left_p)
                 } else {
                     col - (left_p - left)
                 };
                 col = j_pos - 1;
-                row = p;
+                row = pred;
             }
-            ('L', _) => {
-                if path_x[row][col].0 == 'X' {
-                    while path_x[row][col].0 == 'X' && col > 0 {
+            'L' => {
+                if bf::dir_from_bitvec(&path_x[row][col]) == 'X' {
+                    while bf::dir_from_bitvec(&path_x[row][col]) == 'X' && col > 0 {
                         graph_align.push('-');
                         sequence_align.push(sequence[col + left]);
                         alignment_moves.push(' ');
@@ -252,14 +254,14 @@ pub fn write_align_gap_mk_abpoa(
                     col -= 1
                 }
             }
-            ('U', _) => {
-                if path_y[row][col].0 == 'Y' {
-                    while path_y[row][col].0 == 'Y' {
+            'U' => {
+                if bf::dir_from_bitvec(&path_y[row][col]) == 'Y' {
+                    while bf::dir_from_bitvec(&path_y[row][col]) == 'Y' {
                         let left_row = ampl_for_row[row].0;
                         graph_align.push(graph[row]);
                         sequence_align.push('-');
                         alignment_moves.push(' ');
-                        let p = path_y[row][col].1;
+                        let p = bf::pred_from_bitvec(&path_y[row][col]);
                         let left_p = ampl_for_row[p].0;
                         let j_pos = if left_p < left_row {
                             col + (left_row - left_p)
@@ -273,7 +275,7 @@ pub fn write_align_gap_mk_abpoa(
                     graph_align.push(graph[row]);
                     sequence_align.push('-');
                     alignment_moves.push(' ');
-                    let p = path[row][col].1;
+                    let p = bf::pred_from_bitvec(&path[row][col]);
                     let left_p = ampl_for_row[p].0;
                     let j_pos = if left_p < left {
                         col + (left - left_p)
@@ -284,8 +286,7 @@ pub fn write_align_gap_mk_abpoa(
                     row = p;
                 }
             }
-            ('u', _) => {
-                println!("u");
+            'u' => {
                 col = 0;
                 while row > 0 {
                     graph_align.push(graph[row]);

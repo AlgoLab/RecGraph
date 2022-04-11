@@ -224,7 +224,7 @@ pub fn exec(
     drop(nodes_w_pred);
 
     println!("{}", best_value);
-    /*basic_output::write_align_gap_mk_abpoa(
+    basic_output::write_align_gap_mk_abpoa(
         &path,
         &path_x,
         &path_y,
@@ -234,7 +234,7 @@ pub fn exec(
         last_row,
         last_col,
         pred_hash,
-    );*/
+    );
     best_value
 }
 
