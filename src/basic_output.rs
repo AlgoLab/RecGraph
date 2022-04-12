@@ -21,7 +21,7 @@ pub fn write_align_banded_poa(
     while bf::dir_from_bitvec(&path[row][col]) != 'O' {
         let curr_bv = &path[row][col];
         let pred = bf::pred_from_bitvec(curr_bv);
-        let dir = bf::dir_from_bitvec(&curr_bv);
+        let dir = bf::dir_from_bitvec(curr_bv);
 
         let left = ampl_for_row[row].0;
         let p_left = ampl_for_row[pred].0;
@@ -84,7 +84,7 @@ pub fn write_align_local_poa(
     while bf::dir_from_bitvec(&path[row][col]) != 'O' {
         let curr_bv = &path[row][col];
         let pred = bf::pred_from_bitvec(curr_bv);
-        let dir = bf::dir_from_bitvec(&curr_bv);
+        let dir = bf::dir_from_bitvec(curr_bv);
         match dir {
             'D' => {
                 sequence_align.push(sequence[col]);
@@ -137,7 +137,7 @@ pub fn write_align_gap_local_poa(
     while bf::dir_from_bitvec(&path[row][col]) != 'O' {
         let curr_bv = &path[row][col];
         let pred = bf::pred_from_bitvec(curr_bv);
-        let dir = bf::dir_from_bitvec(&curr_bv);
+        let dir = bf::dir_from_bitvec(curr_bv);
 
         match dir {
             'D' => {
@@ -218,7 +218,7 @@ pub fn write_align_gap_mk_abpoa(
         let left = ampl_for_row[row].0;
         let curr_bv = &path[row][col];
         let pred = bf::pred_from_bitvec(curr_bv);
-        let dir = bf::dir_from_bitvec(&curr_bv);
+        let dir = bf::dir_from_bitvec(curr_bv);
 
         match dir {
             'D' => {
@@ -360,5 +360,4 @@ fn reverse_and_write(mut s1_al: String, mut s2_al: String, mut al_moves: String,
         }
         i += 80;
     }
-    drop(f);
 }

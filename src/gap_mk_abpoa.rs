@@ -160,7 +160,7 @@ pub fn exec(
                                     if lnz[i] == sequence[j + left] {
                                         path[i][j] = bf::set_path_cell(d_idx, 'D');
                                     } else {
-                                        path[i][j] = bf::set_path_cell(d_idx, 'D');
+                                        path[i][j] = bf::set_path_cell(d_idx, 'd');
                                     }
                                     d
                                 }
@@ -221,7 +221,6 @@ pub fn exec(
     drop(m);
     drop(x);
     drop(y);
-    drop(nodes_w_pred);
 
     println!("{}", best_value);
     basic_output::write_align_gap_mk_abpoa(
@@ -471,7 +470,7 @@ fn band_ampl_enough(
         }
         let curr_bv = &path[i][j];
         let pred = bf::pred_from_bitvec(curr_bv);
-        let dir = bf::dir_from_bitvec(&curr_bv);
+        let dir = bf::dir_from_bitvec(curr_bv);
         match dir {
             'D' => {
                 let left_p = ampl_for_row[pred].0;
@@ -517,7 +516,7 @@ fn band_ampl_enough(
                         i = p;
                     }
                 } else {
-                    let p = bf::pred_from_bitvec(&path_y[i][j]);
+                    let p = bf::pred_from_bitvec(&path[i][j]);
                     let left_p = ampl_for_row[p].0;
                     let j_pos = if left_p < left {
                         j + (left - left_p)

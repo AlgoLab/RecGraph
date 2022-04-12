@@ -294,7 +294,7 @@ fn ampl_is_enough(
         } else {
             let curr_bv = &path[row][col];
             let pred = bf::pred_from_bitvec(curr_bv);
-            let dir = bf::dir_from_bitvec(&curr_bv);
+            let dir = bf::dir_from_bitvec(curr_bv);
             match dir {
                 'D' | 'd' => {
                     row = pred;
