@@ -121,9 +121,9 @@ pub fn write_align_local_poa(
 }
 
 pub fn write_align_gap_local_poa(
-    path: &[Vec<(char, usize)>],
-    path_x: &[Vec<(char, usize)>],
-    path_y: &[Vec<(char, usize)>],
+    path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
+    path_x: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
+    path_y: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
     sequence: &[char],
     graph: &[char],
     best_row: usize,
@@ -134,25 +134,29 @@ pub fn write_align_gap_local_poa(
     let mut sequence_align = String::new();
     let mut graph_align = String::new();
     let mut alignment_moves = String::new();
-    while path[row][col] != ('O', 0) {
-        match path[row][col] {
-            ('D', _) => {
+    while bf::dir_from_bitvec(&path[row][col]) != 'O' {
+        let curr_bv = &path[row][col];
+        let pred = bf::pred_from_bitvec(curr_bv);
+        let dir = bf::dir_from_bitvec(&curr_bv);
+        
+        match dir {
+            'D' => {
                 sequence_align.push(sequence[col]);
                 graph_align.push(graph[row]);
                 alignment_moves.push('|');
-                row = path[row][col].1;
+                row = pred;
                 col -= 1;
             }
-            ('d', _) => {
+            'd' => {
                 sequence_align.push(sequence[col]);
                 graph_align.push(graph[row]);
                 alignment_moves.push('.');
-                row = path[row][col].1;
+                row = pred;
                 col -= 1;
             }
-            ('L', _) => {
-                if path_x[row][col].0 == 'X' {
-                    while path_x[row][col].0 == 'X' {
+            'L' => {
+                if bf::dir_from_bitvec(&path_x[row][col]) == 'X'{
+                    while bf::dir_from_bitvec(&path_x[row][col]) == 'X' {
                         graph_align.push('-');
                         sequence_align.push(sequence[col]);
                         alignment_moves.push(' ');
@@ -165,19 +169,20 @@ pub fn write_align_gap_local_poa(
                     col -= 1;
                 }
             }
-            ('U', _) => {
-                if path_y[row][col].0 == 'Y' {
-                    while path_y[row][col].0 == 'Y' {
+            'U' => {
+                if bf::dir_from_bitvec(&path_y[row][col]) == 'Y' {
+                    while bf::dir_from_bitvec(&path_x[row][col]) == 'Y' {
+                        let p = bf::pred_from_bitvec(&path_y[row][col]);
                         graph_align.push(graph[row]);
                         sequence_align.push('-');
                         alignment_moves.push(' ');
-                        row = path_y[row][col].1;
+                        row = p;
                     }
                 } else {
                     graph_align.push(graph[row]);
                     sequence_align.push('-');
                     alignment_moves.push(' ');
-                    row = path_y[row][col].1;
+                    row = pred;
                 }
             }
             _ => {

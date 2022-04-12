@@ -1,6 +1,8 @@
 use std::{cmp::Ordering, collections::HashMap};
 
 use crate::{basic_output, graph::LnzGraph};
+use bitvec::prelude::*;
+use crate::bitfield_path as bf;
 
 pub fn exec(
     sequence: &[char],
@@ -17,18 +19,18 @@ pub fn exec(
     let mut x = vec![vec![0; sequence.len()]; lnz.len()];
     let mut y = vec![vec![0; sequence.len()]; lnz.len()];
 
-    let mut path = vec![vec![('x', 0); sequence.len()]; lnz.len()];
-    let mut path_x = vec![vec![('M', 0); sequence.len()]; lnz.len()];
-    let mut path_y = vec![vec![('M', 0); sequence.len()]; lnz.len()];
+    let mut path = vec![vec![bitvec![u16, Msb0; 0; 32]; sequence.len()]; lnz.len()];
+    let mut path_x = vec![vec![bitvec![u16, Msb0; 0; 32]; sequence.len()]; lnz.len()];
+    let mut path_y = vec![vec![bitvec![u16, Msb0; 0; 32]; sequence.len()]; lnz.len()];
 
     let (mut best_row, mut best_col) = (0, 0);
     for i in 0..lnz.len() - 1 {
         for j in 0..sequence.len() - 1 {
             match (i, j) {
                 (0, _) | (_, 0) => {
-                    path[i][j] = ('O', 0);
-                    path_x[i][j] = ('O', 0);
-                    path_y[i][j] = ('O', 0);
+                    path[i][j] = bf::set_path_cell(0, 'O');
+                    path_x[i][j] = bf::set_path_cell(0, 'O');
+                    path_y[i][j] = bf::set_path_cell(0, 'O');
                 }
                 _ => {
                     // set x
@@ -37,11 +39,11 @@ pub fn exec(
                     let l_idx = i;
                     let l = match l_x.cmp(&l_m) {
                         Ordering::Greater => {
-                            path_x[i][j] = ('X', i);
+                            path_x[i][j] = bf::set_path_cell(i, 'X');
                             l_x
                         }
                         _ => {
-                            path_x[i][j] = ('M', i);
+                            path_x[i][j] = bf::set_path_cell(i, 'M');
                             l_m
                         }
                     };
@@ -63,11 +65,11 @@ pub fn exec(
 
                         u = match u_y.cmp(&u_m) {
                             Ordering::Greater => {
-                                path_y[i][j] = ('Y', u_idx);
+                                path_y[i][j] = bf::set_path_cell(u_idx, 'Y');
                                 u_y
                             }
                             _ => {
-                                path_y[i][j] = ('M', u_idx);
+                                path_y[i][j] = bf::set_path_cell(u_idx, 'M');
                                 u_m
                             }
                         };
@@ -80,16 +82,16 @@ pub fn exec(
                         u += e;
                         y[i][j] = u;
                         if from_m {
-                            path_y[i][j] = ('M', u_idx);
+                            path_y[i][j] = bf::set_path_cell(u_idx, 'M');
                         } else {
-                            path_y[i][j] = ('Y', u_idx);
+                            path_y[i][j] = bf::set_path_cell(u_idx, 'Y');
                         }
                     }
 
                     // set m
                     if d < 0 && l < 0 && u < 0 {
                         m[i][j] = 0;
-                        path[i][j] = ('O', 0);
+                        path[i][j] = bf::set_path_cell(0, 'O');
                     } else {
                         let (best_val, mut dir) = get_best_d_u_l(d, u, l);
                         if dir == 'D' && lnz[i] != sequence[j] {
@@ -97,9 +99,9 @@ pub fn exec(
                         }
                         m[i][j] = best_val;
                         path[i][j] = match dir {
-                            'D' | 'd' => (dir, d_idx),
-                            'U' => (dir, u_idx),
-                            _ => (dir, l_idx),
+                            'D' | 'd' => bf::set_path_cell(d_idx, dir),
+                            'U' => bf::set_path_cell(u_idx, dir),
+                            _ => bf::set_path_cell(l_idx, dir),
                         }
                     }
                 }
@@ -203,7 +205,7 @@ mod tests {
         let s = vec!['$', 'A', 'A', 'C', 'C', 'C', 'A', 'A'];
 
         let lnz = vec!['$', 'G', 'G', 'C', 'C', 'C', 'G', 'G', 'F'];
-        let mut nwp = BitVec::from_elem(lnz.len(), false);
+        let mut nwp = BitVec::with_capacity(lnz.len());
         nwp.set(1, true);
         nwp.set(8, true);
         let mut pred_hash = HashMap::new();
@@ -233,7 +235,7 @@ mod tests {
         let s = vec!['$', 'A', 'A', 'C', 'C', 'C', 'A', 'A'];
 
         let lnz = vec!['$', 'G', 'G', 'G', 'C', 'C', 'C', 'G', 'G', 'F'];
-        let mut nwp = BitVec::from_elem(lnz.len(), false);
+        let mut nwp = BitVec::with_capacity(lnz.len());
         nwp.set(1, true);
         nwp.set(6, true);
         nwp.set(9, true);
