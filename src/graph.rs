@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-// TODO: use BitVec from bitvec instead of bit_vec
 use bit_vec::BitVec;
 use gfa::{gfa::*, parser::GFAParser};
 use handlegraph::{

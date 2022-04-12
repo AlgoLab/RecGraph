@@ -1,7 +1,7 @@
 use std::{cmp::Ordering, collections::HashMap};
-
+use bitvec::prelude::*;
 use crate::{basic_output, graph::LnzGraph};
-
+use crate::bitfield_path as bf;
 pub fn exec(
     sequence: &[char],
     graph: &LnzGraph,
@@ -12,12 +12,13 @@ pub fn exec(
     let pred_hash = &graph.pred_hash;
 
     let mut m = vec![vec![0; sequence.len()]; lnz.len()];
-    let mut path = vec![vec![('x', 0); sequence.len()]; lnz.len()];
+    let mut path = vec![vec![bitvec![u16, Msb0; 0; 32]; sequence.len()]; lnz.len()];
     let (mut best_row, mut best_col) = (0, 0);
+    
     for i in 0..lnz.len() - 1 {
         for j in 0..sequence.len() - 1 {
             match (i, j) {
-                (0, _) | (_, 0) => path[i][j] = ('O', 0),
+                (0, _) | (_, 0) => path[i][j] = bf::set_path_cell(0, 'O'), 
                 _ => {
                     let l = m[i][j - 1] + scores_matrix.get(&(sequence[j], '-')).unwrap();
                     let l_idx = i;
@@ -41,7 +42,7 @@ pub fn exec(
                     }
                     if d < 0 && l < 0 && u < 0 {
                         m[i][j] = 0;
-                        path[i][j] = ('O', 0);
+                        path[i][j] = bf::set_path_cell(0, 'O');
                     } else {
                         let (best_val, mut dir) = get_best_d_u_l(d, u, l);
                         if dir == 'D' && lnz[i] != sequence[j] {
@@ -49,9 +50,9 @@ pub fn exec(
                         }
                         m[i][j] = best_val;
                         path[i][j] = match dir {
-                            'D' | 'd' => (dir, d_idx),
-                            'U' => (dir, u_idx),
-                            _ => (dir, l_idx),
+                            'D' | 'd' => bf::set_path_cell(d_idx, dir),
+                            'U' => bf::set_path_cell(u_idx, dir),
+                            _ => bf::set_path_cell(l_idx, dir),
                         }
                     }
                 }
