@@ -1,8 +1,8 @@
 use std::{cmp::Ordering, collections::HashMap};
 
+use crate::bitfield_path as bf;
 use crate::{basic_output, graph::LnzGraph};
 use bitvec::prelude::*;
-use crate::bitfield_path as bf;
 
 pub fn exec(
     sequence: &[char],
@@ -205,7 +205,8 @@ mod tests {
         let s = vec!['$', 'A', 'A', 'C', 'C', 'C', 'A', 'A'];
 
         let lnz = vec!['$', 'G', 'G', 'C', 'C', 'C', 'G', 'G', 'F'];
-        let mut nwp = BitVec::with_capacity(lnz.len());
+        let mut nwp = BitVec::from_elem(lnz.len(), false);
+
         nwp.set(1, true);
         nwp.set(8, true);
         let mut pred_hash = HashMap::new();
@@ -235,7 +236,8 @@ mod tests {
         let s = vec!['$', 'A', 'A', 'C', 'C', 'C', 'A', 'A'];
 
         let lnz = vec!['$', 'G', 'G', 'G', 'C', 'C', 'C', 'G', 'G', 'F'];
-        let mut nwp = BitVec::with_capacity(lnz.len());
+        let mut nwp = BitVec::from_elem(lnz.len(), false);
+
         nwp.set(1, true);
         nwp.set(6, true);
         nwp.set(9, true);

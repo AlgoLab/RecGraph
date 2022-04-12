@@ -138,7 +138,7 @@ pub fn write_align_gap_local_poa(
         let curr_bv = &path[row][col];
         let pred = bf::pred_from_bitvec(curr_bv);
         let dir = bf::dir_from_bitvec(&curr_bv);
-        
+
         match dir {
             'D' => {
                 sequence_align.push(sequence[col]);
@@ -155,7 +155,7 @@ pub fn write_align_gap_local_poa(
                 col -= 1;
             }
             'L' => {
-                if bf::dir_from_bitvec(&path_x[row][col]) == 'X'{
+                if bf::dir_from_bitvec(&path_x[row][col]) == 'X' {
                     while bf::dir_from_bitvec(&path_x[row][col]) == 'X' {
                         graph_align.push('-');
                         sequence_align.push(sequence[col]);

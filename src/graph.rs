@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use bit_vec::BitVec;
 use gfa::{gfa::*, parser::GFAParser};
 use handlegraph::{
@@ -6,6 +5,7 @@ use handlegraph::{
     handlegraph::HandleGraph,
     hashgraph::HashGraph,
 };
+use std::collections::HashMap;
 
 pub fn read_graph(file_path: &str, amb_mode: bool) -> LnzGraph {
     let parser = GFAParser::new();

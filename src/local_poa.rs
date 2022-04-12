@@ -1,7 +1,7 @@
-use std::{cmp::Ordering, collections::HashMap};
-use bitvec::prelude::*;
-use crate::{basic_output, graph::LnzGraph};
 use crate::bitfield_path as bf;
+use crate::{basic_output, graph::LnzGraph};
+use bitvec::prelude::*;
+use std::{cmp::Ordering, collections::HashMap};
 pub fn exec(
     sequence: &[char],
     graph: &LnzGraph,
@@ -14,11 +14,11 @@ pub fn exec(
     let mut m = vec![vec![0; sequence.len()]; lnz.len()];
     let mut path = vec![vec![bitvec![u16, Msb0; 0; 32]; sequence.len()]; lnz.len()];
     let (mut best_row, mut best_col) = (0, 0);
-    
+
     for i in 0..lnz.len() - 1 {
         for j in 0..sequence.len() - 1 {
             match (i, j) {
-                (0, _) | (_, 0) => path[i][j] = bf::set_path_cell(0, 'O'), 
+                (0, _) | (_, 0) => path[i][j] = bf::set_path_cell(0, 'O'),
                 _ => {
                     let l = m[i][j - 1] + scores_matrix.get(&(sequence[j], '-')).unwrap();
                     let l_idx = i;
