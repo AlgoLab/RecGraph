@@ -127,7 +127,6 @@ mod tests {
     use std::collections::HashMap;
 
     use bit_vec::BitVec;
-    use handlegraph::handle::NodeId;
 
     use crate::graph::LnzGraph;
 
@@ -142,12 +141,10 @@ mod tests {
         let mut pred_hash = HashMap::new();
         pred_hash.insert(1, vec![0]);
         pred_hash.insert(8, vec![7]);
-        let hand_pos: HashMap<NodeId, (i32, i32)> = HashMap::new();
         let graph_struct = LnzGraph {
             lnz,
             nwp,
             pred_hash,
-            hand_pos,
         };
         let mut score_matrix = HashMap::new();
         for c1 in ['A', 'C', 'G', '-'] {
@@ -176,12 +173,10 @@ mod tests {
         pred_hash.insert(1, vec![0]);
         pred_hash.insert(6, vec![3]);
         pred_hash.insert(9, vec![8, 5]);
-        let hand_pos: HashMap<NodeId, (i32, i32)> = HashMap::new();
         let graph_struct = LnzGraph {
             lnz,
             nwp,
             pred_hash,
-            hand_pos,
         };
         let mut score_matrix = HashMap::new();
         for c1 in ['A', 'C', 'G', '-'] {

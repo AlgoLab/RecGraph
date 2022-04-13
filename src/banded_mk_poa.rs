@@ -532,7 +532,6 @@ mod tests {
     use std::collections::HashMap;
 
     use bit_vec::BitVec;
-    use handlegraph::handle::NodeId;
 
     use crate::graph::LnzGraph;
 
@@ -550,12 +549,10 @@ mod tests {
         pred_hash.insert(1, vec![0]);
         pred_hash.insert(5, vec![4]);
 
-        let hand_pos: HashMap<NodeId, (i32, i32)> = HashMap::new();
         let graph = LnzGraph {
             lnz,
             nwp,
             pred_hash,
-            hand_pos,
         };
         let mut score_matrix = HashMap::new();
         score_matrix.insert(('A', 'A'), 1);
@@ -584,12 +581,10 @@ mod tests {
         pred_hash.insert(4, vec![2]);
         pred_hash.insert(5, vec![3, 4]);
         pred_hash.insert(7, vec![6]);
-        let hand_pos: HashMap<NodeId, (i32, i32)> = HashMap::new();
         let graph = LnzGraph {
             lnz,
             nwp,
             pred_hash,
-            hand_pos,
         };
         let mut score_matrix = HashMap::new();
         score_matrix.insert(('A', 'A'), 1);
@@ -625,12 +620,10 @@ mod tests {
         pred_hash.insert(4, vec![1, 2]);
         pred_hash.insert(5, vec![3, 4]);
         pred_hash.insert(8, vec![7]);
-        let hand_pos: HashMap<NodeId, (i32, i32)> = HashMap::new();
         let graph = LnzGraph {
             lnz,
             nwp,
             pred_hash,
-            hand_pos,
         };
         let mut score_matrix = HashMap::new();
         score_matrix.insert(('A', 'A'), 1);
@@ -671,12 +664,10 @@ mod tests {
         pred_hash.insert(7, vec![6]);
         pred_hash.insert(8, vec![6]);
         pred_hash.insert(9, vec![7, 8]);
-        let hand_pos: HashMap<NodeId, (i32, i32)> = HashMap::new();
         let graph = LnzGraph {
             lnz,
             nwp,
             pred_hash,
-            hand_pos,
         };
         let mut score_matrix = HashMap::new();
         score_matrix.insert(('A', 'A'), 1);

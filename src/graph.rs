@@ -18,7 +18,6 @@ pub struct LnzGraph {
     pub lnz: Vec<char>,
     pub nwp: BitVec,
     pub pred_hash: HashMap<usize, Vec<usize>>,
-    pub hand_pos: HashMap<NodeId, (i32, i32)>,
 }
 fn create_graph_struct(graph: &HashGraph, amb_mode: bool) -> LnzGraph {
     let mut sorted_handles: Vec<Handle> = graph.handles_iter().collect();
@@ -90,7 +89,6 @@ fn create_graph_struct(graph: &HashGraph, amb_mode: bool) -> LnzGraph {
         lnz: linearization,
         nwp: nodes_with_predecessor,
         pred_hash: predecessor_hash,
-        hand_pos: handles_id_position,
     }
 }
 
@@ -121,6 +119,8 @@ fn get_idx(visited_node: &HashMap<NodeId, i32>, pred_id: NodeId) -> i32 {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use handlegraph::{handle::Edge, hashgraph::HashGraph, mutablehandlegraph::MutableHandleGraph};
 
     #[test]
@@ -162,23 +162,34 @@ mod tests {
         assert_eq!(graph_struct.lnz, ['$', 'C', 'G', 'A', 'T', 'F']);
     }
     #[test]
-    fn handle_position_in_lnz_correctly_set() {
+    fn handle_id_from_lnz_pos_and_sorted_handles() {
         let mut graph: HashGraph = HashGraph::new();
         let h1 = graph.append_handle("A".as_bytes());
         let h2 = graph.append_handle("TA".as_bytes());
         let h3 = graph.append_handle("CGG".as_bytes());
         let h4 = graph.append_handle("G".as_bytes());
+        let h5 = graph.append_handle("TCCCC".as_bytes());
+
 
         graph.create_edge(&Edge(h1, h2));
-        graph.create_edge(&Edge(h2, h3));
+        graph.create_edge(&Edge(h1, h3));
         graph.create_edge(&Edge(h3, h4));
+        graph.create_edge(&Edge(h3, h5));
 
-        let graph_struct = super::create_graph_struct(&graph, false);
-        let h_p = graph_struct.hand_pos;
-
-        assert_eq!(h_p.get(&h1.id()).unwrap(), &(1, 1));
-        assert_eq!(h_p.get(&h2.id()).unwrap(), &(2, 3));
-        assert_eq!(h_p.get(&h3.id()).unwrap(), &(4, 6));
-        assert_eq!(h_p.get(&h4.id()).unwrap(), &(7, 7));
+        let gs = super::create_graph_struct(&graph, false);
+        let mut curr_hand = -1;
+        let mut handle_pos = HashMap::new();
+        for i in 1..gs.lnz.len() - 1 {
+            if gs.nwp[i] {
+                curr_hand += 1;
+            }
+            handle_pos.insert(i, curr_hand);
+        }
+        assert_eq!(handle_pos.get(&1).unwrap(), &0);
+        assert_eq!(handle_pos.get(&2).unwrap(), &1);
+        assert_eq!(handle_pos.get(&4).unwrap(), &2);
+        assert_eq!(handle_pos.get(&6).unwrap(), &2);
+        assert_eq!(handle_pos.get(&7).unwrap(), &3);
+        assert_eq!(handle_pos.get(&12).unwrap(), &4);
     }
 }
