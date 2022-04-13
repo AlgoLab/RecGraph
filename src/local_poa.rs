@@ -147,7 +147,7 @@ mod tests {
             lnz,
             nwp,
             pred_hash,
-            hand_pos
+            hand_pos,
         };
         let mut score_matrix = HashMap::new();
         for c1 in ['A', 'C', 'G', '-'] {
@@ -181,7 +181,7 @@ mod tests {
             lnz,
             nwp,
             pred_hash,
-            hand_pos
+            hand_pos,
         };
         let mut score_matrix = HashMap::new();
         for c1 in ['A', 'C', 'G', '-'] {

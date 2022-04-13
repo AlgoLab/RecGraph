@@ -18,7 +18,7 @@ pub struct LnzGraph {
     pub lnz: Vec<char>,
     pub nwp: BitVec,
     pub pred_hash: HashMap<usize, Vec<usize>>,
-    pub hand_pos: HashMap<NodeId, (i32, i32)>
+    pub hand_pos: HashMap<NodeId, (i32, i32)>,
 }
 fn create_graph_struct(graph: &HashGraph, amb_mode: bool) -> LnzGraph {
     let mut sorted_handles: Vec<Handle> = graph.handles_iter().collect();
@@ -41,7 +41,6 @@ fn create_graph_struct(graph: &HashGraph, amb_mode: bool) -> LnzGraph {
         for c in graph.sequence(*handle) {
             linearization.push(c as char);
             last_index += 1;
-
         }
         let last_pos = last_index - 1; // last position included in position of current handle in lnz
         handles_id_position.insert(handle.id(), (start_pos, last_pos));
@@ -91,7 +90,7 @@ fn create_graph_struct(graph: &HashGraph, amb_mode: bool) -> LnzGraph {
         lnz: linearization,
         nwp: nodes_with_predecessor,
         pred_hash: predecessor_hash,
-        hand_pos: handles_id_position
+        hand_pos: handles_id_position,
     }
 }
 
@@ -122,7 +121,7 @@ fn get_idx(visited_node: &HashMap<NodeId, i32>, pred_id: NodeId) -> i32 {
 
 #[cfg(test)]
 mod tests {
-    use handlegraph::{handle::{Edge, NodeId}, hashgraph::HashGraph, mutablehandlegraph::MutableHandleGraph};
+    use handlegraph::{handle::Edge, hashgraph::HashGraph, mutablehandlegraph::MutableHandleGraph};
 
     #[test]
     fn graph_struct_correctly_created() {
@@ -176,7 +175,7 @@ mod tests {
 
         let graph_struct = super::create_graph_struct(&graph, false);
         let h_p = graph_struct.hand_pos;
-        
+
         assert_eq!(h_p.get(&h1.id()).unwrap(), &(1, 1));
         assert_eq!(h_p.get(&h2.id()).unwrap(), &(2, 3));
         assert_eq!(h_p.get(&h3.id()).unwrap(), &(4, 6));

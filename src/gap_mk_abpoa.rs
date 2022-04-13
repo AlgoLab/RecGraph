@@ -104,7 +104,7 @@ pub fn exec(
                             *pred_hash.get(&i).unwrap().iter().min().unwrap()
                         };
 
-                        x[i][j] = 2*o + e * (best_p + 1) as i32 + e * (j + left) as i32;
+                        x[i][j] = 2 * o + e * (best_p + 1) as i32 + e * (j + left) as i32;
                         l_pred = best_p;
                     }
                 }
@@ -126,7 +126,7 @@ pub fn exec(
                             *pred_hash.get(&i).unwrap().iter().min().unwrap()
                         };
 
-                        y[i][j] = 2*o + e * (best_p + 1) as i32 + e * (j + left) as i32;
+                        y[i][j] = 2 * o + e * (best_p + 1) as i32 + e * (j + left) as i32;
                         u_pred = best_p;
                     }
                 }
@@ -557,7 +557,7 @@ mod tests {
             lnz,
             nwp,
             pred_hash,
-            hand_pos
+            hand_pos,
         };
         let mut score_matrix = HashMap::new();
         score_matrix.insert(('A', 'A'), 1);
@@ -591,7 +591,7 @@ mod tests {
             lnz,
             nwp,
             pred_hash,
-            hand_pos
+            hand_pos,
         };
         let mut score_matrix = HashMap::new();
         score_matrix.insert(('A', 'A'), 1);
@@ -629,7 +629,7 @@ mod tests {
             lnz,
             nwp,
             pred_hash,
-            hand_pos
+            hand_pos,
         };
         let mut score_matrix = HashMap::new();
         score_matrix.insert(('A', 'A'), 1);
@@ -671,7 +671,7 @@ mod tests {
             lnz,
             nwp,
             pred_hash,
-            hand_pos
+            hand_pos,
         };
         let mut score_matrix = HashMap::new();
         score_matrix.insert(('A', 'A'), 1);
@@ -707,7 +707,7 @@ mod tests {
             lnz,
             nwp,
             pred_hash,
-            hand_pos
+            hand_pos,
         };
         let mut score_matrix = HashMap::new();
         score_matrix.insert(('A', 'A'), 1);
@@ -736,7 +736,7 @@ mod tests {
             lnz,
             nwp,
             pred_hash,
-            hand_pos
+            hand_pos,
         };
         let mut score_matrix = HashMap::new();
         score_matrix.insert(('A', 'A'), 1);
@@ -764,7 +764,7 @@ mod tests {
             lnz,
             nwp,
             pred_hash,
-            hand_pos
+            hand_pos,
         };
         let mut score_matrix = HashMap::new();
         score_matrix.insert(('A', 'A'), 1);

@@ -555,7 +555,7 @@ mod tests {
             lnz,
             nwp,
             pred_hash,
-            hand_pos
+            hand_pos,
         };
         let mut score_matrix = HashMap::new();
         score_matrix.insert(('A', 'A'), 1);
@@ -589,7 +589,7 @@ mod tests {
             lnz,
             nwp,
             pred_hash,
-            hand_pos
+            hand_pos,
         };
         let mut score_matrix = HashMap::new();
         score_matrix.insert(('A', 'A'), 1);
@@ -630,7 +630,7 @@ mod tests {
             lnz,
             nwp,
             pred_hash,
-            hand_pos
+            hand_pos,
         };
         let mut score_matrix = HashMap::new();
         score_matrix.insert(('A', 'A'), 1);
@@ -676,7 +676,7 @@ mod tests {
             lnz,
             nwp,
             pred_hash,
-            hand_pos
+            hand_pos,
         };
         let mut score_matrix = HashMap::new();
         score_matrix.insert(('A', 'A'), 1);

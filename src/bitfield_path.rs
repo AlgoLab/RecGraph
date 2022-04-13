@@ -42,5 +42,3 @@ pub fn set_path_cell(pred: usize, dir: char) -> BitVec<u16, Msb0> {
     bv[16..].store::<u16>(dir_u16_from_char(dir));
     bv
 }
-
-
