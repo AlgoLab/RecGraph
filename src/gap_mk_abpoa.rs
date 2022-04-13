@@ -104,9 +104,8 @@ pub fn exec(
                             *pred_hash.get(&i).unwrap().iter().min().unwrap()
                         };
 
-                        x[i][j] = o + e * (best_p + 1) as i32;
+                        x[i][j] = 2*o + e * (best_p + 1) as i32 + e * (j + left) as i32;
                         l_pred = best_p;
-                        path_x[i][j] = bf::set_path_cell(i, 'X');
                     }
                 }
                 // try set and get u from y (pred_left < j < pred_right else None)
@@ -121,8 +120,14 @@ pub fn exec(
                         }
                     }
                     _ => {
-                        y[i][j] = o + e * (j + left) as i32;
-                        u_pred = 0;
+                        let best_p = if !nodes_w_pred[i] {
+                            i - 1
+                        } else {
+                            *pred_hash.get(&i).unwrap().iter().min().unwrap()
+                        };
+
+                        y[i][j] = 2*o + e * (best_p + 1) as i32 + e * (j + left) as i32;
+                        u_pred = best_p;
                     }
                 }
                 // try get d from m (pred_left < j < pred_right else None)
@@ -149,11 +154,7 @@ pub fn exec(
                             },
                             _ => match d.cmp(&u) {
                                 Ordering::Less => {
-                                    if u_pred == 0 {
-                                        path[i][j] = bf::set_path_cell(u_pred, 'u');
-                                    } else {
-                                        path[i][j] = bf::set_path_cell(u_pred, 'U');
-                                    }
+                                    path[i][j] = bf::set_path_cell(u_pred, 'U');
                                     u
                                 }
                                 _ => {
@@ -172,11 +173,7 @@ pub fn exec(
                         let u = y[i][j];
                         m[i][j] = match l.cmp(&u) {
                             Ordering::Less => {
-                                if u_pred == 0 {
-                                    path[i][j] = bf::set_path_cell(u_pred, 'u');
-                                } else {
-                                    path[i][j] = bf::set_path_cell(u_pred, 'U');
-                                }
+                                path[i][j] = bf::set_path_cell(u_pred, 'U');
                                 u
                             }
                             _ => {
@@ -232,7 +229,6 @@ pub fn exec(
         lnz,
         last_row,
         last_col,
-        pred_hash,
     );
     best_value
 }
