@@ -14,6 +14,8 @@ pub fn read_graph(file_path: &str, amb_mode: bool) -> LnzGraph {
     let graph: HashGraph = HashGraph::from_gfa(&gfa);
     create_graph_struct(&graph, amb_mode)
 }
+
+
 pub struct LnzGraph {
     pub lnz: Vec<char>,
     pub nwp: BitVec,
@@ -116,7 +118,22 @@ fn set_last_node(
 fn get_idx(visited_node: &HashMap<NodeId, i32>, pred_id: NodeId) -> i32 {
     *visited_node.get(&pred_id).unwrap()
 }
+pub fn get_sorted_handles(file_path: &str, amb_mode: bool) -> Vec<Handle>{
+    let parser = GFAParser::new();
+    let gfa: GFA<usize, ()> = parser.parse_file(file_path).unwrap();
 
+    let graph: HashGraph = HashGraph::from_gfa(&gfa);
+    let mut sorted_handles: Vec<Handle> = graph.handles_iter().collect();
+    sorted_handles.sort();
+    if amb_mode {
+        sorted_handles.reverse();
+        sorted_handles = sorted_handles
+            .iter()
+            .map(|h| h.flip())
+            .collect::<Vec<Handle>>();
+    }
+    sorted_handles
+}
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;

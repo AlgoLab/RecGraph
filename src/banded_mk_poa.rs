@@ -1,4 +1,4 @@
-use crate::bitfield_path as bf;
+use crate::{bitfield_path as bf, gfa_output};
 use crate::{basic_output, graph::LnzGraph};
 use bitvec::prelude::*;
 use std::{
@@ -250,7 +250,7 @@ pub fn exec(
         println!("Band length probably too short, maybe try with larger b and f");
     }
     println!("Alignment mk {:?}", best_value);
-    basic_output::write_align_banded_poa(&path, sequence, lnz, &ampl_for_row, last_row, last_col);
+    gfa_output::gfa_of_abpoa(&path, sequence, lnz, &ampl_for_row, last_row, last_col, nodes_w_pred, "./prova.gfa", false);
 
     m[last_row][last_col]
 }
