@@ -18,6 +18,7 @@ pub struct LnzGraph {
     pub lnz: Vec<char>,
     pub nwp: BitVec,
     pub pred_hash: HashMap<usize, Vec<usize>>,
+    pub hand_pos: HashMap<NodeId, (i32, i32)>
 }
 fn create_graph_struct(graph: &HashGraph, amb_mode: bool) -> LnzGraph {
     let mut sorted_handles: Vec<Handle> = graph.handles_iter().collect();
@@ -32,14 +33,18 @@ fn create_graph_struct(graph: &HashGraph, amb_mode: bool) -> LnzGraph {
     let mut last_index = 1;
     let mut visited_node: HashMap<NodeId, i32> = HashMap::new();
     let mut last_nodes: HashMap<NodeId, i32> = HashMap::new();
-
+    let mut handles_id_position = HashMap::new();
     let mut linearization: Vec<char> = vec!['$'];
     // concateno tutte le sequenze
     for handle in &sorted_handles {
+        let start_pos = last_index;
         for c in graph.sequence(*handle) {
             linearization.push(c as char);
             last_index += 1;
+
         }
+        let last_pos = last_index - 1; // last position included in position of current handle in lnz
+        handles_id_position.insert(handle.id(), (start_pos, last_pos));
         visited_node.insert(handle.id(), last_index - 1);
         last_nodes.insert(handle.id(), last_index - 1);
     }
@@ -86,6 +91,7 @@ fn create_graph_struct(graph: &HashGraph, amb_mode: bool) -> LnzGraph {
         lnz: linearization,
         nwp: nodes_with_predecessor,
         pred_hash: predecessor_hash,
+        hand_pos: handles_id_position
     }
 }
 
@@ -116,7 +122,7 @@ fn get_idx(visited_node: &HashMap<NodeId, i32>, pred_id: NodeId) -> i32 {
 
 #[cfg(test)]
 mod tests {
-    use handlegraph::{handle::Edge, hashgraph::HashGraph, mutablehandlegraph::MutableHandleGraph};
+    use handlegraph::{handle::{Edge, NodeId}, hashgraph::HashGraph, mutablehandlegraph::MutableHandleGraph};
 
     #[test]
     fn graph_struct_correctly_created() {
@@ -155,5 +161,25 @@ mod tests {
         assert_eq!(graph_struct.pred_hash.get(&1).unwrap()[0], 0);
         assert_eq!(graph_struct.pred_hash.get(&5).unwrap()[0], 4);
         assert_eq!(graph_struct.lnz, ['$', 'C', 'G', 'A', 'T', 'F']);
+    }
+    #[test]
+    fn handle_position_in_lnz_correctly_set() {
+        let mut graph: HashGraph = HashGraph::new();
+        let h1 = graph.append_handle("A".as_bytes());
+        let h2 = graph.append_handle("TA".as_bytes());
+        let h3 = graph.append_handle("CGG".as_bytes());
+        let h4 = graph.append_handle("G".as_bytes());
+
+        graph.create_edge(&Edge(h1, h2));
+        graph.create_edge(&Edge(h2, h3));
+        graph.create_edge(&Edge(h3, h4));
+
+        let graph_struct = super::create_graph_struct(&graph, false);
+        let h_p = graph_struct.hand_pos;
+        
+        assert_eq!(h_p.get(&h1.id()).unwrap(), &(1, 1));
+        assert_eq!(h_p.get(&h2.id()).unwrap(), &(2, 3));
+        assert_eq!(h_p.get(&h3.id()).unwrap(), &(4, 6));
+        assert_eq!(h_p.get(&h4.id()).unwrap(), &(7, 7));
     }
 }
