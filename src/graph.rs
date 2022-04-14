@@ -15,7 +15,6 @@ pub fn read_graph(file_path: &str, amb_mode: bool) -> LnzGraph {
     create_graph_struct(&graph, amb_mode)
 }
 
-
 pub struct LnzGraph {
     pub lnz: Vec<char>,
     pub nwp: BitVec,
@@ -118,7 +117,7 @@ fn set_last_node(
 fn get_idx(visited_node: &HashMap<NodeId, i32>, pred_id: NodeId) -> i32 {
     *visited_node.get(&pred_id).unwrap()
 }
-pub fn get_sorted_handles(file_path: &str, amb_mode: bool) -> Vec<Handle>{
+pub fn get_sorted_handles(file_path: &str, amb_mode: bool) -> Vec<Handle> {
     let parser = GFAParser::new();
     let gfa: GFA<usize, ()> = parser.parse_file(file_path).unwrap();
 
@@ -186,7 +185,6 @@ mod tests {
         let h3 = graph.append_handle("CGG".as_bytes());
         let h4 = graph.append_handle("G".as_bytes());
         let h5 = graph.append_handle("TCCCC".as_bytes());
-
 
         graph.create_edge(&Edge(h1, h2));
         graph.create_edge(&Edge(h1, h3));

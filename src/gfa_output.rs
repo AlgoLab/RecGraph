@@ -1,15 +1,19 @@
-use std::{collections::HashMap, fs::File};
-use bitvec::prelude::*;
-use bit_vec::BitVec;
 use crate::bitfield_path as bf;
+use bit_vec::BitVec;
+use bitvec::prelude::*;
 use std::io::{prelude::*, BufWriter};
+use std::{collections::HashMap, fs::File};
 
-fn create_handle_pos_in_lnz(nwp: &BitVec, file_path: &str, amb_mode: bool) -> HashMap<usize, String> {
+fn create_handle_pos_in_lnz(
+    nwp: &BitVec,
+    file_path: &str,
+    amb_mode: bool,
+) -> HashMap<usize, String> {
     let sorted_handles = crate::graph::get_sorted_handles(file_path, amb_mode);
     let mut curr_handle_idx = 0;
     let mut handle_of_lnz_pos = HashMap::new();
     for i in 1..nwp.len() - 1 {
-        if nwp[i] && i > 1{
+        if nwp[i] && i > 1 {
             curr_handle_idx += 1;
         }
         handle_of_lnz_pos.insert(i, sorted_handles[curr_handle_idx as usize].id().to_string());
@@ -26,12 +30,12 @@ pub fn gfa_of_abpoa(
     last_col: usize,
     nwp: &BitVec,
     file_path: &str,
-    amb_mode: bool
+    amb_mode: bool,
 ) {
     let hofp = create_handle_pos_in_lnz(nwp, file_path, amb_mode);
     let mut col = last_col;
     let mut row = last_row;
-    
+
     let mut sequence_align = String::new();
     let mut graph_align = String::new();
     let mut alignment_moves = String::new();
@@ -90,10 +94,22 @@ pub fn gfa_of_abpoa(
         }
     }
     handle_id_alignment.dedup();
-    reverse_and_write(graph_align, sequence_align, alignment_moves, handle_id_alignment, "gfa_mk_poa");
+    reverse_and_write(
+        graph_align,
+        sequence_align,
+        alignment_moves,
+        handle_id_alignment,
+        "gfa_mk_poa",
+    );
 }
 
-fn reverse_and_write(mut graph_al: String, mut seq_al: String, mut al_moves: String, mut handle_align: Vec<& String>,align_type: &str) {
+fn reverse_and_write(
+    mut graph_al: String,
+    mut seq_al: String,
+    mut al_moves: String,
+    mut handle_align: Vec<&String>,
+    align_type: &str,
+) {
     graph_al = graph_al.chars().rev().collect();
     al_moves = al_moves.chars().rev().collect();
     seq_al = seq_al.chars().rev().collect();
@@ -136,5 +152,11 @@ fn reverse_and_write(mut graph_al: String, mut seq_al: String, mut al_moves: Str
         }
         i += 80;
     }
-    writeln!(f, "{:?}", handle_align).expect("unable to write");
+    let handle_align: Vec<String> = handle_align
+        .iter()
+        .map(|line| line.chars().collect::<Vec<char>>().into_iter().collect())
+        .collect();
+    let handle_ids = handle_align.join(",");
+
+    writeln!(f, "{}", handle_ids).expect("unable to write");
 }
