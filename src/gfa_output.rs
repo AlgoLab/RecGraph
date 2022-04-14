@@ -18,6 +18,7 @@ fn create_handle_pos_in_lnz(
         }
         handle_of_lnz_pos.insert(i, sorted_handles[curr_handle_idx as usize].id().to_string());
     }
+    handle_of_lnz_pos.insert(0, String::from("-1"));
     handle_of_lnz_pos
 }
 
@@ -47,16 +48,15 @@ pub fn gfa_of_abpoa(
     let mut count_I = 0;
     let mut count_D = 0;
 
-    let mut curr_handle = ""; 
+    let mut curr_handle = "";
     let mut last_dir = ' ';
     while bf::dir_from_bitvec(&path[row][col]) != 'O' {
         let curr_bv = &path[row][col];
         let pred = bf::pred_from_bitvec(curr_bv);
         let dir = bf::dir_from_bitvec(curr_bv);
-        
         if hofp.get(&row).unwrap() != curr_handle {
             cigar = set_cigar_substring(count_M, count_I, count_D, cigar);
-            cigars.push(cigar);
+            cigars.insert(0, cigar);
             cigar = String::new();
             count_M = 0;
             count_I = 0;
@@ -99,7 +99,6 @@ pub fn gfa_of_abpoa(
                 row = pred;
                 col = j_pos - 1;
                 count_M += 1;
-
             }
             'L' => {
                 graph_align.push('-');
@@ -109,7 +108,6 @@ pub fn gfa_of_abpoa(
                 col -= 1;
 
                 count_I += 1;
-
             }
             'U' => {
                 graph_align.push(graph[row]);
@@ -120,7 +118,6 @@ pub fn gfa_of_abpoa(
                 col = j_pos;
 
                 count_D += 1;
-
             }
             _ => {
                 panic!("impossible value in poa path")
@@ -128,6 +125,7 @@ pub fn gfa_of_abpoa(
         }
     }
     cigar = set_cigar_substring(count_M, count_I, count_D, cigar);
+    cigars.insert(0, cigar);
     println!("{:?}", cigars);
     handle_id_alignment.dedup();
     reverse_and_write(
@@ -197,7 +195,7 @@ fn reverse_and_write(
     writeln!(f, "{}", handle_ids).expect("unable to write");
 }
 
-fn set_cigar_substring(count_m: i32, count_i: i32, count_d: i32, cs: String) -> String{
+fn set_cigar_substring(count_m: i32, count_i: i32, count_d: i32, cs: String) -> String {
     let cigar;
     if count_m > 0 {
         cigar = format!("M{}{}", count_m, cs);
