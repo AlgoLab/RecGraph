@@ -40,11 +40,36 @@ pub fn gfa_of_abpoa(
     let mut graph_align = String::new();
     let mut alignment_moves = String::new();
     let mut handle_id_alignment = Vec::new();
+    let mut cigars = Vec::new();
+    let mut cigar = String::new();
 
+    let mut count_M = 0;
+    let mut count_I = 0;
+    let mut count_D = 0;
+
+    let mut curr_handle = ""; 
+    let mut last_dir = ' ';
     while bf::dir_from_bitvec(&path[row][col]) != 'O' {
         let curr_bv = &path[row][col];
         let pred = bf::pred_from_bitvec(curr_bv);
         let dir = bf::dir_from_bitvec(curr_bv);
+        
+        if hofp.get(&row).unwrap() != curr_handle {
+            cigar = set_cigar_substring(count_M, count_I, count_D, cigar);
+            cigars.push(cigar);
+            cigar = String::new();
+            count_M = 0;
+            count_I = 0;
+            count_D = 0;
+        }
+        curr_handle = hofp.get(&row).unwrap();
+        if dir.to_ascii_uppercase() != last_dir.to_ascii_uppercase() {
+            cigar = set_cigar_substring(count_M, count_I, count_D, cigar);
+            count_M = 0;
+            count_I = 0;
+            count_D = 0;
+        }
+        last_dir = dir;
 
         let left = ampl_for_row[row].0;
         let p_left = ampl_for_row[pred].0;
@@ -64,6 +89,7 @@ pub fn gfa_of_abpoa(
                 handle_id_alignment.push(hofp.get(&row).unwrap());
                 row = pred;
                 col = j_pos - 1;
+                count_M += 1;
             }
             'd' => {
                 sequence_align.push(sequence[col + left]);
@@ -72,6 +98,8 @@ pub fn gfa_of_abpoa(
                 handle_id_alignment.push(hofp.get(&row).unwrap());
                 row = pred;
                 col = j_pos - 1;
+                count_M += 1;
+
             }
             'L' => {
                 graph_align.push('-');
@@ -79,6 +107,9 @@ pub fn gfa_of_abpoa(
                 alignment_moves.push(' ');
 
                 col -= 1;
+
+                count_I += 1;
+
             }
             'U' => {
                 graph_align.push(graph[row]);
@@ -87,12 +118,17 @@ pub fn gfa_of_abpoa(
                 handle_id_alignment.push(hofp.get(&row).unwrap());
                 row = pred;
                 col = j_pos;
+
+                count_D += 1;
+
             }
             _ => {
                 panic!("impossible value in poa path")
             }
         }
     }
+    cigar = set_cigar_substring(count_M, count_I, count_D, cigar);
+    println!("{:?}", cigars);
     handle_id_alignment.dedup();
     reverse_and_write(
         graph_align,
@@ -159,4 +195,18 @@ fn reverse_and_write(
     let handle_ids = handle_align.join(",");
 
     writeln!(f, "{}", handle_ids).expect("unable to write");
+}
+
+fn set_cigar_substring(count_m: i32, count_i: i32, count_d: i32, cs: String) -> String{
+    let cigar;
+    if count_m > 0 {
+        cigar = format!("M{}{}", count_m, cs);
+    } else if count_i > 0 {
+        cigar = format!("I{}{}", count_i, cs);
+    } else if count_d > 0 {
+        cigar = format!("D{}{}", count_d, cs);
+    } else {
+        cigar = format!("{}", cs);
+    };
+    cigar
 }

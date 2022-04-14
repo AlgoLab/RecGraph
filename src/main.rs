@@ -12,7 +12,7 @@ mod sequences;
 fn main() {
     // get sequence
     let sequences = sequences::get_sequences();
-    let seq: &Vec<char> = &sequences[0];
+    let seq: &Vec<char> = &sequences[13];
 
     //get graph
     let graph_path = args_parser::get_graph_path();
