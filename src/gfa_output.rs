@@ -13,10 +13,10 @@ fn create_handle_pos_in_lnz(
     let mut curr_handle_idx = 0;
     let mut handle_of_lnz_pos = HashMap::new();
     for i in 1..nwp.len() - 1 {
-        if nwp[i] && i > 1 {
+        if nwp[i] {
             curr_handle_idx += 1;
         }
-        handle_of_lnz_pos.insert(i, sorted_handles[curr_handle_idx as usize].id().to_string());
+        handle_of_lnz_pos.insert(i, sorted_handles[(curr_handle_idx - 1) as usize].id().to_string());
     }
     handle_of_lnz_pos.insert(0, String::from("-1"));
     handle_of_lnz_pos
@@ -41,8 +41,15 @@ pub fn gfa_of_abpoa(
     let mut graph_align = String::new();
     let mut alignment_moves = String::new();
     let mut handle_id_alignment = Vec::new();
+    
     let mut cigars = Vec::new();
     let mut cigar = String::new();
+
+    let mut ref_nodes = Vec::new();
+    let mut ref_node = String::new();
+
+    let mut read_nodes = Vec::new();
+    let mut read_node = String::new();
 
     let mut count_M = 0;
     let mut count_I = 0;
@@ -54,10 +61,19 @@ pub fn gfa_of_abpoa(
         let curr_bv = &path[row][col];
         let pred = bf::pred_from_bitvec(curr_bv);
         let dir = bf::dir_from_bitvec(curr_bv);
+
         if hofp.get(&row).unwrap() != curr_handle {
             cigar = set_cigar_substring(count_M, count_I, count_D, cigar);
             cigars.insert(0, cigar);
+            
             cigar = String::new();
+            read_node = format!("{}\t{}",curr_handle, read_node);
+            ref_node = format!("{}\t{}", curr_handle, ref_node);
+            read_nodes.insert(0, read_node);
+            ref_nodes.insert(0, ref_node);
+
+            read_node = String::new();
+            ref_node = String::new();
             count_M = 0;
             count_I = 0;
             count_D = 0;
@@ -90,6 +106,9 @@ pub fn gfa_of_abpoa(
                 row = pred;
                 col = j_pos - 1;
                 count_M += 1;
+
+                ref_node.insert(0, graph[row]);
+                read_node.insert(0, sequence[col+left]);
             }
             'd' => {
                 sequence_align.push(sequence[col + left]);
@@ -99,6 +118,9 @@ pub fn gfa_of_abpoa(
                 row = pred;
                 col = j_pos - 1;
                 count_M += 1;
+
+                ref_node.insert(0, graph[row]);
+                read_node.insert(0, sequence[col+left]);
             }
             'L' => {
                 graph_align.push('-');
@@ -108,6 +130,9 @@ pub fn gfa_of_abpoa(
                 col -= 1;
 
                 count_I += 1;
+
+                read_node.insert(0, sequence[col+left]);
+
             }
             'U' => {
                 graph_align.push(graph[row]);
@@ -118,6 +143,9 @@ pub fn gfa_of_abpoa(
                 col = j_pos;
 
                 count_D += 1;
+
+                ref_node.insert(0, graph[row]);
+
             }
             _ => {
                 panic!("impossible value in poa path")
@@ -126,7 +154,18 @@ pub fn gfa_of_abpoa(
     }
     cigar = set_cigar_substring(count_M, count_I, count_D, cigar);
     cigars.insert(0, cigar);
+    
+    read_node.remove(0);
+    read_node = format!("{}\t{}",curr_handle, read_node);
+    read_nodes.insert(0, read_node);
+    
+    ref_node.remove(0);
+    ref_node = format!("{}\t{}",curr_handle, ref_node);
+    ref_nodes.insert(0, ref_node);
+
     println!("{:?}", cigars);
+    println!("{:?}", read_nodes);
+    println!("{:?}", ref_nodes);
     handle_id_alignment.dedup();
     reverse_and_write(
         graph_align,
