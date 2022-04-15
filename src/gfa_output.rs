@@ -16,7 +16,12 @@ fn create_handle_pos_in_lnz(
         if nwp[i] {
             curr_handle_idx += 1;
         }
-        handle_of_lnz_pos.insert(i, sorted_handles[(curr_handle_idx - 1) as usize].id().to_string());
+        handle_of_lnz_pos.insert(
+            i,
+            sorted_handles[(curr_handle_idx - 1) as usize]
+                .id()
+                .to_string(),
+        );
     }
     handle_of_lnz_pos.insert(0, String::from("-1"));
     handle_of_lnz_pos
@@ -37,11 +42,8 @@ pub fn gfa_of_abpoa(
     let mut col = last_col;
     let mut row = last_row;
 
-    let mut sequence_align = String::new();
-    let mut graph_align = String::new();
-    let mut alignment_moves = String::new();
     let mut handle_id_alignment = Vec::new();
-    
+
     let mut cigars = Vec::new();
     let mut cigar = String::new();
 
@@ -65,9 +67,9 @@ pub fn gfa_of_abpoa(
         if hofp.get(&row).unwrap() != curr_handle {
             cigar = set_cigar_substring(count_M, count_I, count_D, cigar);
             cigars.insert(0, cigar);
-            
+
             cigar = String::new();
-            read_node = format!("{}\t{}",curr_handle, read_node);
+            read_node = format!("{}\t{}", curr_handle, read_node);
             ref_node = format!("{}\t{}", curr_handle, ref_node);
             read_nodes.insert(0, read_node);
             ref_nodes.insert(0, ref_node);
@@ -99,53 +101,36 @@ pub fn gfa_of_abpoa(
 
         match dir {
             'D' => {
-                sequence_align.push(sequence[col + left]);
-                graph_align.push(graph[row]);
-                alignment_moves.push('|');
+                ref_node.insert(0, graph[row]);
+                read_node.insert(0, sequence[col + left]);
+
                 handle_id_alignment.push(hofp.get(&row).unwrap());
                 row = pred;
                 col = j_pos - 1;
                 count_M += 1;
-
-                ref_node.insert(0, graph[row]);
-                read_node.insert(0, sequence[col+left]);
             }
             'd' => {
-                sequence_align.push(sequence[col + left]);
-                graph_align.push(graph[row]);
-                alignment_moves.push('.');
+                ref_node.insert(0, graph[row]);
+                read_node.insert(0, sequence[col + left]);
+
                 handle_id_alignment.push(hofp.get(&row).unwrap());
                 row = pred;
                 col = j_pos - 1;
                 count_M += 1;
-
-                ref_node.insert(0, graph[row]);
-                read_node.insert(0, sequence[col+left]);
             }
             'L' => {
-                graph_align.push('-');
-                sequence_align.push(sequence[col + left]);
-                alignment_moves.push(' ');
+                read_node.insert(0, sequence[col + left]);
 
                 col -= 1;
-
                 count_I += 1;
-
-                read_node.insert(0, sequence[col+left]);
-
             }
             'U' => {
-                graph_align.push(graph[row]);
-                sequence_align.push('-');
-                alignment_moves.push(' ');
+                ref_node.insert(0, graph[row]);
                 handle_id_alignment.push(hofp.get(&row).unwrap());
+
                 row = pred;
                 col = j_pos;
-
                 count_D += 1;
-
-                ref_node.insert(0, graph[row]);
-
             }
             _ => {
                 panic!("impossible value in poa path")
@@ -154,77 +139,43 @@ pub fn gfa_of_abpoa(
     }
     cigar = set_cigar_substring(count_M, count_I, count_D, cigar);
     cigars.insert(0, cigar);
-    
-    read_node.remove(0);
-    read_node = format!("{}\t{}",curr_handle, read_node);
+
+    if !read_node.is_empty() {
+        read_node.remove(0);
+    }
+    read_node = format!("{}\t{}", curr_handle, read_node);
     read_nodes.insert(0, read_node);
-    
-    ref_node.remove(0);
-    ref_node = format!("{}\t{}",curr_handle, ref_node);
+
+    if !ref_node.is_empty() {
+        ref_node.remove(0);
+    }
+    ref_node = format!("{}\t{}", curr_handle, ref_node);
     ref_nodes.insert(0, ref_node);
 
-    println!("{:?}", cigars);
-    println!("{:?}", read_nodes);
-    println!("{:?}", ref_nodes);
     handle_id_alignment.dedup();
-    reverse_and_write(
-        graph_align,
-        sequence_align,
-        alignment_moves,
+    handle_id_alignment.reverse();
+    write_alignment(
+        ref_nodes,
+        read_nodes,
+        cigars,
         handle_id_alignment,
         "gfa_mk_poa",
     );
 }
 
-fn reverse_and_write(
-    mut graph_al: String,
-    mut seq_al: String,
-    mut al_moves: String,
-    mut handle_align: Vec<&String>,
+fn write_alignment(
+    ref_nodes: Vec<String>,
+    read_nodes: Vec<String>,
+    cigars: Vec<String>,
+    handle_align: Vec<&String>,
     align_type: &str,
 ) {
-    graph_al = graph_al.chars().rev().collect();
-    al_moves = al_moves.chars().rev().collect();
-    seq_al = seq_al.chars().rev().collect();
-    handle_align.reverse();
     let file_name = String::from(align_type) + "_alignment.txt";
 
     let path = project_root::get_project_root().unwrap().join(file_name);
     let file = File::create(path).expect("unable to create file");
     let f = &mut BufWriter::new(&file);
-    let mut i = 0;
-    while i < graph_al.len() {
-        if i + 80 < graph_al.len() {
-            write!(f, "{: >80}", "").expect("unable to write");
-            writeln!(f, "[{}-{}]", i, i + 80).expect("unable to write");
 
-            write!(f, "{}", &graph_al[i..i + 80]).expect("unable to write");
-            writeln!(f, "\tgraph").expect("unable to write");
-
-            write!(f, "{}", &al_moves[i..i + 80]).expect("unable to write");
-            writeln!(f, "\tmatc/mis").expect("unable to write");
-
-            write!(f, "{}", &seq_al[i..i + 80]).expect("unable to write");
-            writeln!(f, "\tseq").expect("unable to write");
-
-            writeln!(f).expect("unable to write");
-        } else {
-            write!(f, "{: >80}", "").expect("unable to write");
-            writeln!(f, "[{}-{}]", i, graph_al.len()).expect("unable to write");
-
-            write!(f, "{}", &graph_al[i..]).expect("unable to write");
-            writeln!(f, "\tgraph").expect("unable to write");
-
-            write!(f, "{}", &al_moves[i..]).expect("unable to write");
-            writeln!(f, "\tmatc/mis").expect("unable to write");
-
-            write!(f, "{}", &seq_al[i..]).expect("unable to write");
-            writeln!(f, "\tseq").expect("unable to write");
-
-            writeln!(f).expect("unable to write");
-        }
-        i += 80;
-    }
     let handle_align: Vec<String> = handle_align
         .iter()
         .map(|line| line.chars().collect::<Vec<char>>().into_iter().collect())
@@ -232,6 +183,13 @@ fn reverse_and_write(
     let handle_ids = handle_align.join(",");
 
     writeln!(f, "{}", handle_ids).expect("unable to write");
+    writeln!(f).expect("unable to write");
+
+    for i in 0..ref_nodes.len() {
+        writeln!(f, "{}", ref_nodes[i]).expect("unable to write");
+        writeln!(f, "{}\t\t{}", read_nodes[i], cigars[i]).expect("unable to write");
+        writeln!(f).expect("unable to write");
+    }
 }
 
 fn set_cigar_substring(count_m: i32, count_i: i32, count_d: i32, cs: String) -> String {
