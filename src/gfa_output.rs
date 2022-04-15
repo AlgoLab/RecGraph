@@ -140,15 +140,9 @@ pub fn gfa_of_abpoa(
     cigar = set_cigar_substring(count_M, count_I, count_D, cigar);
     cigars.insert(0, cigar);
 
-    if !read_node.is_empty() {
-        read_node.remove(0);
-    }
     read_node = format!("{}\t{}", curr_handle, read_node);
     read_nodes.insert(0, read_node);
-
-    if !ref_node.is_empty() {
-        ref_node.remove(0);
-    }
+    
     ref_node = format!("{}\t{}", curr_handle, ref_node);
     ref_nodes.insert(0, ref_node);
 
