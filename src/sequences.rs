@@ -1,7 +1,6 @@
 use crate::args_parser;
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
-
 pub fn get_sequences() -> (Vec<Vec<char>>, Vec<String>) {
     let file_path = args_parser::get_sequence_path();
     let file = File::open(file_path).unwrap();
@@ -9,6 +8,9 @@ pub fn get_sequences() -> (Vec<Vec<char>>, Vec<String>) {
 
     let mut sequences: Vec<Vec<char>> = Vec::new();
     let mut sequences_name: Vec<String> = Vec::new();
+
+    // TODO: same read until new > in starting position 
+    let mut sequence :Vec<char>= Vec::new();
     for line in reader.lines().flatten() {
         if !line.starts_with('>') && !line.is_empty() {
             let mut line: Vec<char> = line
@@ -22,10 +24,21 @@ pub fn get_sequences() -> (Vec<Vec<char>>, Vec<String>) {
                 })
                 .collect::<Vec<char>>();
             line.insert(0, '$');
-            sequences.push(line);
+            sequence.append(&mut line);
         } else {
             sequences_name.push(line);
+            if !sequence.is_empty() {
+                sequences.push(sequence);
+            }
+            sequence = Vec::new();
         }
+    }
+    if !sequence.is_empty() {
+        sequences.push(sequence);
+    }
+    
+    if sequences.len() != sequences_name.len() {
+        panic!("wrong fasta file format");
     }
     (sequences, sequences_name) //update with also sequences_name
 }
