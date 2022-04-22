@@ -609,7 +609,7 @@ mod tests {
         score_matrix.insert(('C', '-'), -1);
         score_matrix.insert(('C', 'A'), -1);
         score_matrix.insert(('A', 'C'), -1);
-        let align = super::exec(&s, "test",&graph, &score_matrix, 4, "./prova.gfa", false);
+        let align = super::exec(&s, "test", &graph, &score_matrix, 4, "./prova.gfa", false);
 
         assert_eq!(align, 5);
     }
@@ -648,7 +648,7 @@ mod tests {
         score_matrix.insert(('C', '-'), -1);
         score_matrix.insert(('C', 'A'), -1);
         score_matrix.insert(('A', 'C'), -1);
-        let align = super::exec(&s, "test",&graph, &score_matrix, 4, "./prova.gfa", false);
+        let align = super::exec(&s, "test", &graph, &score_matrix, 4, "./prova.gfa", false);
 
         assert_eq!(align, 5);
     }
@@ -692,7 +692,7 @@ mod tests {
         score_matrix.insert(('C', '-'), -1);
         score_matrix.insert(('C', 'A'), -1);
         score_matrix.insert(('A', 'C'), -1);
-        let align = super::exec(&s, "test",&graph, &score_matrix, 4, "./prova.gfa", false);
+        let align = super::exec(&s, "test", &graph, &score_matrix, 4, "./prova.gfa", false);
 
         assert_eq!(align, 5);
     }

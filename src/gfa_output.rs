@@ -33,7 +33,7 @@ TODO:
     consider gap in start/end position for path or sequence start/end
     file name for gaf file
     path start end in graph
-*/ 
+*/
 
 pub fn gfa_of_abpoa(
     path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
@@ -164,7 +164,7 @@ pub fn gfa_of_abpoa(
     let number_residue = "*"; // to set
     let align_block_length = "*"; // to set
     let mapping_quality = "*"; // to set
-    let comments = cigars[..cigars.len()-1].join(",");
+    let comments = cigars[..cigars.len() - 1].join(",");
     let gaf_out = format!(
         "{}\t{}\t{}\t{}\t{}\t>{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
         seq_name,

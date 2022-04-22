@@ -9,8 +9,7 @@ pub fn get_sequences() -> (Vec<Vec<char>>, Vec<String>) {
     let mut sequences: Vec<Vec<char>> = Vec::new();
     let mut sequences_name: Vec<String> = Vec::new();
 
-    // TODO: same read until new > in starting position 
-    let mut sequence :Vec<char>= Vec::new();
+    let mut sequence: Vec<char> = Vec::new();
     for line in reader.lines().flatten() {
         if !line.starts_with('>') && !line.is_empty() {
             let mut line: Vec<char> = line
@@ -36,7 +35,7 @@ pub fn get_sequences() -> (Vec<Vec<char>>, Vec<String>) {
     if !sequence.is_empty() {
         sequences.push(sequence);
     }
-    
+
     if sequences.len() != sequences_name.len() {
         panic!("wrong fasta file format");
     }

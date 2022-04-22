@@ -44,8 +44,7 @@ fn main() {
                     let rev_graph_struct = graph::read_graph(&graph_path, true);
                     banded_mk_poa::exec(
                         &seq,
-                    &seq_names[i],
-
+                        &seq_names[i],
                         &rev_graph_struct,
                         &score_matrix,
                         bases_to_add,
