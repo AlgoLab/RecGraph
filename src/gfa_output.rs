@@ -152,13 +152,6 @@ pub fn gfa_of_abpoa(
 
     handle_id_alignment.dedup();
     handle_id_alignment.reverse();
-    write_alignment(
-        ref_nodes,
-        read_nodes,
-        &cigars,
-        &handle_id_alignment,
-        "gfa_mk_poa",
-    );
     let seq_name = "query_name"; // to set
     let seq_length = sequence.len() - 1; // $ doesn't count
     let query_start = col;
@@ -200,7 +193,7 @@ pub fn gfa_of_abpoa(
     writeln!(f,"{}", gaf_out).expect("error in writing");
 
 }
-
+/*
 fn write_alignment(
     ref_nodes: Vec<String>,
     read_nodes: Vec<String>,
@@ -229,7 +222,7 @@ fn write_alignment(
         writeln!(f).expect("unable to write");
     }
 }
-
+ */
 fn set_cigar_substring(count_m: i32, count_i: i32, count_d: i32, cs: String) -> String {
     let cigar;
     if count_m > 0 {
