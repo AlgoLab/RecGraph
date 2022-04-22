@@ -12,7 +12,7 @@ mod sequences;
 fn main() {
     // get sequence
     let sequences = sequences::get_sequences();
-    let seq: &Vec<char> = &sequences[13];
+    let seq: &Vec<char> = &sequences[0];
 
     //get graph
     let graph_path = args_parser::get_graph_path();
@@ -30,28 +30,26 @@ fn main() {
     match align_mode {
         //global alignment
         0 => {
-            let ampl = match seq.len() < graph_struct.lnz.len() {
-                true => graph_struct.lnz.len() - 1 - seq.len(),
-                _ => seq.len() - graph_struct.lnz.len() + 1,
-            };
-            let align_score = banded_mk_poa::exec(
-                seq,
-                &graph_struct,
-                &score_matrix,
-                ampl * 2,
-                &graph_path,
-                false,
-            );
-            if amb_strand && align_score < 0 {
-                let rev_graph_struct = graph::read_graph(&graph_path, true);
-                banded_mk_poa::exec(
-                    seq,
-                    &rev_graph_struct,
+            for seq in sequences {
+                let align_score = banded_mk_poa::exec(
+                    &seq,
+                    &graph_struct,
                     &score_matrix,
-                    ampl * 2,
+                    bases_to_add,
                     &graph_path,
-                    true,
+                    false,
                 );
+                if amb_strand && align_score < 0 {
+                    let rev_graph_struct = graph::read_graph(&graph_path, true);
+                    banded_mk_poa::exec(
+                        &seq,
+                        &rev_graph_struct,
+                        &score_matrix,
+                        bases_to_add,
+                        &graph_path,
+                        true,
+                    );
+                }
             }
         }
         //local alignment

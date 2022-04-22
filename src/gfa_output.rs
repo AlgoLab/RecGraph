@@ -2,9 +2,10 @@ use crate::args_parser;
 use crate::bitfield_path as bf;
 use bit_vec::BitVec;
 use bitvec::prelude::*;
+use std::fs::OpenOptions;
 use std::io::{prelude::*, BufWriter};
+use std::path::Path;
 use std::{collections::HashMap, fs::File};
-
 fn create_handle_pos_in_lnz(
     nwp: &BitVec,
     file_path: &str,
@@ -157,7 +158,7 @@ pub fn gfa_of_abpoa(
     let number_residue = "*"; // to set
     let align_block_length = "*"; // to set
     let mapping_quality = "*"; // to set
-    let comments = cigars.join("\t");
+    let comments = cigars.join(",");
     let gaf_out = format!(
         "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
         seq_name,
@@ -174,9 +175,20 @@ pub fn gfa_of_abpoa(
         mapping_quality,
         comments
     );
+
     let file_name = String::from("fasta_name") + ".gaf";
     let path = project_root::get_project_root().unwrap().join(file_name);
-    let file = File::create(path).expect("unable to create file");
+    let file;
+    if Path::new(&path).exists() {
+        file = OpenOptions::new()
+            .write(true)
+            .append(true)
+            .open(path)
+            .unwrap();
+    } else {
+        file = File::create(path).expect("unable to create file");
+    }
+
     let f = &mut BufWriter::new(&file);
     writeln!(f, "{}", gaf_out).expect("error in writing");
 }

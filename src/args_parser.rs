@@ -3,7 +3,7 @@ use clap::Parser;
 #[derive(Parser, Debug)]
 #[clap(author = "Davide Monti <d.monti11@campus.unimib.it>", version, about = "POA in rust", long_about = None)]
 struct Args {
-    #[clap(help = "Sequence to align file path", default_value = "sequences.txt")]
+    #[clap(help = "Sequence to align file path", default_value = "sequences.fa")]
     sequence_path: String,
     #[clap(help = "Graph file path", default_value = "prova.gfa")]
     graph_path: String,
