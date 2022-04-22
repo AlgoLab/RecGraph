@@ -59,6 +59,7 @@ pub fn gfa_of_abpoa(
 
     let mut curr_handle = "";
     let mut last_dir = ' ';
+    let mut path_length = 0;
     while bf::dir_from_bitvec(&path[row][col]) != 'O' {
         let curr_bv = &path[row][col];
         let pred = bf::pred_from_bitvec(curr_bv);
@@ -108,6 +109,7 @@ pub fn gfa_of_abpoa(
                 row = pred;
                 col = j_pos - 1;
                 count_M += 1;
+                path_length += 1;
             }
             'd' => {
                 ref_node.insert(0, graph[row]);
@@ -117,6 +119,7 @@ pub fn gfa_of_abpoa(
                 row = pred;
                 col = j_pos - 1;
                 count_M += 1;
+                path_length += 1;
             }
             'L' => {
                 read_node.insert(0, sequence[col + left]);
@@ -131,6 +134,7 @@ pub fn gfa_of_abpoa(
                 row = pred;
                 col = j_pos;
                 count_D += 1;
+                path_length += 1;
             }
             _ => {
                 panic!("impossible value in poa path")
@@ -142,7 +146,7 @@ pub fn gfa_of_abpoa(
 
     read_node = format!("{}\t{}", curr_handle, read_node);
     read_nodes.insert(0, read_node);
-    
+
     ref_node = format!("{}\t{}", curr_handle, ref_node);
     ref_nodes.insert(0, ref_node);
 
@@ -151,17 +155,57 @@ pub fn gfa_of_abpoa(
     write_alignment(
         ref_nodes,
         read_nodes,
-        cigars,
-        handle_id_alignment,
+        &cigars,
+        &handle_id_alignment,
         "gfa_mk_poa",
     );
+    let seq_name = "query_name"; // to set
+    let seq_length = sequence.len() - 1; // $ doesn't count
+    let query_start = col;
+    let query_end = last_col + ampl_for_row.get(last_row).unwrap().0;
+    let strand = if amb_mode { "-" } else { "+" };
+    let path_matching: String = handle_id_alignment
+        .iter()
+        .map(|line| line.chars().collect::<Vec<char>>().into_iter().collect())
+        .collect::<Vec<String>>()
+        .join(">");
+    //path_length obtained from iterating in path matrix
+    let path_start = "*"; // to set 
+    let path_end = "*"; // to set
+    let number_residue = "*"; // to set
+    let align_block_length = "*"; // to set
+    let mapping_quality = "*"; // to set
+    let comments = cigars.join("\t");
+    let gaf_out = format!(
+        "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+        seq_name,
+        seq_length,
+        query_start,
+        query_end,
+        strand,
+        path_matching,
+        path_length,
+        path_start,
+        path_end,
+        number_residue,
+        align_block_length,
+        mapping_quality,
+        comments
+    );
+    let fasta_name = "fasta_name"; //to set
+    let file_name = String::from(fasta_name) + "_gaf.txt";
+    let path = project_root::get_project_root().unwrap().join(file_name);
+    let file = File::create(path).expect("unable to create file");
+    let f = &mut BufWriter::new(&file);
+    writeln!(f,"{}", gaf_out).expect("error in writing");
+
 }
 
 fn write_alignment(
     ref_nodes: Vec<String>,
     read_nodes: Vec<String>,
-    cigars: Vec<String>,
-    handle_align: Vec<&String>,
+    cigars: &Vec<String>,
+    handle_align: &Vec<&String>,
     align_type: &str,
 ) {
     let file_name = String::from(align_type) + "_alignment.txt";
@@ -189,11 +233,11 @@ fn write_alignment(
 fn set_cigar_substring(count_m: i32, count_i: i32, count_d: i32, cs: String) -> String {
     let cigar;
     if count_m > 0 {
-        cigar = format!("M{}{}", count_m, cs);
+        cigar = format!("{}M{}", count_m, cs);
     } else if count_i > 0 {
-        cigar = format!("I{}{}", count_i, cs);
+        cigar = format!("{}I{}", count_i, cs);
     } else if count_d > 0 {
-        cigar = format!("D{}{}", count_d, cs);
+        cigar = format!("{}D{}", count_d, cs);
     } else {
         cigar = format!("{}", cs);
     };
