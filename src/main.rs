@@ -11,7 +11,7 @@ mod matrix;
 mod sequences;
 fn main() {
     // get sequence
-    let sequences = sequences::get_sequences();
+    let (sequences, seq_names) = sequences::get_sequences();
     let seq: &Vec<char> = &sequences[0];
 
     //get graph
@@ -30,9 +30,10 @@ fn main() {
     match align_mode {
         //global alignment
         0 => {
-            for seq in sequences {
+            for (i, seq) in sequences.iter().enumerate() {
                 let align_score = banded_mk_poa::exec(
                     &seq,
+                    &seq_names[i],
                     &graph_struct,
                     &score_matrix,
                     bases_to_add,
@@ -43,6 +44,8 @@ fn main() {
                     let rev_graph_struct = graph::read_graph(&graph_path, true);
                     banded_mk_poa::exec(
                         &seq,
+                    &seq_names[i],
+
                         &rev_graph_struct,
                         &score_matrix,
                         bases_to_add,

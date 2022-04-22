@@ -2,13 +2,13 @@ use crate::args_parser;
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
 
-pub fn get_sequences() -> Vec<Vec<char>> {
+pub fn get_sequences() -> (Vec<Vec<char>>, Vec<String>) {
     let file_path = args_parser::get_sequence_path();
     let file = File::open(file_path).unwrap();
     let reader = BufReader::new(file);
 
     let mut sequences: Vec<Vec<char>> = Vec::new();
-    let mut sequences_name: Vec<Vec<char>> = Vec::new();
+    let mut sequences_name: Vec<String> = Vec::new();
     for line in reader.lines().flatten() {
         if !line.starts_with('>') && !line.is_empty() {
             let mut line: Vec<char> = line
@@ -24,12 +24,10 @@ pub fn get_sequences() -> Vec<Vec<char>> {
             line.insert(0, '$');
             sequences.push(line);
         } else {
-            let mut line = line.chars().collect::<Vec<char>>();
-            line.remove(0);
             sequences_name.push(line);
         }
     }
-    sequences //update with also sequences_name
+    (sequences, sequences_name) //update with also sequences_name
 }
 //TODO: verify score from rev&cmpl string equal score from rev&cmpl graph
 pub fn rev_and_compl(seq: &[char]) -> Vec<char> {

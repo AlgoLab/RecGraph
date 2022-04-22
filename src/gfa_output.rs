@@ -32,6 +32,7 @@ fn create_handle_pos_in_lnz(
 pub fn gfa_of_abpoa(
     path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
     sequence: &[char],
+    seq_name: &str,
     graph: &[char], // needed for path start and end?
     ampl_for_row: &[(usize, usize)],
     last_row: usize,
@@ -142,7 +143,6 @@ pub fn gfa_of_abpoa(
 
     handle_id_alignment.dedup();
     handle_id_alignment.reverse();
-    let seq_name = "query_name"; // to set
     let seq_length = sequence.len() - 1; // $ doesn't count
     let query_start = col;
     let query_end = last_col + ampl_for_row.get(last_row).unwrap().0;
@@ -160,7 +160,7 @@ pub fn gfa_of_abpoa(
     let mapping_quality = "*"; // to set
     let comments = cigars.join(",");
     let gaf_out = format!(
-        "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+        "{}\t{}\t{}\t{}\t{}\t>{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
         seq_name,
         seq_length,
         query_start,
