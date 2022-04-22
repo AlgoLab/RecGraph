@@ -1,3 +1,4 @@
+use crate::args_parser;
 use crate::bitfield_path as bf;
 use bit_vec::BitVec;
 use bitvec::prelude::*;
@@ -30,7 +31,7 @@ fn create_handle_pos_in_lnz(
 pub fn gfa_of_abpoa(
     path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
     sequence: &[char],
-    graph: &[char],
+    graph: &[char], // needed for path start and end?
     ampl_for_row: &[(usize, usize)],
     last_row: usize,
     last_col: usize,
@@ -46,9 +47,6 @@ pub fn gfa_of_abpoa(
 
     let mut cigars = Vec::new();
     let mut cigar = String::new();
-
-    let mut ref_nodes = Vec::new();
-    let mut ref_node = String::new();
 
     let mut read_nodes = Vec::new();
     let mut read_node = String::new();
@@ -71,12 +69,9 @@ pub fn gfa_of_abpoa(
 
             cigar = String::new();
             read_node = format!("{}\t{}", curr_handle, read_node);
-            ref_node = format!("{}\t{}", curr_handle, ref_node);
             read_nodes.insert(0, read_node);
-            ref_nodes.insert(0, ref_node);
 
             read_node = String::new();
-            ref_node = String::new();
             count_M = 0;
             count_I = 0;
             count_D = 0;
@@ -102,7 +97,6 @@ pub fn gfa_of_abpoa(
 
         match dir {
             'D' => {
-                ref_node.insert(0, graph[row]);
                 read_node.insert(0, sequence[col + left]);
 
                 handle_id_alignment.push(hofp.get(&row).unwrap());
@@ -112,7 +106,6 @@ pub fn gfa_of_abpoa(
                 path_length += 1;
             }
             'd' => {
-                ref_node.insert(0, graph[row]);
                 read_node.insert(0, sequence[col + left]);
 
                 handle_id_alignment.push(hofp.get(&row).unwrap());
@@ -128,7 +121,6 @@ pub fn gfa_of_abpoa(
                 count_I += 1;
             }
             'U' => {
-                ref_node.insert(0, graph[row]);
                 handle_id_alignment.push(hofp.get(&row).unwrap());
 
                 row = pred;
@@ -147,9 +139,6 @@ pub fn gfa_of_abpoa(
     read_node = format!("{}\t{}", curr_handle, read_node);
     read_nodes.insert(0, read_node);
 
-    ref_node = format!("{}\t{}", curr_handle, ref_node);
-    ref_nodes.insert(0, ref_node);
-
     handle_id_alignment.dedup();
     handle_id_alignment.reverse();
     let seq_name = "query_name"; // to set
@@ -163,7 +152,7 @@ pub fn gfa_of_abpoa(
         .collect::<Vec<String>>()
         .join(">");
     //path_length obtained from iterating in path matrix
-    let path_start = "*"; // to set 
+    let path_start = "*"; // to set
     let path_end = "*"; // to set
     let number_residue = "*"; // to set
     let align_block_length = "*"; // to set
@@ -185,13 +174,11 @@ pub fn gfa_of_abpoa(
         mapping_quality,
         comments
     );
-    let fasta_name = "fasta_name"; //to set
-    let file_name = String::from(fasta_name) + "_gaf.txt";
+    let file_name = String::from("fasta_name") + ".gaf";
     let path = project_root::get_project_root().unwrap().join(file_name);
     let file = File::create(path).expect("unable to create file");
     let f = &mut BufWriter::new(&file);
-    writeln!(f,"{}", gaf_out).expect("error in writing");
-
+    writeln!(f, "{}", gaf_out).expect("error in writing");
 }
 /*
 fn write_alignment(

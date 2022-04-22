@@ -13,3 +13,4 @@ odgi
 *.og
 *valgrind*
 *massif*
+*.gaf
