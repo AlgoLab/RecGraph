@@ -1,10 +1,10 @@
 mod args_parser;
-mod banded_mk_poa;
 mod basic_output;
 mod bitfield_path;
 mod gap_local_poa;
 mod gap_mk_abpoa;
 mod gfa_output;
+mod global_mk_abpoa;
 mod graph;
 mod local_poa;
 mod matrix;
@@ -31,7 +31,7 @@ fn main() {
         //global alignment
         0 => {
             for (i, seq) in sequences.iter().enumerate() {
-                let align_score = banded_mk_poa::exec(
+                let align_score = global_mk_abpoa::exec(
                     &seq,
                     &seq_names[i],
                     &graph_struct,
@@ -42,7 +42,7 @@ fn main() {
                 );
                 if amb_strand && align_score < 0 {
                     let rev_graph_struct = graph::read_graph(&graph_path, true);
-                    banded_mk_poa::exec(
+                    global_mk_abpoa::exec(
                         &seq,
                         &seq_names[i],
                         &rev_graph_struct,

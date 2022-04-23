@@ -87,7 +87,7 @@ pub fn exec(
                 }
 
                 // try set and get l from x (j > left, if j == left same as j = 0)
-                let l_score_idx = get_best_l(&m, &x, &ampl_for_row, i, j, o);
+                let l_score_idx = get_best_l(&m, &x, i, j, o);
                 let l_pred;
                 match l_score_idx {
                     Some((l, idx, from_m)) => {
@@ -331,12 +331,11 @@ fn get_best_u(
 fn get_best_l(
     m: &[Vec<i32>],
     x: &[Vec<i32>],
-    ampl_for_row: &[(usize, usize)],
     i: usize,
     j: usize,
     o: i32,
 ) -> Option<(i32, usize, bool)> {
-    if j > ampl_for_row[i].0 {
+    if j > 0 {
         let l_x = x[i][j - 1];
         let l_m = m[i][j - 1] + o;
         if l_x > l_m {
