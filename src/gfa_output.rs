@@ -31,7 +31,6 @@ fn create_handle_pos_in_lnz(
 /*
 TODO:
     consider gap in start/end position for path or sequence start/end
-    file name for gaf file
     path start end in graph
 */
 
@@ -126,14 +125,14 @@ pub fn gfa_of_abpoa(
                 read_node.insert(0, sequence[col + left]);
 
                 col -= 1;
-                count_I += 1;
+                count_D += 1;
             }
             'U' => {
                 handle_id_alignment.push(hofp.get(&row).unwrap());
 
                 row = pred;
                 col = j_pos;
-                count_D += 1;
+                count_I += 1;
                 path_length += 1;
             }
             _ => {
@@ -159,8 +158,8 @@ pub fn gfa_of_abpoa(
         .collect::<Vec<String>>()
         .join(">");
     //path_length obtained from iterating in path matrix
-    let path_start = "*"; // to set
-    let path_end = "*"; // to set
+    let path_start = node_start(&hofp, row); // first letter used in first node of alignment
+    let path_end = node_start(&hofp, last_row); // last letter used in last node of alignment
     let number_residue = "*"; // to set
     let align_block_length = "*"; // to set
     let mapping_quality = "*"; // to set
@@ -199,6 +198,16 @@ pub fn gfa_of_abpoa(
     let f = &mut BufWriter::new(&file);
     writeln!(f, "{}", gaf_out).expect("error in writing");
 }
+fn node_start(hofp: &HashMap<usize, String>, row: usize) -> usize{
+    let handle_id = hofp.get(&row).unwrap();
+    let mut i = row;
+    while hofp.get(&i).unwrap() == handle_id && i > 0{
+        i -= 1;
+    }
+    row - i
+}
+
+
 /*
 fn write_alignment(
     ref_nodes: Vec<String>,
