@@ -181,9 +181,10 @@ pub fn gfa_of_abpoa(
         mapping_quality,
         comments
     );
-
-    let file_name = String::from("fasta_name") + ".gaf";
-    let path = project_root::get_project_root().unwrap().join(file_name);
+    let file_path = args_parser::get_graph_path();
+    let file_name = Path::new(&file_path).file_name().unwrap().to_str().unwrap().split(".").collect::<Vec<&str>>()[0];
+    let file_name_out = String::from(file_name) + ".gaf";
+    let path = project_root::get_project_root().unwrap().join(file_name_out);
     let file;
     if Path::new(&path).exists() {
         file = OpenOptions::new()
