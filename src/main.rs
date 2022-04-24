@@ -1,9 +1,9 @@
 mod args_parser;
 mod basic_output;
 mod bitfield_path;
+mod gaf_output;
 mod gap_local_poa;
 mod gap_mk_abpoa;
-mod gfa_output;
 mod global_mk_abpoa;
 mod graph;
 mod local_poa;
@@ -56,7 +56,16 @@ fn main() {
         }
         //local alignment
         1 => {
-            local_poa::exec(seq, &graph_struct, &score_matrix);
+            for (i, seq) in sequences.iter().enumerate() {
+                local_poa::exec(
+                    seq,
+                    &seq_names[i],
+                    &graph_struct,
+                    &score_matrix,
+                    &graph_path,
+                    false,
+                );
+            }
         }
         //affine gap global alignment
         2 => {

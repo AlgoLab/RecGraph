@@ -28,13 +28,8 @@ fn create_handle_pos_in_lnz(
     handle_of_lnz_pos.insert(0, String::from("-1"));
     handle_of_lnz_pos
 }
-/*
-TODO:
-    consider gap in start/end position for path or sequence start/end
-    path start end in graph
-*/
 
-pub fn gfa_of_abpoa(
+pub fn gaf_of_global_abpoa(
     path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
     sequence: &[char],
     seq_name: &str,
@@ -180,6 +175,153 @@ pub fn gfa_of_abpoa(
         mapping_quality,
         comments
     );
+    write_gaf(&gaf_out);
+}
+pub fn gaf_of_local_poa(
+    path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
+    sequence: &[char],
+    seq_name: &str,
+    //graph: &[char],  needed for path start and end?
+    last_row: usize,
+    last_col: usize,
+    nwp: &BitVec,
+    file_path: &str,
+    amb_mode: bool,
+) {
+    let hofp = create_handle_pos_in_lnz(nwp, file_path, amb_mode);
+    let mut col = last_col;
+    let mut row = last_row;
+
+    let mut handle_id_alignment = Vec::new();
+
+    let mut cigars = Vec::new();
+    let mut cigar = String::new();
+
+    let mut read_nodes = Vec::new();
+    let mut read_node = String::new();
+
+    let mut count_m = 0;
+    let mut count_i = 0;
+    let mut count_d = 0;
+
+    let mut curr_handle = "";
+    let mut last_dir = ' ';
+    let mut path_length = 0;
+    while bf::dir_from_bitvec(&path[row][col]) != 'O' {
+        let curr_bv = &path[row][col];
+        let pred = bf::pred_from_bitvec(curr_bv);
+        let dir = bf::dir_from_bitvec(curr_bv);
+
+        if hofp.get(&row).unwrap() != curr_handle {
+            cigar = set_cigar_substring(count_m, count_i, count_d, cigar);
+            cigars.insert(0, cigar);
+
+            cigar = String::new();
+            read_node = format!("{}\t{}", curr_handle, read_node);
+            read_nodes.insert(0, read_node);
+
+            read_node = String::new();
+            count_m = 0;
+            count_i = 0;
+            count_d = 0;
+        }
+        curr_handle = hofp.get(&row).unwrap();
+        if dir.to_ascii_uppercase() != last_dir.to_ascii_uppercase() {
+            cigar = set_cigar_substring(count_m, count_i, count_d, cigar);
+            count_m = 0;
+            count_i = 0;
+            count_d = 0;
+        }
+        last_dir = dir;
+
+        match dir {
+            'D' => {
+                read_node.insert(0, sequence[col]);
+
+                handle_id_alignment.push(hofp.get(&row).unwrap());
+                row = pred;
+                col = col - 1;
+                count_m += 1;
+                path_length += 1;
+            }
+            'd' => {
+                read_node.insert(0, sequence[col]);
+
+                handle_id_alignment.push(hofp.get(&row).unwrap());
+                row = pred;
+                col = col - 1;
+                count_m += 1;
+                path_length += 1;
+            }
+            'L' => {
+                read_node.insert(0, sequence[col]);
+
+                col -= 1;
+                count_d += 1;
+            }
+            'U' => {
+                handle_id_alignment.push(hofp.get(&row).unwrap());
+
+                row = pred;
+                count_i += 1;
+                path_length += 1;
+            }
+            _ => {
+                panic!("impossible value in poa path")
+            }
+        }
+    }
+    cigar = set_cigar_substring(count_m, count_i, count_d, cigar);
+    cigars.insert(0, cigar);
+
+    read_node = format!("{}\t{}", curr_handle, read_node);
+    read_nodes.insert(0, read_node);
+
+    handle_id_alignment.dedup();
+    handle_id_alignment.reverse();
+    let seq_length = sequence.len() - 1; // $ doesn't count
+    let query_start = col;
+    let query_end = last_col;
+    let strand = if amb_mode { "-" } else { "+" };
+    let path_matching: String = handle_id_alignment
+        .iter()
+        .map(|line| line.chars().collect::<Vec<char>>().into_iter().collect())
+        .collect::<Vec<String>>()
+        .join(">");
+    //path_length obtained from iterating in path matrix
+    let path_start = node_start(&hofp, row); // first letter used in first node of alignment
+    let path_end = node_start(&hofp, last_row); // last letter used in last node of alignment
+    let number_residue = "*"; // to set
+    let align_block_length = path_length;
+    let mapping_quality = "*"; // to set
+    let comments = cigars[..cigars.len() - 1].join(",");
+    let gaf_out = format!(
+        "{}\t{}\t{}\t{}\t{}\t>{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+        seq_name,
+        seq_length,
+        query_start,
+        query_end,
+        strand,
+        path_matching,
+        path_length,
+        path_start,
+        path_end,
+        number_residue,
+        align_block_length,
+        mapping_quality,
+        comments
+    );
+    write_gaf(&gaf_out);
+}
+fn node_start(hofp: &HashMap<usize, String>, row: usize) -> usize {
+    let handle_id = hofp.get(&row).unwrap();
+    let mut i = row;
+    while hofp.get(&i).unwrap() == handle_id && i > 0 {
+        i -= 1;
+    }
+    row - i
+}
+fn write_gaf(gaf_out: &String) {
     let file_path = args_parser::get_graph_path();
     let file_name = Path::new(&file_path)
         .file_name()
@@ -205,15 +347,6 @@ pub fn gfa_of_abpoa(
     let f = &mut BufWriter::new(&file);
     writeln!(f, "{}", gaf_out).expect("error in writing");
 }
-fn node_start(hofp: &HashMap<usize, String>, row: usize) -> usize {
-    let handle_id = hofp.get(&row).unwrap();
-    let mut i = row;
-    while hofp.get(&i).unwrap() == handle_id && i > 0 {
-        i -= 1;
-    }
-    row - i
-}
-
 /*
 fn write_alignment(
     ref_nodes: Vec<String>,

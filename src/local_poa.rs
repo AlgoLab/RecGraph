@@ -1,11 +1,14 @@
 use crate::bitfield_path as bf;
-use crate::{basic_output, graph::LnzGraph};
+use crate::{basic_output, gaf_output, graph::LnzGraph};
 use bitvec::prelude::*;
 use std::{cmp::Ordering, collections::HashMap};
 pub fn exec(
     sequence: &[char],
+    seq_name: &str,
     graph: &LnzGraph,
     scores_matrix: &HashMap<(char, char), i32>,
+    file_path: &str,
+    amb_mode: bool,
 ) -> i32 {
     let lnz = &graph.lnz;
     let nodes_with_pred = &graph.nwp;
@@ -66,8 +69,16 @@ pub fn exec(
     }
 
     println!("Best alignment: {}", m[best_row][best_col]);
-
-    basic_output::write_align_local_poa(&path, sequence, lnz, best_row, best_col);
+    gaf_output::gaf_of_local_poa(
+        &path,
+        sequence,
+        seq_name,
+        best_row,
+        best_col,
+        nodes_with_pred,
+        file_path,
+        amb_mode,
+    );
     m[best_row][best_col]
 }
 
@@ -156,7 +167,7 @@ mod tests {
                 }
             }
         }
-        let align_score = super::exec(&s, &graph_struct, &score_matrix);
+        let align_score = super::exec(&s, "seq", &graph_struct, &score_matrix, "./prova.gfa", false);
         assert_eq!(align_score, 3);
     }
 
@@ -188,7 +199,7 @@ mod tests {
                 }
             }
         }
-        let align_score = super::exec(&s, &graph_struct, &score_matrix);
+        let align_score = super::exec(&s, "seq",&graph_struct, &score_matrix, "./prova.gfa", false);
         assert_eq!(align_score, 2);
     }
 }

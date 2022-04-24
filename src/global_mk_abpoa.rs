@@ -1,5 +1,5 @@
 use crate::graph::LnzGraph;
-use crate::{bitfield_path as bf, gfa_output};
+use crate::{bitfield_path as bf, gaf_output};
 use bitvec::prelude::*;
 use std::{
     cmp::{self, Ordering},
@@ -158,7 +158,7 @@ pub fn exec(
         println!("Band length probably too short, maybe try with larger b and f");
     }
     println!("Alignment mk {:?}", best_value);
-    gfa_output::gfa_of_abpoa(
+    gaf_output::gaf_of_global_abpoa(
         &path,
         sequence,
         seq_name,
