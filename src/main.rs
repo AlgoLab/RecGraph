@@ -32,7 +32,7 @@ fn main() {
         0 => {
             for (i, seq) in sequences.iter().enumerate() {
                 let align_score = global_mk_abpoa::exec(
-                    &seq,
+                    seq,
                     &seq_names[i],
                     &graph_struct,
                     &score_matrix,
@@ -43,7 +43,7 @@ fn main() {
                 if amb_strand && align_score < 0 {
                     let rev_graph_struct = graph::read_graph(&graph_path, true);
                     global_mk_abpoa::exec(
-                        &seq,
+                        seq,
                         &seq_names[i],
                         &rev_graph_struct,
                         &score_matrix,

@@ -2,7 +2,7 @@ use crate::bitfield_path as bf;
 use bitvec::prelude::*;
 use std::fs::File;
 use std::io::{prelude::*, BufWriter};
-
+/*
 pub fn write_align_banded_poa(
     path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
     sequence: &[char],
@@ -67,7 +67,7 @@ pub fn write_align_banded_poa(
     }
     reverse_and_write(graph_align, sequence_align, alignment_moves, "mk_poa");
 }
-
+*/
 pub fn write_align_local_poa(
     path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
     sequence: &[char],

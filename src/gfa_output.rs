@@ -38,7 +38,7 @@ pub fn gfa_of_abpoa(
     path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
     sequence: &[char],
     seq_name: &str,
-    graph: &[char], // needed for path start and end?
+    //graph: &[char],  needed for path start and end?
     ampl_for_row: &[(usize, usize)],
     last_row: usize,
     last_col: usize,
@@ -58,9 +58,9 @@ pub fn gfa_of_abpoa(
     let mut read_nodes = Vec::new();
     let mut read_node = String::new();
 
-    let mut count_M = 0;
-    let mut count_I = 0;
-    let mut count_D = 0;
+    let mut count_m = 0;
+    let mut count_i = 0;
+    let mut count_d = 0;
 
     let mut curr_handle = "";
     let mut last_dir = ' ';
@@ -71,7 +71,7 @@ pub fn gfa_of_abpoa(
         let dir = bf::dir_from_bitvec(curr_bv);
 
         if hofp.get(&row).unwrap() != curr_handle {
-            cigar = set_cigar_substring(count_M, count_I, count_D, cigar);
+            cigar = set_cigar_substring(count_m, count_i, count_d, cigar);
             cigars.insert(0, cigar);
 
             cigar = String::new();
@@ -79,16 +79,16 @@ pub fn gfa_of_abpoa(
             read_nodes.insert(0, read_node);
 
             read_node = String::new();
-            count_M = 0;
-            count_I = 0;
-            count_D = 0;
+            count_m = 0;
+            count_i = 0;
+            count_d = 0;
         }
         curr_handle = hofp.get(&row).unwrap();
         if dir.to_ascii_uppercase() != last_dir.to_ascii_uppercase() {
-            cigar = set_cigar_substring(count_M, count_I, count_D, cigar);
-            count_M = 0;
-            count_I = 0;
-            count_D = 0;
+            cigar = set_cigar_substring(count_m, count_i, count_d, cigar);
+            count_m = 0;
+            count_i = 0;
+            count_d = 0;
         }
         last_dir = dir;
 
@@ -109,7 +109,7 @@ pub fn gfa_of_abpoa(
                 handle_id_alignment.push(hofp.get(&row).unwrap());
                 row = pred;
                 col = j_pos - 1;
-                count_M += 1;
+                count_m += 1;
                 path_length += 1;
             }
             'd' => {
@@ -118,21 +118,21 @@ pub fn gfa_of_abpoa(
                 handle_id_alignment.push(hofp.get(&row).unwrap());
                 row = pred;
                 col = j_pos - 1;
-                count_M += 1;
+                count_m += 1;
                 path_length += 1;
             }
             'L' => {
                 read_node.insert(0, sequence[col + left]);
 
                 col -= 1;
-                count_D += 1;
+                count_d += 1;
             }
             'U' => {
                 handle_id_alignment.push(hofp.get(&row).unwrap());
 
                 row = pred;
                 col = j_pos;
-                count_I += 1;
+                count_i += 1;
                 path_length += 1;
             }
             _ => {
@@ -140,7 +140,7 @@ pub fn gfa_of_abpoa(
             }
         }
     }
-    cigar = set_cigar_substring(count_M, count_I, count_D, cigar);
+    cigar = set_cigar_substring(count_m, count_i, count_d, cigar);
     cigars.insert(0, cigar);
 
     read_node = format!("{}\t{}", curr_handle, read_node);
@@ -161,7 +161,7 @@ pub fn gfa_of_abpoa(
     let path_start = node_start(&hofp, row); // first letter used in first node of alignment
     let path_end = node_start(&hofp, last_row); // last letter used in last node of alignment
     let number_residue = "*"; // to set
-    let align_block_length = "*"; // to set
+    let align_block_length = path_length;
     let mapping_quality = "*"; // to set
     let comments = cigars[..cigars.len() - 1].join(",");
     let gaf_out = format!(
@@ -181,32 +181,38 @@ pub fn gfa_of_abpoa(
         comments
     );
     let file_path = args_parser::get_graph_path();
-    let file_name = Path::new(&file_path).file_name().unwrap().to_str().unwrap().split(".").collect::<Vec<&str>>()[0];
+    let file_name = Path::new(&file_path)
+        .file_name()
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .split('.')
+        .collect::<Vec<&str>>()[0];
     let file_name_out = String::from(file_name) + ".gaf";
-    let path = project_root::get_project_root().unwrap().join(file_name_out);
-    let file;
-    if Path::new(&path).exists() {
-        file = OpenOptions::new()
+    let path = project_root::get_project_root()
+        .unwrap()
+        .join(file_name_out);
+    let file = if Path::new(&path).exists() {
+        OpenOptions::new()
             .write(true)
             .append(true)
             .open(path)
-            .unwrap();
+            .unwrap()
     } else {
-        file = File::create(path).expect("unable to create file");
-    }
+        File::create(path).expect("unable to create file")
+    };
 
     let f = &mut BufWriter::new(&file);
     writeln!(f, "{}", gaf_out).expect("error in writing");
 }
-fn node_start(hofp: &HashMap<usize, String>, row: usize) -> usize{
+fn node_start(hofp: &HashMap<usize, String>, row: usize) -> usize {
     let handle_id = hofp.get(&row).unwrap();
     let mut i = row;
-    while hofp.get(&i).unwrap() == handle_id && i > 0{
+    while hofp.get(&i).unwrap() == handle_id && i > 0 {
         i -= 1;
     }
     row - i
 }
-
 
 /*
 fn write_alignment(
@@ -247,7 +253,7 @@ fn set_cigar_substring(count_m: i32, count_i: i32, count_d: i32, cs: String) -> 
     } else if count_d > 0 {
         cigar = format!("{}D{}", count_d, cs);
     } else {
-        cigar = format!("{}", cs);
+        cigar = cs;
     };
     cigar
 }

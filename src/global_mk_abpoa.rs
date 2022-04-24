@@ -1,4 +1,4 @@
-use crate::{basic_output, graph::LnzGraph};
+use crate::graph::LnzGraph;
 use crate::{bitfield_path as bf, gfa_output};
 use bitvec::prelude::*;
 use std::{
@@ -162,7 +162,7 @@ pub fn exec(
         &path,
         sequence,
         seq_name,
-        lnz,
+        //lnz,
         &ampl_for_row,
         last_row,
         last_col,
@@ -332,23 +332,6 @@ fn get_max_d_u_l(d: i32, u: i32, l: i32) -> (i32, char) {
         },
     };
     (best_val, dir)
-}
-fn left_equal_for_every_p(
-    p_arr: Option<&Vec<usize>>,
-    ampl_for_row: &[(usize, usize)],
-    i: usize,
-) -> bool {
-    if let Some(arr) = p_arr {
-        let mut check = true;
-        for p in arr.iter() {
-            if ampl_for_row[*p].0 != ampl_for_row[i].0 {
-                check = false
-            }
-        }
-        check
-    } else {
-        ampl_for_row[i - 1].0 == ampl_for_row[i].0
-    }
 }
 
 fn set_r_values(
