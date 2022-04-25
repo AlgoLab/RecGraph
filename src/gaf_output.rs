@@ -50,9 +50,6 @@ pub fn gaf_of_global_abpoa(
     let mut cigars = Vec::new();
     let mut cigar = String::new();
 
-    let mut read_nodes = Vec::new();
-    let mut read_node = String::new();
-
     let mut count_m = 0;
     let mut count_i = 0;
     let mut count_d = 0;
@@ -70,10 +67,7 @@ pub fn gaf_of_global_abpoa(
             cigars.insert(0, cigar);
 
             cigar = String::new();
-            read_node = format!("{}\t{}", curr_handle, read_node);
-            read_nodes.insert(0, read_node);
-
-            read_node = String::new();
+            
             count_m = 0;
             count_i = 0;
             count_d = 0;
@@ -87,7 +81,6 @@ pub fn gaf_of_global_abpoa(
         }
         last_dir = dir;
 
-        let left = ampl_for_row[row].0;
         let p_left = ampl_for_row[pred].0;
         let j_pos = if ampl_for_row[row].0 < p_left {
             let delta = p_left - ampl_for_row[row].0;
@@ -99,7 +92,6 @@ pub fn gaf_of_global_abpoa(
 
         match dir {
             'D' => {
-                read_node.insert(0, sequence[col + left]);
 
                 handle_id_alignment.push(hofp.get(&row).unwrap());
                 row = pred;
@@ -108,7 +100,6 @@ pub fn gaf_of_global_abpoa(
                 path_length += 1;
             }
             'd' => {
-                read_node.insert(0, sequence[col + left]);
 
                 handle_id_alignment.push(hofp.get(&row).unwrap());
                 row = pred;
@@ -117,7 +108,6 @@ pub fn gaf_of_global_abpoa(
                 path_length += 1;
             }
             'L' => {
-                read_node.insert(0, sequence[col + left]);
 
                 col -= 1;
                 count_d += 1;
@@ -138,11 +128,9 @@ pub fn gaf_of_global_abpoa(
     cigar = set_cigar_substring(count_m, count_i, count_d, cigar);
     cigars.insert(0, cigar);
 
-    read_node = format!("{}\t{}", curr_handle, read_node);
-    read_nodes.insert(0, read_node);
-
     handle_id_alignment.dedup();
     handle_id_alignment.reverse();
+    
     let seq_length = sequence.len() - 1; // $ doesn't count
     let query_start = col;
     let query_end = last_col + ampl_for_row.get(last_row).unwrap().0;
@@ -197,9 +185,6 @@ pub fn gaf_of_local_poa(
     let mut cigars = Vec::new();
     let mut cigar = String::new();
 
-    let mut read_nodes = Vec::new();
-    let mut read_node = String::new();
-
     let mut count_m = 0;
     let mut count_i = 0;
     let mut count_d = 0;
@@ -217,10 +202,6 @@ pub fn gaf_of_local_poa(
             cigars.insert(0, cigar);
 
             cigar = String::new();
-            read_node = format!("{}\t{}", curr_handle, read_node);
-            read_nodes.insert(0, read_node);
-
-            read_node = String::new();
             count_m = 0;
             count_i = 0;
             count_d = 0;
@@ -236,26 +217,20 @@ pub fn gaf_of_local_poa(
 
         match dir {
             'D' => {
-                read_node.insert(0, sequence[col]);
-
                 handle_id_alignment.push(hofp.get(&row).unwrap());
                 row = pred;
-                col = col - 1;
+                col -= 1;
                 count_m += 1;
                 path_length += 1;
             }
             'd' => {
-                read_node.insert(0, sequence[col]);
-
                 handle_id_alignment.push(hofp.get(&row).unwrap());
                 row = pred;
-                col = col - 1;
+                col -= 1;
                 count_m += 1;
                 path_length += 1;
             }
             'L' => {
-                read_node.insert(0, sequence[col]);
-
                 col -= 1;
                 count_d += 1;
             }
@@ -274,11 +249,9 @@ pub fn gaf_of_local_poa(
     cigar = set_cigar_substring(count_m, count_i, count_d, cigar);
     cigars.insert(0, cigar);
 
-    read_node = format!("{}\t{}", curr_handle, read_node);
-    read_nodes.insert(0, read_node);
-
     handle_id_alignment.dedup();
     handle_id_alignment.reverse();
+    
     let seq_length = sequence.len() - 1; // $ doesn't count
     let query_start = col;
     let query_end = last_col;

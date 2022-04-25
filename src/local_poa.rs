@@ -1,5 +1,5 @@
 use crate::bitfield_path as bf;
-use crate::{basic_output, gaf_output, graph::LnzGraph};
+use crate::{gaf_output, graph::LnzGraph};
 use bitvec::prelude::*;
 use std::{cmp::Ordering, collections::HashMap};
 pub fn exec(
