@@ -118,7 +118,6 @@ pub fn write_align_local_poa(
     }
     reverse_and_write(graph_align, sequence_align, alignment_moves, "local_poa");
 }
-*/
 pub fn write_align_gap_local_poa(
     path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
     path_x: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
@@ -170,7 +169,7 @@ pub fn write_align_gap_local_poa(
             }
             'U' => {
                 if bf::dir_from_bitvec(&path_y[row][col]) == 'Y' {
-                    while bf::dir_from_bitvec(&path_x[row][col]) == 'Y' {
+                    while bf::dir_from_bitvec(&path_y[row][col]) == 'Y' {
                         let p = bf::pred_from_bitvec(&path_y[row][col]);
                         graph_align.push(graph[row]);
                         sequence_align.push('-');
@@ -196,6 +195,7 @@ pub fn write_align_gap_local_poa(
         "gap_local_poa",
     );
 }
+*/
 
 pub fn write_align_gap_mk_abpoa(
     path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],

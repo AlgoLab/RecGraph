@@ -94,18 +94,30 @@ fn main() {
         //affine gap global alignment
         3 => {
             let (g_open, g_ext) = args_parser::get_gap_open_gap_ext();
-            let align_score = gap_local_poa::exec(seq, &graph_struct, &score_matrix, g_open, g_ext);
-
-            if amb_strand && align_score < 0 {
-                let rev_graph_struct = graph::read_graph(&graph_path, true);
-                gap_mk_abpoa::exec(
+            for (i, seq) in sequences.iter().enumerate() {
+                let align_score = gap_local_poa::exec(
                     seq,
-                    &rev_graph_struct,
+                    &seq_names[i],
+                    &graph_struct,
                     &score_matrix,
                     g_open,
                     g_ext,
-                    bases_to_add,
+                    &graph_path,
+                    false,
                 );
+                if amb_strand && align_score < 0 {
+                    let rev_graph_struct = graph::read_graph(&graph_path, true);
+                    gap_local_poa::exec(
+                        seq,
+                        &seq_names[i],
+                        &graph_struct,
+                        &score_matrix,
+                        g_open,
+                        g_ext,
+                        &graph_path,
+                        true,
+                    );
+                }
             }
         }
         _ => {

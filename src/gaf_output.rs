@@ -67,7 +67,7 @@ pub fn gaf_of_global_abpoa(
             cigars.insert(0, cigar);
 
             cigar = String::new();
-            
+
             count_m = 0;
             count_i = 0;
             count_d = 0;
@@ -92,7 +92,6 @@ pub fn gaf_of_global_abpoa(
 
         match dir {
             'D' => {
-
                 handle_id_alignment.push(hofp.get(&row).unwrap());
                 row = pred;
                 col = j_pos - 1;
@@ -100,7 +99,6 @@ pub fn gaf_of_global_abpoa(
                 path_length += 1;
             }
             'd' => {
-
                 handle_id_alignment.push(hofp.get(&row).unwrap());
                 row = pred;
                 col = j_pos - 1;
@@ -108,7 +106,6 @@ pub fn gaf_of_global_abpoa(
                 path_length += 1;
             }
             'L' => {
-
                 col -= 1;
                 count_d += 1;
             }
@@ -130,7 +127,7 @@ pub fn gaf_of_global_abpoa(
 
     handle_id_alignment.dedup();
     handle_id_alignment.reverse();
-    
+
     let seq_length = sequence.len() - 1; // $ doesn't count
     let query_start = col;
     let query_end = last_col + ampl_for_row.get(last_row).unwrap().0;
@@ -254,7 +251,7 @@ pub fn gaf_of_local_poa(
 
     handle_id_alignment.dedup();
     handle_id_alignment.reverse();
-    
+
     let seq_length = sequence.len() - 1; // $ doesn't count
     let query_start = col;
     let query_end = last_col;
@@ -289,6 +286,150 @@ pub fn gaf_of_local_poa(
     );
     write_gaf(&gaf_out);
 }
+
+pub fn gaf_of_gap_local_poa(
+    path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
+    path_x: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
+    path_y: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
+    sequence: &[char],
+    seq_name: &str,
+    //graph: &[char],  needed for path start and end?
+    last_row: usize,
+    last_col: usize,
+    nwp: &BitVec,
+    file_path: &str,
+    amb_mode: bool,
+) {
+    let hofp = create_handle_pos_in_lnz(nwp, file_path, amb_mode);
+    let mut col = last_col;
+    let mut row = last_row;
+
+    let mut handle_id_alignment = Vec::new();
+
+    let mut cigars = Vec::new();
+    let mut cigar = String::new();
+
+    let mut count_m = 0;
+    let mut count_i = 0;
+    let mut count_d = 0;
+
+    let mut curr_handle = "";
+    let mut last_dir = ' ';
+    let mut path_length = 0;
+    let mut residue_matching = 0;
+    while bf::dir_from_bitvec(&path[row][col]) != 'O' {
+        let curr_bv = &path[row][col];
+        let pred = bf::pred_from_bitvec(curr_bv);
+        let dir = bf::dir_from_bitvec(curr_bv);
+
+        if hofp.get(&row).unwrap() != curr_handle {
+            cigar = set_cigar_substring(count_m, count_i, count_d, cigar);
+            cigars.insert(0, cigar);
+
+            cigar = String::new();
+            count_m = 0;
+            count_i = 0;
+            count_d = 0;
+        }
+        curr_handle = hofp.get(&row).unwrap();
+        if dir.to_ascii_uppercase() != last_dir.to_ascii_uppercase() {
+            cigar = set_cigar_substring(count_m, count_i, count_d, cigar);
+            count_m = 0;
+            count_i = 0;
+            count_d = 0;
+        }
+        last_dir = dir;
+
+        match dir {
+            'D' => {
+                handle_id_alignment.push(hofp.get(&row).unwrap());
+                row = pred;
+                col -= 1;
+                count_m += 1;
+                path_length += 1;
+                residue_matching += 1;
+            }
+            'd' => {
+                handle_id_alignment.push(hofp.get(&row).unwrap());
+                row = pred;
+                col -= 1;
+                count_m += 1;
+                path_length += 1;
+                residue_matching += 1;
+            }
+            'L' => {
+                if bf::dir_from_bitvec(&path_x[row][col]) == 'X' {
+                    while bf::dir_from_bitvec(&path_x[row][col]) == 'X' {
+                        count_d += 1;
+                        col -= 1;
+                    }
+                } else {
+                    count_d += 1;
+                    col -= 1;
+                }
+            }
+            'U' => {
+                if bf::dir_from_bitvec(&path_y[row][col]) == 'Y' {
+                    while bf::dir_from_bitvec(&path_y[row][col]) == 'Y' {
+                        let p = bf::pred_from_bitvec(&path_y[row][col]);
+                        handle_id_alignment.push(hofp.get(&row).unwrap());
+                        row = p;
+                        count_i += 1;
+                        path_length += 1;
+                    }
+                } else {
+                    handle_id_alignment.push(hofp.get(&row).unwrap());
+                    count_i += 1;
+                    path_length += 1;
+                    row = pred;
+                }
+            }
+            _ => {
+                panic!("impossible value in poa path")
+            }
+        }
+    }
+    cigar = set_cigar_substring(count_m, count_i, count_d, cigar);
+    cigars.insert(0, cigar);
+
+    handle_id_alignment.dedup();
+    handle_id_alignment.reverse();
+
+    let seq_length = sequence.len() - 1; // $ doesn't count
+    let query_start = col;
+    let query_end = last_col;
+    let strand = if amb_mode { "-" } else { "+" };
+    let path_matching: String = handle_id_alignment
+        .iter()
+        .map(|line| line.chars().collect::<Vec<char>>().into_iter().collect())
+        .collect::<Vec<String>>()
+        .join(">");
+    //path_length obtained from iterating in path matrix
+    let path_start = node_start(&hofp, row); // first letter used in first node of alignment
+    let path_end = node_start(&hofp, last_row); // last letter used in last node of alignment
+    let number_residue_matching = residue_matching;
+    let align_block_length = "*"; // to set
+    let mapping_quality = "*"; // to set
+    let comments = cigars[..cigars.len() - 1].join(",");
+    let gaf_out = format!(
+        "{}\t{}\t{}\t{}\t{}\t>{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+        seq_name,
+        seq_length,
+        query_start,
+        query_end,
+        strand,
+        path_matching,
+        path_length,
+        path_start,
+        path_end,
+        number_residue_matching,
+        align_block_length,
+        mapping_quality,
+        comments
+    );
+    write_gaf(&gaf_out);
+}
+
 fn node_start(hofp: &HashMap<usize, String>, row: usize) -> usize {
     let handle_id = hofp.get(&row).unwrap();
     let mut i = row;

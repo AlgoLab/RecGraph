@@ -167,7 +167,14 @@ mod tests {
                 }
             }
         }
-        let align_score = super::exec(&s, "seq", &graph_struct, &score_matrix, "./prova.gfa", false);
+        let align_score = super::exec(
+            &s,
+            "seq",
+            &graph_struct,
+            &score_matrix,
+            "./prova.gfa",
+            false,
+        );
         assert_eq!(align_score, 3);
     }
 
@@ -199,7 +206,14 @@ mod tests {
                 }
             }
         }
-        let align_score = super::exec(&s, "seq",&graph_struct, &score_matrix, "./prova.gfa", false);
+        let align_score = super::exec(
+            &s,
+            "seq",
+            &graph_struct,
+            &score_matrix,
+            "./prova.gfa",
+            false,
+        );
         assert_eq!(align_score, 2);
     }
 }
