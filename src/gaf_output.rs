@@ -192,6 +192,7 @@ pub fn gaf_of_local_poa(
     let mut curr_handle = "";
     let mut last_dir = ' ';
     let mut path_length = 0;
+    let mut residue_matching = 0;
     while bf::dir_from_bitvec(&path[row][col]) != 'O' {
         let curr_bv = &path[row][col];
         let pred = bf::pred_from_bitvec(curr_bv);
@@ -222,6 +223,7 @@ pub fn gaf_of_local_poa(
                 col -= 1;
                 count_m += 1;
                 path_length += 1;
+                residue_matching += 1;
             }
             'd' => {
                 handle_id_alignment.push(hofp.get(&row).unwrap());
@@ -229,6 +231,7 @@ pub fn gaf_of_local_poa(
                 col -= 1;
                 count_m += 1;
                 path_length += 1;
+                residue_matching += 1;
             }
             'L' => {
                 col -= 1;
@@ -264,8 +267,8 @@ pub fn gaf_of_local_poa(
     //path_length obtained from iterating in path matrix
     let path_start = node_start(&hofp, row); // first letter used in first node of alignment
     let path_end = node_start(&hofp, last_row); // last letter used in last node of alignment
-    let number_residue = "*"; // to set
-    let align_block_length = path_length;
+    let number_residue_matching = residue_matching;
+    let align_block_length = "*"; // to set
     let mapping_quality = "*"; // to set
     let comments = cigars[..cigars.len() - 1].join(",");
     let gaf_out = format!(
@@ -279,7 +282,7 @@ pub fn gaf_of_local_poa(
         path_length,
         path_start,
         path_end,
-        number_residue,
+        number_residue_matching,
         align_block_length,
         mapping_quality,
         comments
@@ -294,6 +297,7 @@ fn node_start(hofp: &HashMap<usize, String>, row: usize) -> usize {
     }
     row - i
 }
+
 fn write_gaf(gaf_out: &String) {
     let file_path = args_parser::get_graph_path();
     let file_name = Path::new(&file_path)
