@@ -1,4 +1,4 @@
-use crate::{basic_output, bitfield_path as bf, graph::LnzGraph};
+use crate::{basic_output, bitfield_path as bf, gaf_output, graph::LnzGraph};
 use bitvec::prelude::*;
 use std::{
     cmp::{self, Ordering},
@@ -8,11 +8,14 @@ use std::{
 
 pub fn exec(
     sequence: &[char],
+    seq_name: &str,
     graph_struct: &LnzGraph,
     score_matrix: &HashMap<(char, char), i32>,
     o: i32,
     e: i32,
     bta: usize,
+    file_path: &str,
+    amb_mode: bool
 ) -> i32 {
     let lnz = &graph_struct.lnz;
     let nodes_w_pred = &graph_struct.nwp;
@@ -229,6 +232,19 @@ pub fn exec(
         lnz,
         last_row,
         last_col,
+    );
+    gaf_output::gaf_of_gap_abpoa(
+        &path,
+        &path_x,
+        &path_y,
+        sequence,
+        seq_name,
+        &ampl_for_row,
+        last_row,
+        last_col,
+        nodes_w_pred,
+        file_path,
+        amb_mode,
     );
     best_value
 }
@@ -558,7 +574,7 @@ mod tests {
         let mut score_matrix = HashMap::new();
         score_matrix.insert(('A', 'A'), 1);
 
-        let align = super::exec(&s, &graph, &score_matrix, -4, -1, 3);
+        let align = super::exec(&s, "test",&graph, &score_matrix, -4, -1, 3, "prova.gfa", false);
 
         assert_eq!(align, 4);
     }
@@ -592,7 +608,8 @@ mod tests {
         score_matrix.insert(('C', 'C'), 1);
         score_matrix.insert(('C', 'A'), -1);
         score_matrix.insert(('A', 'C'), -1);
-        let align = super::exec(&s, &graph, &score_matrix, -4, -1, 10);
+        
+        let align = super::exec(&s, "test",&graph, &score_matrix, -4, -1, 3, "prova.gfa", false);
 
         assert_eq!(align, 0);
     }
@@ -628,7 +645,8 @@ mod tests {
         score_matrix.insert(('C', 'C'), 1);
         score_matrix.insert(('C', 'A'), -1);
         score_matrix.insert(('A', 'C'), -1);
-        let align = super::exec(&s, &graph, &score_matrix, -4, -1, 3);
+        let align = super::exec(&s, "test",&graph, &score_matrix, -4, -1, 3, "prova.gfa", false);
+
 
         assert_eq!(align, 5);
     }
@@ -668,7 +686,8 @@ mod tests {
         score_matrix.insert(('C', 'C'), 1);
         score_matrix.insert(('C', 'A'), -1);
         score_matrix.insert(('A', 'C'), -1);
-        let align = super::exec(&s, &graph, &score_matrix, -4, -1, 3);
+        let align = super::exec(&s, "test",&graph, &score_matrix, -4, -1, 3, "prova.gfa", false);
+
 
         assert_eq!(align, 5);
     }
@@ -702,7 +721,8 @@ mod tests {
         score_matrix.insert(('C', 'C'), 1);
         score_matrix.insert(('C', 'A'), -1);
         score_matrix.insert(('A', 'C'), -1);
-        let align = super::exec(&s, &graph, &score_matrix, 0, -1, 5);
+        let align = super::exec(&s, "test",&graph, &score_matrix, 0, -1, 5, "prova.gfa", false);
+
 
         assert_eq!(align, 4);
     }
@@ -729,7 +749,8 @@ mod tests {
         score_matrix.insert(('C', 'C'), 1);
         score_matrix.insert(('C', 'A'), -1);
         score_matrix.insert(('A', 'C'), -1);
-        let align = super::exec(&s, &graph, &score_matrix, -100, -1, 10);
+        let align = super::exec(&s, "test",&graph, &score_matrix, -100, -1, 10, "prova.gfa", false);
+
 
         assert_eq!(align, -101);
     }
@@ -755,7 +776,8 @@ mod tests {
         score_matrix.insert(('C', 'C'), 1);
         score_matrix.insert(('C', 'A'), -1);
         score_matrix.insert(('A', 'C'), -1);
-        let align = super::exec(&s, &graph, &score_matrix, -4, -1, 7);
+        let align = super::exec(&s, "test",&graph, &score_matrix, -4, -1, 7, "prova.gfa", false);
+
         assert_eq!(align, -3);
     }
     #[test]
