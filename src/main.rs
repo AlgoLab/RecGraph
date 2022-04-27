@@ -1,5 +1,4 @@
 mod args_parser;
-mod basic_output;
 mod bitfield_path;
 mod gaf_output;
 mod gap_local_poa;
@@ -80,9 +79,9 @@ fn main() {
                     g_ext,
                     bases_to_add,
                     &graph_path,
-                    false
+                    false,
                 );
-    
+
                 if amb_strand && align_score < 0 {
                     let rev_graph_struct = graph::read_graph(&graph_path, true);
                     gap_mk_abpoa::exec(
@@ -94,7 +93,7 @@ fn main() {
                         g_ext,
                         bases_to_add,
                         &graph_path,
-                        true
+                        true,
                     );
                 }
             }
