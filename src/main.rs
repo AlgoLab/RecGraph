@@ -40,11 +40,11 @@ fn main() {
                     false,
                 );
                 if amb_strand && align_score < 0 {
-                    let rev_graph_struct = graph::read_graph(&graph_path, true);
+                    let rev_seq = sequences::rev_and_compl(seq);
                     global_mk_abpoa::exec(
-                        seq,
+                        &rev_seq,
                         &seq_names[i],
-                        &rev_graph_struct,
+                        &graph_struct,
                         &score_matrix,
                         bases_to_add,
                         &graph_path,
@@ -83,11 +83,11 @@ fn main() {
                 );
 
                 if amb_strand && align_score < 0 {
-                    let rev_graph_struct = graph::read_graph(&graph_path, true);
+                    let rev_seq = sequences::rev_and_compl(seq);
                     gap_mk_abpoa::exec(
-                        seq,
+                        &rev_seq,
                         &seq_names[i],
-                        &rev_graph_struct,
+                        &graph_struct,
                         &score_matrix,
                         g_open,
                         g_ext,
@@ -113,11 +113,11 @@ fn main() {
                     false,
                 );
                 if amb_strand && align_score < 0 {
-                    let rev_graph_struct = graph::read_graph(&graph_path, true);
+                    let rev_seq = sequences::rev_and_compl(seq);
                     gap_local_poa::exec(
-                        seq,
+                        &rev_seq,
                         &seq_names[i],
-                        &rev_graph_struct,
+                        &graph_struct,
                         &score_matrix,
                         g_open,
                         g_ext,

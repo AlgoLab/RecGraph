@@ -626,37 +626,12 @@ fn write_gaf(gaf_out: &String) {
     let f = &mut BufWriter::new(&file);
     writeln!(f, "{}", gaf_out).expect("error in writing");
 }
-/*
-fn write_alignment(
-    ref_nodes: Vec<String>,
-    read_nodes: Vec<String>,
-    cigars: &Vec<String>,
-    handle_align: &Vec<&String>,
-    align_type: &str,
-) {
-    let file_name = String::from(align_type) + "_alignment.txt";
 
-    let path = project_root::get_project_root().unwrap().join(file_name);
-    let file = File::create(path).expect("unable to create file");
-    let f = &mut BufWriter::new(&file);
-
-    let handle_align: Vec<String> = handle_align
-        .iter()
-        .map(|line| line.chars().collect::<Vec<char>>().into_iter().collect())
-        .collect();
-    let handle_ids = handle_align.join(",");
-
-    writeln!(f, "{}", handle_ids).expect("unable to write");
-    writeln!(f).expect("unable to write");
-
-    for i in 0..ref_nodes.len() {
-        writeln!(f, "{}", ref_nodes[i]).expect("unable to write");
-        writeln!(f, "{}\t\t{}", read_nodes[i], cigars[i]).expect("unable to write");
-        writeln!(f).expect("unable to write");
-    }
-}
- */
 fn set_cigar_substring(count_m: i32, count_i: i32, count_d: i32, cs: String) -> String {
+    if (count_m * count_i) + (count_i * count_d) + (count_m * count_d) != 0 {
+        panic!("wrong format in cigar string")
+    }
+
     let cigar;
     if count_m > 0 {
         cigar = format!("{}M{}", count_m, cs);
