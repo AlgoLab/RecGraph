@@ -14,3 +14,4 @@ odgi
 *valgrind*
 *massif*
 *.gaf
+/test/
