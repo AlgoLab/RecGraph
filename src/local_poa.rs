@@ -19,7 +19,7 @@ pub fn exec(
     let (mut best_row, mut best_col) = (0, 0);
 
     for i in 0..lnz.len() - 1 {
-        for j in 0..sequence.len() - 1 {
+        for j in 0..sequence.len() {
             match (i, j) {
                 (0, _) | (_, 0) => path[i][j] = bf::set_path_cell(0, 'O'),
                 _ => {
