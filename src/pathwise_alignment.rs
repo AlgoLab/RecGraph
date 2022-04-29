@@ -39,8 +39,9 @@ pub fn exec(
                                 if ***k == alphas[i - 1] {
                                     dpm[i][j][***k] = dpm[i - 1][j][***k]
                                         + score_matrix.get(&(lnz[i], '-')).unwrap();
+                                } else {
+                                    dpm[i][j][***k] = dpm[i - 1][j][***k];
                                 }
-                                dpm[i][j][***k] = dpm[i - 1][j][***k];
                             }
                             alphas[i] = alphas[i - 1];
                         } else {
@@ -51,9 +52,10 @@ pub fn exec(
                                     dpm[i][j][***k] = dpm[i - 1][j][alphas[i - 1]]
                                         + dpm[i - 1][j][***k]
                                         + score_matrix.get(&(lnz[i], '-')).unwrap();
+                                } else {
+                                    dpm[i][j][***k] =
+                                        dpm[i - 1][j][alphas[i - 1]] + dpm[i - 1][j][***k];
                                 }
-                                dpm[i][j][***k] =
-                                    dpm[i - 1][j][alphas[i - 1]] + dpm[i - 1][j][***k];
                             }
                         }
                         path[i][j] = bf::set_path_cell(i - 1, 'U');
@@ -65,27 +67,65 @@ pub fn exec(
                             let x = curr_node_paths
                                 .intersection(&pred_paths)
                                 .collect::<Vec<_>>();
-
-                            if x.contains(&&&alphas[*p]) {
-                                for k in x.iter() {
-                                    if ***k == alphas[i - 1] {
-                                        dpm[i][j][***k] = dpm[*p][j][***k]
-                                            + score_matrix.get(&(lnz[i], '-')).unwrap();
+                            if alphas[i] == path_number + 1 {
+                                // not other alpha in i
+                                if x.contains(&&&alphas[*p]) {
+                                    for k in x.iter() {
+                                        if ***k == alphas[*p] {
+                                            dpm[i][j][***k] = dpm[*p][j][***k]
+                                                + score_matrix.get(&(lnz[i], '-')).unwrap();
+                                        } else {
+                                            dpm[i][j][***k] = dpm[*p][j][***k];
+                                        }
                                     }
-                                    dpm[i][j][***k] = dpm[*p][j][***k];
+                                    alphas[i] = alphas[*p];
+                                } else {
+                                    // set new alpha for this node, update delta
+                                    alphas[i] = ***x.iter().min().unwrap();
+                                    for k in x.iter() {
+                                        if ***k == alphas[i] {
+                                            dpm[i][j][***k] = dpm[*p][j][alphas[*p]]
+                                                + dpm[*p][j][***k]
+                                                + score_matrix.get(&(lnz[i], '-')).unwrap();
+                                        } else {
+                                            dpm[i][j][***k] =
+                                                dpm[*p][j][***k] - dpm[*p][j][alphas[i]];
+                                        }
+                                    }
                                 }
-                                alphas[i] = alphas[*p];
                             } else {
-                                // set new alpha for this node, update delta
-                                alphas[i] = ***x.iter().min().unwrap();
-                                for k in x.iter() {
-                                    if ***k == alphas[i] {
-                                        dpm[i][j][***k] = dpm[*p][j][alphas[*p]]
-                                            + dpm[*p][j][***k]
-                                            + score_matrix.get(&(lnz[i], '-')).unwrap();
+                                //update path value to current node alpha
+                                let i_alpha_score = dpm[i][j][alphas[i]];
+                                if x.contains(&&&alphas[*p]) {
+                                    let score_to_update = dpm[*p][j][alphas[*p]]
+                                        + score_matrix.get(&(lnz[i], '-')).unwrap();
+                                    dpm[i][j][alphas[*p]] = score_to_update - i_alpha_score;
+                                    for k in x.iter() {
+                                        if ***k != alphas[*p] {
+                                            dpm[i][j][***k] =
+                                                dpm[*p][j][***k] + dpm[i][j][alphas[*p]];
+                                        }
                                     }
-                                    dpm[i][j][***k] =
-                                        dpm[*p][j][alphas[*p]] + dpm[*p][j][***k];
+                                } else {
+                                    let alpha = x.iter().min().unwrap();
+                                    for k in x.iter() {
+                                        if k == alpha {
+                                            dpm[i][j][***k] = dpm[*p][j][alphas[*p]]
+                                                + dpm[*p][j][***k]
+                                                + score_matrix.get(&(lnz[i], '-')).unwrap();
+                                        } else {
+                                            dpm[i][j][***k] =
+                                                dpm[*p][j][***k] - dpm[*p][j][alphas[i]];
+                                        }
+                                    }
+                                    let score_to_update = dpm[*p][j][***alpha];
+                                    dpm[i][j][***alpha] = score_to_update - i_alpha_score;
+                                    for k in x.iter() {
+                                        if k != alpha {
+                                            dpm[i][j][***k] =
+                                                dpm[*p][j][***k] + dpm[i][j][***alpha];
+                                        }
+                                    }
                                 }
                             }
                         }
