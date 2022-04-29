@@ -7,8 +7,8 @@ mod global_mk_abpoa;
 mod graph;
 mod local_poa;
 mod matrix;
-mod sequences;
 mod pathwise_alignment;
+mod sequences;
 fn main() {
     // get sequence
     let (sequences, seq_names) = sequences::get_sequences();

@@ -188,7 +188,7 @@ fn ampl_is_enough(
         if ampl_for_row[row].0 == 0 && col == 0 {
             return true;
         }
-        
+
         let p_left = ampl_for_row[bf::pred_from_bitvec(&path[row][col])].0;
         let j_pos = if ampl_for_row[row].0 < p_left {
             let delta = p_left - ampl_for_row[row].0;
