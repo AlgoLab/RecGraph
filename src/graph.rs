@@ -4,6 +4,7 @@ use handlegraph::{
     handle::{Direction, Handle, NodeId},
     handlegraph::HandleGraph,
     hashgraph::HashGraph,
+    pathgraph::PathHandleGraph,
 };
 use std::collections::HashMap;
 
@@ -132,6 +133,38 @@ pub fn get_sorted_handles(file_path: &str, amb_mode: bool) -> Vec<Handle> {
             .collect::<Vec<Handle>>();
     }
     sorted_handles
+}
+
+pub fn create_nodes_paths(file_path: &str) {
+    let parser = GFAParser::new();
+    let gfa: GFA<usize, ()> = parser.parse_file(file_path).unwrap();
+
+    let graph: HashGraph = HashGraph::from_gfa(&gfa);
+    let paths = &graph.paths;
+    let mut every_path = vec![];
+    for path in paths.keys() {
+        every_path.push(*path as usize)
+    }
+
+    let mut sorted_handles: Vec<Handle> = graph.handles_iter().collect();
+    sorted_handles.sort();
+    let mut paths_node: Vec<Vec<usize>> = Vec::new();
+    let mut current_position = 0;
+    paths_node.insert(0, every_path);
+    current_position += 1;
+    for handle in sorted_handles.iter() {
+        let handle_length = &graph.sequence(*handle).len();
+        for i in current_position..current_position + handle_length {
+            paths_node.insert(i, vec![]);
+            for (path_id, path) in paths.iter() {
+                if path.nodes.contains(handle) {
+                    paths_node[i].push(*path_id as usize);
+                }
+            }
+        }
+        current_position += handle_length;
+    }
+    println!("{:?}", paths_node);
 }
 #[cfg(test)]
 mod tests {

@@ -9,10 +9,10 @@ mod local_poa;
 mod matrix;
 mod pathwise_alignment;
 mod sequences;
+
 fn main() {
     // get sequence
     let (sequences, seq_names) = sequences::get_sequences();
-    let seq: &Vec<char> = &sequences[0];
 
     //get graph
     let graph_path = args_parser::get_graph_path();
@@ -20,17 +20,17 @@ fn main() {
 
     //get score matrix
     let score_matrix = matrix::create_score_matrix();
-
+    graph::create_nodes_paths("prova.gfa");
     //get alignment option
     let align_mode = args_parser::get_align_mode();
     let amb_strand = args_parser::get_amb_strand_mode();
     let (b, f) = args_parser::get_b_f();
-    let bases_to_add = (b + f * seq.len() as f32) as usize;
 
     match align_mode {
         //global alignment
         0 => {
             for (i, seq) in sequences.iter().enumerate() {
+                let bases_to_add = (b + f * seq.len() as f32) as usize;
                 let align_score = global_mk_abpoa::exec(
                     seq,
                     &seq_names[i],
@@ -70,7 +70,9 @@ fn main() {
         //affine gap global alignment
         2 => {
             let (g_open, g_ext) = args_parser::get_gap_open_gap_ext();
+
             for (i, seq) in sequences.iter().enumerate() {
+                let bases_to_add = (b + f * seq.len() as f32) as usize;
                 let align_score = gap_mk_abpoa::exec(
                     seq,
                     &seq_names[i],
@@ -99,7 +101,7 @@ fn main() {
                 }
             }
         }
-        //affine gap global alignment
+        //affine gap local alignment
         3 => {
             let (g_open, g_ext) = args_parser::get_gap_open_gap_ext();
             for (i, seq) in sequences.iter().enumerate() {

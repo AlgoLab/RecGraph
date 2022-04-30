@@ -60,7 +60,6 @@ pub fn exec(
                         }
                         path[i][j] = bf::set_path_cell(i - 1, 'U');
                     } else {
-                        // TODO: consider also multiple alpha
                         for p in pred_hash.get(&i).unwrap().iter() {
                             let curr_node_paths = path_node[i].iter().collect::<HashSet<&usize>>();
                             let pred_paths = path_node[*p].iter().collect::<HashSet<_>>();
@@ -139,8 +138,23 @@ pub fn exec(
                     }
                     path[i][j] = bf::set_path_cell(i, 'L');
                 }
-                _ => {}
+                _ => {
+                    if !nodes_with_pred[i] {
+                        let curr_node_paths = path_node[i].iter().collect::<HashSet<&usize>>();
+                        let pred_paths = path_node[i - 1].iter().collect::<HashSet<_>>();
+                        let x = curr_node_paths
+                            .intersection(&pred_paths)
+                            .collect::<Vec<_>>();
+                        if x.contains(&&&alphas[i - 1]) {
+                            //let l = dpm[i][j-1][alphas[i]] + score_matrix.get(&(sequence[j], '-')).unwrap();
+                            //let u = dpm[i][j-1] + score_matrix.get(&(sequence[j], '-')).unwrap();
+                        } else {
+                        }
+                    } else {
+                    }
+                }
             }
         }
     }
+    println!("{:?}", alphas);
 }
