@@ -17,7 +17,6 @@ pub fn exec(
     let mut path = vec![vec![bitvec![u16, Msb0; 0; 32]; sequence.len()]; lnz.len()];
 
     let mut alphas = vec![path_number + 1; lnz.len()];
-    println!("pred 11: {:?}", pred_hash.get(&11));
     for i in 0..lnz.len() - 1 {
         for j in 0..sequence.len() {
             match (i, j) {
@@ -33,7 +32,6 @@ pub fn exec(
                         let x = curr_node_paths
                             .intersection(&pred_paths)
                             .collect::<Vec<_>>();
-                        println!("{:?}",x);
                         if x.contains(&&&alphas[i - 1]) {
                             for k in x.iter() {
                                 if ***k == alphas[i - 1] {
@@ -66,7 +64,6 @@ pub fn exec(
                             let x = curr_node_paths
                                 .intersection(&pred_paths)
                                 .collect::<Vec<_>>();
-                            println!("{:?} {:?} {:?}",curr_node_paths, pred_paths, (i,j));
                             if alphas[i] == path_number + 1 {
                                 // not other alpha in i
                                 if x.contains(&&&alphas[*p]) {
@@ -147,15 +144,30 @@ pub fn exec(
                             .intersection(&pred_paths)
                             .collect::<Vec<_>>();
                         if x.contains(&&&alphas[i - 1]) {
-                            //let l = dpm[i][j-1][alphas[i]] + score_matrix.get(&(sequence[j], '-')).unwrap();
-                            //let u = dpm[i][j-1] + score_matrix.get(&(sequence[j], '-')).unwrap();
+                            let l = dpm[i][j-1][alphas[i]] + score_matrix.get(&(sequence[j], '-')).unwrap();
+                            let u = dpm[i-1][j][alphas[i-1]] + score_matrix.get(&(lnz[i], '-')).unwrap();
+                            let d = dpm[i-1][j-1][alphas[i-1]] + score_matrix.get(&(lnz[i], sequence[j])).unwrap();
+                            dpm[i][j][alphas[i]] = *[d, u, l].iter().max().unwrap();
+                            for delta in x.iter() {
+                                if dpm[i][j][alphas[i]] == d  {
+                                    dpm[i][j][***delta] = dpm[i-1][j-1][***delta]; 
+                                } else if dpm[i][j][alphas[i]] == u {
+                                    dpm[i][j][***delta] = dpm[i-1][j][***delta]; 
+                                } else {
+                                    dpm[i][j][***delta] = dpm[i][j-1][***delta]; 
+                                }
+                            }
                         } else {
+                            //new alpha, update score
+
                         }
                     } else {
+                        //consider multiple alfa
                     }
                 }
             }
         }
     }
+    dpm.iter().for_each(|l| {println!("{:?}", l)});
     println!("{:?}", alphas);
 }
