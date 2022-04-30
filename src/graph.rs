@@ -135,7 +135,7 @@ pub fn get_sorted_handles(file_path: &str, amb_mode: bool) -> Vec<Handle> {
     sorted_handles
 }
 
-pub fn create_nodes_paths(file_path: &str) {
+pub fn create_nodes_paths(file_path: &str) -> Vec<Vec<usize>> {
     let parser = GFAParser::new();
     let gfa: GFA<usize, ()> = parser.parse_file(file_path).unwrap();
 
@@ -164,7 +164,12 @@ pub fn create_nodes_paths(file_path: &str) {
         }
         current_position += handle_length;
     }
-    println!("{:?}", paths_node);
+    let mut every_path = vec![];
+    for path in paths.keys() {
+        every_path.push(*path as usize)
+    }
+    paths_node.insert(current_position, every_path);
+    paths_node
 }
 #[cfg(test)]
 mod tests {

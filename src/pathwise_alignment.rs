@@ -1,7 +1,7 @@
 use crate::{bitfield_path as bf, graph::LnzGraph};
 use bitvec::prelude::*;
 use std::collections::{HashMap, HashSet};
-
+// TODO: edge must be in at least 1 path to be considered
 pub fn exec(
     sequence: &[char],
     graph: &LnzGraph,
@@ -12,12 +12,12 @@ pub fn exec(
     let lnz = &graph.lnz;
     let nodes_with_pred = &graph.nwp;
     let pred_hash = &graph.pred_hash;
-
+    
     let mut dpm = vec![vec![vec![0; path_number]; sequence.len()]; lnz.len()];
     let mut path = vec![vec![bitvec![u16, Msb0; 0; 32]; sequence.len()]; lnz.len()];
 
     let mut alphas = vec![path_number + 1; lnz.len()];
-
+    println!("pred 11: {:?}", pred_hash.get(&11));
     for i in 0..lnz.len() - 1 {
         for j in 0..sequence.len() {
             match (i, j) {
@@ -33,7 +33,7 @@ pub fn exec(
                         let x = curr_node_paths
                             .intersection(&pred_paths)
                             .collect::<Vec<_>>();
-
+                        println!("{:?}",x);
                         if x.contains(&&&alphas[i - 1]) {
                             for k in x.iter() {
                                 if ***k == alphas[i - 1] {
@@ -66,6 +66,7 @@ pub fn exec(
                             let x = curr_node_paths
                                 .intersection(&pred_paths)
                                 .collect::<Vec<_>>();
+                            println!("{:?} {:?} {:?}",curr_node_paths, pred_paths, (i,j));
                             if alphas[i] == path_number + 1 {
                                 // not other alpha in i
                                 if x.contains(&&&alphas[*p]) {

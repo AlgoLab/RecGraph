@@ -20,7 +20,6 @@ fn main() {
 
     //get score matrix
     let score_matrix = matrix::create_score_matrix();
-    graph::create_nodes_paths("prova.gfa");
     //get alignment option
     let align_mode = args_parser::get_align_mode();
     let amb_strand = args_parser::get_amb_strand_mode();
@@ -129,7 +128,11 @@ fn main() {
                     );
                 }
             }
-        }
+        },
+        4 => {
+            let path_node = graph::create_nodes_paths(&graph_path);
+            pathwise_alignment::exec(&sequences[0], &graph_struct, &path_node, &score_matrix, 3);
+        },
         _ => {
             panic!("alignment mode must be 0, 1, 2 or 3");
         }
