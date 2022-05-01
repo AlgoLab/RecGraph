@@ -137,6 +137,8 @@ pub fn exec(
                     path[i][j] = bf::set_path_cell(i, 'L');
                 }
                 _ => {
+                    let l = dpm[i][j - 1][alphas[i]]
+                            + score_matrix.get(&(sequence[j], '-')).unwrap();
                     if !nodes_with_pred[i] {
                         let curr_node_paths = path_node[i].iter().collect::<HashSet<&usize>>();
                         let pred_paths = path_node[i - 1].iter().collect::<HashSet<_>>();
@@ -144,8 +146,7 @@ pub fn exec(
                             .intersection(&pred_paths)
                             .collect::<Vec<_>>();
 
-                        let l = dpm[i][j - 1][alphas[i]]
-                            + score_matrix.get(&(sequence[j], '-')).unwrap();
+                        
                         let u;
                         let d;
                         let mut d_delta_correction = 0;
@@ -185,6 +186,48 @@ pub fn exec(
                         }
                     } else {
                         //consider multiple alfa
+                        let mut alphas_deltas = HashMap::new();
+                        for p in pred_hash.get(&i).unwrap() {
+                            let curr_node_paths = path_node[i].iter().collect::<HashSet<&usize>>();
+                            let pred_paths = path_node[*p].iter().collect::<HashSet<_>>();
+                            let x = curr_node_paths
+                                .intersection(&pred_paths)
+                                .collect::<Vec<_>>();
+                            let u;
+                            let d;
+                            if x.contains(&&&alphas[*p]) {
+                                let paths = x.iter().map(|p|{***p}).collect::<Vec<usize>>();
+                                alphas_deltas.insert(alphas[*p], paths);
+                                u = dpm[*p][j][alphas[*p]]
+                                    + score_matrix.get(&(lnz[i], '-')).unwrap();
+                                d = dpm[*p][j - 1][alphas[*p]]
+                                    + score_matrix.get(&(lnz[i], sequence[j])).unwrap();
+                                dpm[i][j][alphas[*p]] = *[d, u, l].iter().max().unwrap();
+                                // TODO: set score for each delta
+                                if dpm[i][j][alphas[*p]] == l {
+
+                                } else {
+                                    for path in x.iter() {
+                                        if ***path != alphas[*p] {
+                                            if dpm[i][j][alphas[*p]] == d {
+    
+                                            } else if dpm[i][j][alphas[*p]] == u {
+    
+                                            } 
+                                        }
+                                    }
+                                }
+                                
+
+                            } else {
+                                //set new alpha
+                                let temp_alpha = x.iter().min().unwrap();
+                                let paths = x.iter().map(|p|{***p}).collect::<Vec<usize>>();
+                                alphas_deltas.insert(***temp_alpha, paths);
+
+                            }
+                            // if multiple alpha in i, j remove all but alphas[i]
+                        }
                     }
                 }
             }
