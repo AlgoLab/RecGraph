@@ -12,7 +12,7 @@ pub fn exec(
     let lnz = &graph.lnz;
     let nodes_with_pred = &graph.nwp;
     let pred_hash = &graph.pred_hash;
-    
+
     let mut dpm = vec![vec![vec![0; path_number]; sequence.len()]; lnz.len()];
     let mut path = vec![vec![bitvec![u16, Msb0; 0; 32]; sequence.len()]; lnz.len()];
 
@@ -143,23 +143,45 @@ pub fn exec(
                         let x = curr_node_paths
                             .intersection(&pred_paths)
                             .collect::<Vec<_>>();
+
+                        let l = dpm[i][j - 1][alphas[i]]
+                            + score_matrix.get(&(sequence[j], '-')).unwrap();
+                        let u;
+                        let d;
+                        let mut d_delta_correction = 0;
+                        let mut u_delta_correction = 0;
                         if x.contains(&&&alphas[i - 1]) {
-                            let l = dpm[i][j-1][alphas[i]] + score_matrix.get(&(sequence[j], '-')).unwrap();
-                            let u = dpm[i-1][j][alphas[i-1]] + score_matrix.get(&(lnz[i], '-')).unwrap();
-                            let d = dpm[i-1][j-1][alphas[i-1]] + score_matrix.get(&(lnz[i], sequence[j])).unwrap();
-                            dpm[i][j][alphas[i]] = *[d, u, l].iter().max().unwrap();
-                            for delta in x.iter() {
-                                if dpm[i][j][alphas[i]] == d  {
-                                    dpm[i][j][***delta] = dpm[i-1][j-1][***delta]; 
-                                } else if dpm[i][j][alphas[i]] == u {
-                                    dpm[i][j][***delta] = dpm[i-1][j][***delta]; 
-                                } else {
-                                    dpm[i][j][***delta] = dpm[i][j-1][***delta]; 
+                            u = dpm[i - 1][j][alphas[i - 1]]
+                                + score_matrix.get(&(lnz[i], '-')).unwrap();
+                            d = dpm[i - 1][j - 1][alphas[i - 1]]
+                                + score_matrix.get(&(lnz[i], sequence[j])).unwrap();
+                        } else {
+                            u = dpm[i - 1][j][alphas[i]]
+                                + dpm[i - 1][j][alphas[i - 1]]
+                                + score_matrix.get(&(lnz[i], '-')).unwrap();
+                            d = dpm[i - 1][j - 1][alphas[i]]
+                                + dpm[i - 1][j - 1][alphas[i - 1]]
+                                + score_matrix.get(&(lnz[i], sequence[j])).unwrap();
+                            d_delta_correction = dpm[i - 1][j - 1][alphas[i]];
+                            u_delta_correction = dpm[i - 1][j][alphas[i]];
+                        }
+                        dpm[i][j][alphas[i]] = *[d, u, l].iter().max().unwrap();
+                        if dpm[i][j][alphas[i]] == l {
+                            for path in curr_node_paths {
+                                if *path != alphas[i] {
+                                    dpm[i][j][*path] = dpm[i][j - 1][*path];
                                 }
                             }
                         } else {
-                            //new alpha, update score
-
+                            for delta in x.iter() {
+                                if dpm[i][j][alphas[i]] == d {
+                                    dpm[i][j][***delta] =
+                                        dpm[i - 1][j - 1][***delta] - d_delta_correction;
+                                } else if dpm[i][j][alphas[i]] == u {
+                                    dpm[i][j][***delta] =
+                                        dpm[i - 1][j][***delta] - u_delta_correction;
+                                }
+                            }
                         }
                     } else {
                         //consider multiple alfa
@@ -168,6 +190,6 @@ pub fn exec(
             }
         }
     }
-    dpm.iter().for_each(|l| {println!("{:?}", l)});
+    dpm.iter().for_each(|l| println!("{:?}", l));
     println!("{:?}", alphas);
 }
