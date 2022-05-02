@@ -4,7 +4,6 @@ use handlegraph::{
     handle::{Direction, Handle, NodeId},
     handlegraph::HandleGraph,
     hashgraph::HashGraph,
-    pathgraph::PathHandleGraph,
 };
 use std::collections::HashMap;
 
