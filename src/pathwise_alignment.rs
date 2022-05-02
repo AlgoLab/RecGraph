@@ -19,7 +19,6 @@ pub fn exec(
     let mut alphas = vec![path_number + 1; lnz.len()];
 
     for i in 0..lnz.len() - 1 {
-        println!("{i}");
         for j in 0..sequence.len() {
             match (i, j) {
                 (0, 0) => {
@@ -162,11 +161,13 @@ pub fn exec(
                             for path in x.iter() {
                                 if ***path != alphas[i] {
                                     if dpm[i][j][alphas[i]] == d {
-                                        dpm[i][j][***path] = dpm[i - 1][j - 1][***path]
+                                        dpm[i][j][***path] = 
+                                            dpm[i - 1][j - 1][***path]
                                             - dpm[i - 1][j - 1][alphas[i]]
                                     } else if dpm[i][j][alphas[i]] == u {
                                         dpm[i][j][***path] =
-                                            dpm[i - 1][j][***path] - dpm[i - 1][j][alphas[i]]
+                                            dpm[i - 1][j][***path] 
+                                            - dpm[i - 1][j][alphas[i]]
                                     } else {
                                         dpm[i][j][***path] = dpm[i][j - 1][***path]
                                     }
@@ -210,34 +211,38 @@ pub fn exec(
                                 }
                             } else {
                                 //set new alpha
-                                let temp_alpha = x.iter().min().unwrap();
+                                let temp_alpha = if x.contains(&&&alphas[i]) {
+                                    alphas[i]
+                                } else {
+                                    ***x.iter().min().unwrap()
+                                };
                                 let paths = x.iter().map(|p| ***p).collect::<Vec<usize>>();
-                                alphas_deltas.insert(***temp_alpha, paths);
+                                alphas_deltas.insert(temp_alpha, paths);
 
                                 let u = dpm[*p][j][alphas[*p]]
-                                    + dpm[*p][j][***temp_alpha]
+                                    + dpm[*p][j][temp_alpha]
                                     + score_matrix.get(&(lnz[i], '-')).unwrap();
                                 let d = dpm[*p][j - 1][alphas[*p]]
-                                    + dpm[*p][j - 1][***temp_alpha]
+                                    + dpm[*p][j - 1][temp_alpha]
                                     + score_matrix.get(&(lnz[i], sequence[j])).unwrap();
-                                let l = if alphas[i] == ***temp_alpha {
-                                    dpm[i][j - 1][***temp_alpha]
+                                let l = if alphas[i] == temp_alpha {
+                                    dpm[i][j - 1][temp_alpha]
                                         + score_matrix.get(&(sequence[j], '-')).unwrap()
                                 } else {
-                                    dpm[i][j - 1][***temp_alpha]
+                                    dpm[i][j - 1][temp_alpha]
                                         + dpm[i][j - 1][alphas[i]]
                                         + score_matrix.get(&(sequence[j], '-')).unwrap()
                                 };
-                                dpm[i][j][***temp_alpha] = *[d, u, l].iter().max().unwrap();
+                                dpm[i][j][temp_alpha] = *[d, u, l].iter().max().unwrap();
                                 // TODO: check if l value delta correct
                                 for path in x.iter() {
-                                    if path != temp_alpha {
-                                        if dpm[i][j][***temp_alpha] == d {
+                                    if path != &&&temp_alpha {
+                                        if dpm[i][j][temp_alpha] == d {
                                             dpm[i][j][***path] = dpm[*p][j - 1][***path]
-                                                - dpm[*p][j - 1][***temp_alpha]
-                                        } else if dpm[i][j][***temp_alpha] == u {
+                                                - dpm[*p][j - 1][temp_alpha]
+                                        } else if dpm[i][j][temp_alpha] == u {
                                             dpm[i][j][***path] =
-                                                dpm[*p][j][***path] - dpm[*p][j][***temp_alpha]
+                                                dpm[*p][j][***path] - dpm[*p][j][temp_alpha]
                                         } else {
                                             dpm[i][j][***path] = dpm[i][j - 1][***path]
                                         }
@@ -245,7 +250,9 @@ pub fn exec(
                                 }
                             }
                         }
+                        let mut found = true;
                         if alphas_deltas.keys().len() > 1 {
+                            found = false;
                             for (a, delta) in alphas_deltas.iter() {
                                 if *a != alphas[i] {
                                     dpm[i][j][*a] -= dpm[i][j][alphas[i]];
@@ -254,9 +261,12 @@ pub fn exec(
                                             dpm[i][j][*path] += dpm[i][j][*a];
                                         }
                                     }
+                                } else {
+                                    found = true
                                 }
                             }
                         }
+                        if !found {panic!("{i} {j}")}
                     }
                 }
             }
@@ -265,9 +275,9 @@ pub fn exec(
     dpm[..dpm.len() - 1]
         .iter()
         .enumerate()
-        .for_each(|(i, line)| println!("{:?}", line[0][alphas[i]]));
-    println!("{:?}", alphas);
-    println!("{:?}", path_node);
+        .for_each(|(i, line)| println!("{:?}", line));
+    println!("{:?}", dpm[dpm.len()-2][dpm[0].len()-1]);    
+    /*
     for (idx, line) in dpm.iter().enumerate() {
         print!("{}\t", dpm[idx][line.len() - 1][alphas[idx]]);
         for path in path_node[idx].iter().enumerate() {
@@ -277,4 +287,6 @@ pub fn exec(
         }
         println!();
     }
+    */
+    
 }
