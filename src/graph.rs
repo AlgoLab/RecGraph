@@ -169,6 +169,9 @@ pub fn create_nodes_paths(file_path: &str) -> Vec<Vec<usize>> {
         every_path.push(*path as usize)
     }
     paths_node.insert(current_position, every_path);
+    for p in paths_node.iter_mut() {
+        p.sort()
+    }
     paths_node
 }
 #[cfg(test)]

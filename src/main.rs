@@ -131,7 +131,7 @@ fn main() {
         }
         4 => {
             let path_node = graph::create_nodes_paths(&graph_path);
-            pathwise_alignment::exec(&sequences[0], &graph_struct, &path_node, &score_matrix, 3);
+            pathwise_alignment::exec(&sequences[4], &graph_struct, &path_node, &score_matrix, 3);
         }
         _ => {
             panic!("alignment mode must be 0, 1, 2 or 3");
