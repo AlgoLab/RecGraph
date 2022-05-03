@@ -10,7 +10,7 @@ use std::{
 //TODO: remove last row, only best value needed
 pub fn exec(
     sequence: &[char],
-    seq_name: &str,
+    seq_name: (&str, usize),
     graph_struct: &LnzGraph,
     score_matrix: &HashMap<(char, char), i32>,
     bta: usize,
@@ -459,7 +459,15 @@ mod tests {
         score_matrix.insert(('A', 'A'), 1);
         score_matrix.insert(('A', '-'), -1);
         score_matrix.insert(('-', 'A'), -1);
-        let align = super::exec(&s, "test", &graph, &score_matrix, 100, "./prova.gfa", false);
+        let align = super::exec(
+            &s,
+            ("test", 1),
+            &graph,
+            &score_matrix,
+            100,
+            "./prova.gfa",
+            false,
+        );
 
         assert_eq!(align, 4);
     }
@@ -496,7 +504,15 @@ mod tests {
         score_matrix.insert(('C', '-'), -1);
         score_matrix.insert(('C', 'A'), -1);
         score_matrix.insert(('A', 'C'), -1);
-        let align = super::exec(&s, "test", &graph, &score_matrix, 4, "./prova.gfa", false);
+        let align = super::exec(
+            &s,
+            ("test", 1),
+            &graph,
+            &score_matrix,
+            4,
+            "./prova.gfa",
+            false,
+        );
 
         assert_eq!(align, 5);
     }
@@ -535,7 +551,15 @@ mod tests {
         score_matrix.insert(('C', '-'), -1);
         score_matrix.insert(('C', 'A'), -1);
         score_matrix.insert(('A', 'C'), -1);
-        let align = super::exec(&s, "test", &graph, &score_matrix, 4, "./prova.gfa", false);
+        let align = super::exec(
+            &s,
+            ("test", 1),
+            &graph,
+            &score_matrix,
+            4,
+            "./prova.gfa",
+            false,
+        );
 
         assert_eq!(align, 5);
     }
@@ -579,7 +603,15 @@ mod tests {
         score_matrix.insert(('C', '-'), -1);
         score_matrix.insert(('C', 'A'), -1);
         score_matrix.insert(('A', 'C'), -1);
-        let align = super::exec(&s, "test", &graph, &score_matrix, 4, "./prova.gfa", false);
+        let align = super::exec(
+            &s,
+            ("test", 1),
+            &graph,
+            &score_matrix,
+            4,
+            "./prova.gfa",
+            false,
+        );
 
         assert_eq!(align, 5);
     }

@@ -32,7 +32,7 @@ fn main() {
                 let bases_to_add = (b + f * seq.len() as f32) as usize;
                 let align_score = global_mk_abpoa::exec(
                     seq,
-                    &seq_names[i],
+                    (&seq_names[i], i),
                     &graph_struct,
                     &score_matrix,
                     bases_to_add,
@@ -43,7 +43,7 @@ fn main() {
                     let rev_seq = sequences::rev_and_compl(seq);
                     global_mk_abpoa::exec(
                         &rev_seq,
-                        &seq_names[i],
+                        (&seq_names[i], i),
                         &graph_struct,
                         &score_matrix,
                         bases_to_add,

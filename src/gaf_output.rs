@@ -188,12 +188,12 @@ pub fn gaf_of_gap_abpoa(
         mapping_quality,
         comments
     );
-    write_gaf(&gaf_out);
+    write_gaf(&gaf_out, 1);
 }
 pub fn gaf_of_global_abpoa(
     path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
     sequence: &[char],
-    seq_name: &str,
+    seq_name: (&str, usize),
     //graph: &[char],  needed for path start and end?
     ampl_for_row: &[(usize, usize)],
     last_row: usize,
@@ -309,7 +309,7 @@ pub fn gaf_of_global_abpoa(
     let comments = cigars[..cigars.len() - 1].join(",");
     let gaf_out = format!(
         "{}\t{}\t{}\t{}\t{}\t>{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
-        seq_name,
+        seq_name.0,
         seq_length,
         query_start,
         query_end,
@@ -323,7 +323,7 @@ pub fn gaf_of_global_abpoa(
         mapping_quality,
         comments
     );
-    write_gaf(&gaf_out);
+    write_gaf(&gaf_out, seq_name.1);
 }
 pub fn gaf_of_local_poa(
     path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
@@ -446,7 +446,7 @@ pub fn gaf_of_local_poa(
         mapping_quality,
         comments
     );
-    write_gaf(&gaf_out);
+    write_gaf(&gaf_out, 1);
 }
 
 pub fn gaf_of_gap_local_poa(
@@ -588,7 +588,7 @@ pub fn gaf_of_gap_local_poa(
         mapping_quality,
         comments
     );
-    write_gaf(&gaf_out);
+    write_gaf(&gaf_out, 1);
 }
 
 fn node_start(hofp: &HashMap<usize, String>, row: usize) -> usize {
@@ -600,7 +600,7 @@ fn node_start(hofp: &HashMap<usize, String>, row: usize) -> usize {
     row - i
 }
 
-fn write_gaf(gaf_out: &str) {
+fn write_gaf(gaf_out: &str, number: usize) {
     let file_path = args_parser::get_graph_path();
     let file_name = Path::new(&file_path)
         .file_name()
@@ -613,7 +613,7 @@ fn write_gaf(gaf_out: &str) {
     let path = project_root::get_project_root()
         .unwrap()
         .join(file_name_out);
-    let file = if Path::new(&path).exists() {
+    let file = if Path::new(&path).exists() && number != 0 {
         OpenOptions::new()
             .write(true)
             .append(true)

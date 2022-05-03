@@ -282,8 +282,8 @@ pub fn exec(
                                 for path in x.iter() {
                                     if path != &&&temp_alpha {
                                         if dpm[i][j][temp_alpha] == d {
-                                            dpm[i][j][***path] =
-                                                dpm[*p][j - 1][***path] - dpm[*p][j - 1][temp_alpha];
+                                            dpm[i][j][***path] = dpm[*p][j - 1][***path]
+                                                - dpm[*p][j - 1][temp_alpha];
                                             path_build[i][j][***path] = ('D', *p);
                                         } else if dpm[i][j][temp_alpha] == u {
                                             dpm[i][j][***path] =
