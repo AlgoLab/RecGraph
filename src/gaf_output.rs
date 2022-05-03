@@ -600,7 +600,7 @@ fn node_start(hofp: &HashMap<usize, String>, row: usize) -> usize {
     row - i
 }
 
-fn write_gaf(gaf_out: &String) {
+fn write_gaf(gaf_out: &str) {
     let file_path = args_parser::get_graph_path();
     let file_name = Path::new(&file_path)
         .file_name()

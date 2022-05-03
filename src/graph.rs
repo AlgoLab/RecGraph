@@ -169,7 +169,7 @@ pub fn create_nodes_paths(file_path: &str) -> Vec<Vec<usize>> {
     }
     paths_node.insert(current_position, every_path);
     for p in paths_node.iter_mut() {
-        p.sort()
+        p.sort_unstable()
     }
     paths_node
 }

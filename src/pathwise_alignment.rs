@@ -284,5 +284,5 @@ pub fn exec(
     dpm[..dpm.len() - 1]
         .iter()
         .enumerate()
-        .for_each(|(i, line)| println!("{:?}", line));
+        .for_each(|(_i, line)| println!("{:?}", line));
 }
