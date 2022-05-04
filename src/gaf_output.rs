@@ -6,6 +6,8 @@ use std::fs::OpenOptions;
 use std::io::{prelude::*, BufWriter};
 use std::path::Path;
 use std::{collections::HashMap, fs::File};
+
+// TODO: looks for arg parser use
 fn create_handle_pos_in_lnz(
     nwp: &BitVec,
     file_path: &str,

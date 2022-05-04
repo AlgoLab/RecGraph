@@ -20,7 +20,7 @@ pub fn create_score_matrix() -> HashMap<(char, char), i32> {
     }
 }
 // TODO: remove '-' after local_alignment with gap O/E
-fn create_score_matrix_match_mis(m: i32, x: i32) -> HashMap<(char, char), i32> {
+pub fn create_score_matrix_match_mis(m: i32, x: i32) -> HashMap<(char, char), i32> {
     let mut score_matrix: HashMap<(char, char), i32> = HashMap::new();
     for i in ['A', 'C', 'G', 'T', 'N', '-'].iter() {
         for j in ['A', 'C', 'G', 'T', 'N', '-'].iter() {

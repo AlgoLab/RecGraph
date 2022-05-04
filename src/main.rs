@@ -1,15 +1,12 @@
-mod args_parser;
-mod bitfield_path;
-mod gaf_output;
-mod gap_local_poa;
-mod gap_mk_abpoa;
-mod global_mk_abpoa;
-mod graph;
-mod local_poa;
-mod matrix;
-mod pathwise_alignment;
-mod sequences;
-
+use rspoa::args_parser;
+use rspoa::gap_local_poa;
+use rspoa::gap_mk_abpoa;
+use rspoa::global_mk_abpoa;
+use rspoa::graph;
+use rspoa::local_poa;
+use rspoa::matrix;
+use rspoa::pathwise_alignment;
+use rspoa::sequences;
 fn main() {
     // get sequence
     let (sequences, seq_names) = sequences::get_sequences();
