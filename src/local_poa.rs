@@ -69,16 +69,19 @@ pub fn exec(
     }
 
     println!("Best alignment: {}", m[best_row][best_col]);
-    gaf_output::gaf_of_local_poa(
-        &path,
-        sequence,
-        seq_name,
-        best_row,
-        best_col,
-        nodes_with_pred,
-        file_path,
-        amb_mode,
-    );
+    if seq_name.1 != 0 {
+        gaf_output::gaf_of_local_poa(
+            &path,
+            sequence,
+            seq_name,
+            best_row,
+            best_col,
+            nodes_with_pred,
+            file_path,
+            amb_mode,
+        );
+    }
+
     m[best_row][best_col]
 }
 
