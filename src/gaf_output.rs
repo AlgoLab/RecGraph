@@ -615,7 +615,7 @@ fn write_gaf(gaf_out: &str, number: usize) {
     let path = project_root::get_project_root()
         .unwrap()
         .join(file_name_out);
-    let file = if Path::new(&path).exists() && number != 0 {
+    let file = if Path::new(&path).exists() && number != 1 {
         OpenOptions::new()
             .write(true)
             .append(true)

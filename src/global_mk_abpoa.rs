@@ -158,18 +158,21 @@ pub fn exec(
         println!("Band length probably too short, maybe try with larger b and f");
     }
     println!("Alignment mk {:?}", best_value);
-    gaf_output::gaf_of_global_abpoa(
-        &path,
-        sequence,
-        seq_name,
-        //lnz,
-        &ampl_for_row,
-        last_row,
-        last_col,
-        nodes_w_pred,
-        file_path,
-        amb_mode,
-    );
+    if seq_name.1 != 0 {
+        gaf_output::gaf_of_global_abpoa(
+            &path,
+            sequence,
+            seq_name,
+            //lnz,
+            &ampl_for_row,
+            last_row,
+            last_col,
+            nodes_w_pred,
+            file_path,
+            amb_mode,
+        );
+    }
+    
     m[last_row][last_col]
 }
 
