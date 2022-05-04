@@ -29,7 +29,7 @@ fn main() {
                 let bases_to_add = (b + f * seq.len() as f32) as usize;
                 let align_score = global_mk_abpoa::exec(
                     seq,
-                    (&seq_names[i], i+1),
+                    (&seq_names[i], i + 1),
                     &graph_struct,
                     &score_matrix,
                     bases_to_add,
@@ -40,7 +40,7 @@ fn main() {
                     let rev_seq = sequences::rev_and_compl(seq);
                     global_mk_abpoa::exec(
                         &rev_seq,
-                        (&seq_names[i], i+1),
+                        (&seq_names[i], i + 1),
                         &graph_struct,
                         &score_matrix,
                         bases_to_add,
@@ -53,14 +53,25 @@ fn main() {
         //local alignment
         1 => {
             for (i, seq) in sequences.iter().enumerate() {
-                local_poa::exec(
+                let align_score = local_poa::exec(
                     seq,
-                    &seq_names[i],
+                    (&seq_names[i], i + 1),
                     &graph_struct,
                     &score_matrix,
                     &graph_path,
                     false,
                 );
+                if align_score < 0 && amb_strand {
+                    let rev_seq = sequences::rev_and_compl(seq);
+                    local_poa::exec(
+                        &rev_seq,
+                        (&seq_names[i], i + 1),
+                        &graph_struct,
+                        &score_matrix,
+                        &graph_path,
+                        true,
+                    );
+                }
             }
         }
         //affine gap global alignment
@@ -71,7 +82,7 @@ fn main() {
                 let bases_to_add = (b + f * seq.len() as f32) as usize;
                 let align_score = gap_mk_abpoa::exec(
                     seq,
-                    &seq_names[i],
+                    (&seq_names[i], i + 1),
                     &graph_struct,
                     &score_matrix,
                     g_open,
@@ -85,7 +96,7 @@ fn main() {
                     let rev_seq = sequences::rev_and_compl(seq);
                     gap_mk_abpoa::exec(
                         &rev_seq,
-                        &seq_names[i],
+                        (&seq_names[i], i + 1),
                         &graph_struct,
                         &score_matrix,
                         g_open,
@@ -103,7 +114,7 @@ fn main() {
             for (i, seq) in sequences.iter().enumerate() {
                 let align_score = gap_local_poa::exec(
                     seq,
-                    &seq_names[i],
+                    (&seq_names[i], i + 1),
                     &graph_struct,
                     &score_matrix,
                     g_open,
@@ -115,7 +126,7 @@ fn main() {
                     let rev_seq = sequences::rev_and_compl(seq);
                     gap_local_poa::exec(
                         &rev_seq,
-                        &seq_names[i],
+                        (&seq_names[i], i + 1),
                         &graph_struct,
                         &score_matrix,
                         g_open,

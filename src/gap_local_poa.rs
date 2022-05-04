@@ -6,7 +6,7 @@ use bitvec::prelude::*;
 
 pub fn exec(
     sequence: &[char],
-    seq_name: &str,
+    seq_name: (&str, usize),
     graph: &LnzGraph,
     scores_matrix: &HashMap<(char, char), i32>,
     o: i32,
@@ -118,19 +118,21 @@ pub fn exec(
     }
 
     println!("Best alignment: {}", m[best_row][best_col]);
+    if seq_name.1 != 0 {
+        gaf_output::gaf_of_gap_local_poa(
+            &path,
+            &path_x,
+            &path_y,
+            sequence,
+            seq_name,
+            best_row,
+            best_col,
+            nodes_with_pred,
+            file_path,
+            amb_mode,
+        );
+    }
 
-    gaf_output::gaf_of_gap_local_poa(
-        &path,
-        &path_x,
-        &path_y,
-        sequence,
-        seq_name,
-        best_row,
-        best_col,
-        nodes_with_pred,
-        file_path,
-        amb_mode,
-    );
     m[best_row][best_col]
 }
 
@@ -241,7 +243,7 @@ mod tests {
         }
         let align_score = super::exec(
             &s,
-            "test",
+            ("test", 0),
             &graph_struct,
             &score_matrix,
             -4,
@@ -283,7 +285,7 @@ mod tests {
         }
         let align_score = super::exec(
             &s,
-            "test",
+            ("test", 0),
             &graph_struct,
             &score_matrix,
             -4,

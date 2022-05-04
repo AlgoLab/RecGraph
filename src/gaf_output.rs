@@ -36,7 +36,7 @@ pub fn gaf_of_gap_abpoa(
     path_x: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
     path_y: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
     sequence: &[char],
-    seq_name: &str,
+    seq_name: (&str, usize),
     //graph: &[char],  needed for path start and end?
     ampl_for_row: &[(usize, usize)],
     last_row: usize,
@@ -176,7 +176,7 @@ pub fn gaf_of_gap_abpoa(
     let comments = cigars[..cigars.len() - 1].join(",");
     let gaf_out = format!(
         "{}\t{}\t{}\t{}\t{}\t>{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
-        seq_name,
+        seq_name.0,
         seq_length,
         query_start,
         query_end,
@@ -330,7 +330,7 @@ pub fn gaf_of_global_abpoa(
 pub fn gaf_of_local_poa(
     path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
     sequence: &[char],
-    seq_name: &str,
+    seq_name: (&str, usize),
     //graph: &[char],  needed for path start and end?
     last_row: usize,
     last_col: usize,
@@ -434,7 +434,7 @@ pub fn gaf_of_local_poa(
     let comments = cigars[..cigars.len() - 1].join(",");
     let gaf_out = format!(
         "{}\t{}\t{}\t{}\t{}\t>{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
-        seq_name,
+        seq_name.0,
         seq_length,
         query_start,
         query_end,
@@ -456,7 +456,7 @@ pub fn gaf_of_gap_local_poa(
     path_x: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
     path_y: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
     sequence: &[char],
-    seq_name: &str,
+    seq_name: (&str, usize),
     //graph: &[char],  needed for path start and end?
     last_row: usize,
     last_col: usize,
@@ -576,7 +576,7 @@ pub fn gaf_of_gap_local_poa(
     let comments = cigars[..cigars.len() - 1].join(",");
     let gaf_out = format!(
         "{}\t{}\t{}\t{}\t{}\t>{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
-        seq_name,
+        seq_name.0,
         seq_length,
         query_start,
         query_end,

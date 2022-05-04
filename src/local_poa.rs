@@ -4,7 +4,7 @@ use bitvec::prelude::*;
 use std::{cmp::Ordering, collections::HashMap};
 pub fn exec(
     sequence: &[char],
-    seq_name: &str,
+    seq_name: (&str, usize),
     graph: &LnzGraph,
     scores_matrix: &HashMap<(char, char), i32>,
     file_path: &str,
@@ -169,7 +169,7 @@ mod tests {
         }
         let align_score = super::exec(
             &s,
-            "seq",
+            ("seq", 0),
             &graph_struct,
             &score_matrix,
             "./prova.gfa",
@@ -208,7 +208,7 @@ mod tests {
         }
         let align_score = super::exec(
             &s,
-            "seq",
+            ("seq", 0),
             &graph_struct,
             &score_matrix,
             "./prova.gfa",

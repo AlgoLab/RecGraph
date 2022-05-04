@@ -8,7 +8,7 @@ use std::{
 
 pub fn exec(
     sequence: &[char],
-    seq_name: &str,
+    seq_name: (&str, usize),
     graph_struct: &LnzGraph,
     score_matrix: &HashMap<(char, char), i32>,
     o: i32,
@@ -223,20 +223,22 @@ pub fn exec(
     drop(y);
 
     println!("{}", best_value);
+    if seq_name.1 != 0 {
+        gaf_output::gaf_of_gap_abpoa(
+            &path,
+            &path_x,
+            &path_y,
+            sequence,
+            seq_name,
+            &ampl_for_row,
+            last_row,
+            last_col,
+            nodes_w_pred,
+            file_path,
+            amb_mode,
+        );
+    }
 
-    gaf_output::gaf_of_gap_abpoa(
-        &path,
-        &path_x,
-        &path_y,
-        sequence,
-        seq_name,
-        &ampl_for_row,
-        last_row,
-        last_col,
-        nodes_w_pred,
-        file_path,
-        amb_mode,
-    );
     best_value
 }
 
@@ -567,7 +569,7 @@ mod tests {
 
         let align = super::exec(
             &s,
-            "test",
+            ("test", 0),
             &graph,
             &score_matrix,
             -4,
@@ -612,7 +614,7 @@ mod tests {
 
         let align = super::exec(
             &s,
-            "test",
+            ("test", 0),
             &graph,
             &score_matrix,
             -4,
@@ -658,7 +660,7 @@ mod tests {
         score_matrix.insert(('A', 'C'), -1);
         let align = super::exec(
             &s,
-            "test",
+            ("test", 0),
             &graph,
             &score_matrix,
             -4,
@@ -708,7 +710,7 @@ mod tests {
         score_matrix.insert(('A', 'C'), -1);
         let align = super::exec(
             &s,
-            "test",
+            ("test", 0),
             &graph,
             &score_matrix,
             -4,
@@ -752,7 +754,7 @@ mod tests {
         score_matrix.insert(('A', 'C'), -1);
         let align = super::exec(
             &s,
-            "test",
+            ("test", 0),
             &graph,
             &score_matrix,
             0,
@@ -789,7 +791,7 @@ mod tests {
         score_matrix.insert(('A', 'C'), -1);
         let align = super::exec(
             &s,
-            "test",
+            ("test", 0),
             &graph,
             &score_matrix,
             -100,
@@ -825,7 +827,7 @@ mod tests {
         score_matrix.insert(('A', 'C'), -1);
         let align = super::exec(
             &s,
-            "test",
+            ("test", 0),
             &graph,
             &score_matrix,
             -4,

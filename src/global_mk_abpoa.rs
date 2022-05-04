@@ -172,7 +172,7 @@ pub fn exec(
             amb_mode,
         );
     }
-    
+
     m[last_row][last_col]
 }
 
