@@ -610,7 +610,7 @@ fn write_gaf(gaf_out: &str, number: usize, alignment_mode: &str) {
         .unwrap()
         .split('.')
         .collect::<Vec<&str>>()[0];
-    let file_name_out = String::from(file_name) +"_"+alignment_mode+ ".gaf";
+    let file_name_out = String::from(file_name) + "_" + alignment_mode + ".gaf";
     let path = project_root::get_project_root()
         .unwrap()
         .join(file_name_out);

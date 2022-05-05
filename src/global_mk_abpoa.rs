@@ -85,14 +85,14 @@ pub fn exec(
                             *pred_hash.get(&i).unwrap().iter().min().unwrap()
                         };
                         l = score_matrix.get(&(sequence[j + left], '-')).unwrap()
-                            * (i + left) as i32;
+                            * (i + left + j) as i32;
                         l_pred = best_p;
                     }
                 }
                 //get best u
                 let u;
                 let u_pred;
-                
+
                 match get_best_u(p_arr, &m, &ampl_for_row, i, j) {
                     Some((u_score, idx)) => {
                         u = u_score + score_matrix.get(&(lnz[i], '-')).unwrap();
@@ -104,7 +104,7 @@ pub fn exec(
                         } else {
                             *pred_hash.get(&i).unwrap().iter().min().unwrap()
                         };
-                        u = score_matrix.get(&(lnz[i], '-')).unwrap() * (i + left) as i32;
+                        u = score_matrix.get(&(lnz[i], '-')).unwrap() * (i + left + j) as i32;
                         u_pred = best_p;
                     }
                 }
@@ -159,7 +159,7 @@ pub fn exec(
         println!("Band length probably too short, maybe try with larger b and f");
     }
     println!("Alignment mk {:?}", best_value);
-    
+
     if seq_name.1 != 0 {
         gaf_output::gaf_of_global_abpoa(
             &path,

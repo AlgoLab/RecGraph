@@ -21,7 +21,7 @@ fn main() {
     let align_mode = args_parser::get_align_mode();
     let amb_strand = args_parser::get_amb_strand_mode();
     let (b, f) = args_parser::get_b_f();
-    
+
     match align_mode {
         //global alignment
         0 => {
