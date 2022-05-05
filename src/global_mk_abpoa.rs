@@ -92,6 +92,7 @@ pub fn exec(
                 //get best u
                 let u;
                 let u_pred;
+                
                 match get_best_u(p_arr, &m, &ampl_for_row, i, j) {
                     Some((u_score, idx)) => {
                         u = u_score + score_matrix.get(&(lnz[i], '-')).unwrap();
@@ -158,6 +159,7 @@ pub fn exec(
         println!("Band length probably too short, maybe try with larger b and f");
     }
     println!("Alignment mk {:?}", best_value);
+    
     if seq_name.1 != 0 {
         gaf_output::gaf_of_global_abpoa(
             &path,

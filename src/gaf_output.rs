@@ -253,7 +253,6 @@ pub fn gaf_of_global_abpoa(
             let delta = ampl_for_row[row].0 - p_left;
             col + delta
         };
-
         match dir {
             'D' => {
                 handle_id_alignment.push(hofp.get(&row).unwrap());
