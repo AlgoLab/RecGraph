@@ -24,7 +24,9 @@ pub fn get_sequences() -> (Vec<Vec<char>>, Vec<String>) {
                 .collect::<Vec<char>>();
             sequence.append(&mut line);
         } else if line.starts_with('>') {
-            sequences_name.push(line);
+            let split_sequence = line.split(" ").collect::<Vec<&str>>();
+            let seq_name = split_sequence[0].into();
+            sequences_name.push(seq_name);
             if !sequence.is_empty() {
                 sequence.insert(0, '$');
                 sequences.push(sequence);
