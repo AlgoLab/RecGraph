@@ -190,7 +190,7 @@ pub fn gaf_of_gap_abpoa(
         mapping_quality,
         comments
     );
-    write_gaf(&gaf_out, 1);
+    write_gaf(&gaf_out, seq_name.1);
 }
 pub fn gaf_of_global_abpoa(
     path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
@@ -447,7 +447,7 @@ pub fn gaf_of_local_poa(
         mapping_quality,
         comments
     );
-    write_gaf(&gaf_out, 1);
+    write_gaf(&gaf_out, seq_name.1);
 }
 
 pub fn gaf_of_gap_local_poa(
@@ -589,7 +589,7 @@ pub fn gaf_of_gap_local_poa(
         mapping_quality,
         comments
     );
-    write_gaf(&gaf_out, 1);
+    write_gaf(&gaf_out, seq_name.1);
 }
 
 fn node_start(hofp: &HashMap<usize, String>, row: usize) -> usize {
