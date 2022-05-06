@@ -7,7 +7,6 @@ use std::{
     vec,
 };
 
-//TODO: remove last row, only best value needed
 pub fn exec(
     sequence: &[char],
     seq_name: (&str, usize),
@@ -154,7 +153,7 @@ pub fn exec(
         }
     }
     let best_value = m[last_row][last_col];
-    let check = ampl_is_enough(&path, &ampl_for_row, sequence.len(), last_row, last_col);
+    let check = band_ampl_enough(&path, &ampl_for_row, sequence.len(), last_row, last_col);
     if !check {
         println!("Band length probably too short, maybe try with larger b and f");
     }
@@ -177,67 +176,56 @@ pub fn exec(
 
     m[last_row][last_col]
 }
-
-fn ampl_is_enough(
+fn band_ampl_enough(
     path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
     ampl_for_row: &[(usize, usize)],
-    seq_len: usize,
-    last_row: usize,
-    last_col: usize,
+    sequence_len: usize,
+    start_row: usize,
+    start_col: usize,
 ) -> bool {
-    let mut row = last_row;
-    let mut col = last_col;
-
-    while bf::dir_from_bitvec(&path[row][col]) != 'O' {
-        //reached end of path, no need to continue
-        if ampl_for_row[row].0 == 0 && col == 0 {
+    let mut i = start_row;
+    let mut j = start_col;
+    while bf::dir_from_bitvec(&path[i][j]) != 'O' {
+        let (left, right) = ampl_for_row[i];
+        if i == 0 || j == 0 && left == 0 {
             return true;
         }
-
-        let p_left = ampl_for_row[bf::pred_from_bitvec(&path[row][col])].0;
-        let j_pos = if ampl_for_row[row].0 < p_left {
-            let delta = p_left - ampl_for_row[row].0;
-            col - delta
+        if (j == 0 && left != 0) || (j == right - left - 1 && right != sequence_len) {
+            return false;
+        }
+        let curr_bv = &path[i][j];
+        let pred = bf::pred_from_bitvec(curr_bv);
+        let left_p = ampl_for_row[pred].0;
+        let j_pos = if left_p < left {
+            j + (left - left_p)
         } else {
-            let delta = ampl_for_row[row].0 - p_left;
-            col + delta
+            j - (left_p - left)
         };
-        if col == 0
-            || (col == ampl_for_row[row].1 - ampl_for_row[row].0 - 1
-                && ampl_for_row[row].1 != seq_len - 1)
-        {
-            // != from path_len because couldn't go larger
-            if bf::dir_from_bitvec(&path[row][col]) == 'D' {
-                row = bf::pred_from_bitvec(&path[row][col]);
-                col = j_pos - 1;
-                // finchè ho match posso continuare anche se sul margine
-            } else {
-                return false;
+        let dir = bf::dir_from_bitvec(curr_bv);
+        match dir {
+            'D' => {
+                j = j_pos - 1;
+                i = pred;
             }
-        } else {
-            let curr_bv = &path[row][col];
-            let pred = bf::pred_from_bitvec(curr_bv);
-            let dir = bf::dir_from_bitvec(curr_bv);
-            match dir {
-                'D' | 'd' => {
-                    row = pred;
-                    col = j_pos - 1;
-                }
-                'U' => {
-                    row = pred;
-                    col = j_pos;
-                }
-                'L' => {
-                    col -= 1;
-                }
-                _ => {
-                    return false;
-                }
+            'd' => {
+                j = j_pos - 1;
+                i = pred;
+            }
+            'L' => {
+                j -= 1;
+            }
+            'U' => {
+                i = pred;
+                j = j_pos;
+            }
+            _ => {
+                panic!();
             }
         }
     }
     true
 }
+
 fn get_best_l(m: &[Vec<i32>], i: usize, j: usize) -> Option<(i32, usize)> {
     if j > 0 {
         Some((m[i][j - 1], i))

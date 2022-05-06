@@ -469,7 +469,7 @@ fn band_ampl_enough(
         if i == 0 || j == 0 && left == 0 {
             return true;
         }
-        if (j == left && left != 0) || (j == right - left - 1 && right != sequence_len) {
+        if (j == 0 && left != 0) || (j == right - left - 1 && right != sequence_len) {
             return false;
         }
         let curr_bv = &path[i][j];
