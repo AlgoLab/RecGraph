@@ -9,3 +9,4 @@ pub mod local_poa;
 pub mod matrix;
 pub mod pathwise_alignment;
 pub mod sequences;
+pub mod utils;

@@ -101,10 +101,7 @@ fn local_gap_abpoa_benchmark(c: &mut Criterion) {
 
     let score_matrix = matrix::create_score_matrix_match_mis(2, -4);
 
-    let (b, f) = (1.0, 0.3);
-    let bta = (b + f * sequence.len() as f32) as usize;
-
-    c.bench_function("global_gap_abpoa", |b| {
+    c.bench_function("local_gap_abpoa", |b| {
         b.iter(|| {
             gap_local_poa::exec(
                 black_box(&sequence),
