@@ -27,7 +27,7 @@ fn global_abpoa_benchmark(c: &mut Criterion) {
                 black_box(&score_matrix),
                 bta,
                 false,
-                &HashMap::new()
+                &HashMap::new(),
             )
         })
     });
@@ -52,8 +52,8 @@ fn local_poa_benchmark(c: &mut Criterion) {
                 ("bench_sequence", 0),
                 black_box(&graph_struct),
                 black_box(&score_matrix),
-                "prova.gfa",
                 false,
+                &HashMap::new(),
             )
         })
     });
@@ -84,8 +84,8 @@ fn global_gap_abpoa_benchmark(c: &mut Criterion) {
                 -10,
                 -5,
                 bta,
-                "prova.gfa",
                 false,
+                &HashMap::new(),
             )
         })
     });
@@ -112,8 +112,8 @@ fn local_gap_abpoa_benchmark(c: &mut Criterion) {
                 black_box(&score_matrix),
                 -10,
                 -5,
-                "prova.gfa",
                 false,
+                &HashMap::new(),
             )
         })
     });

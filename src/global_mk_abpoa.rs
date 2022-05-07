@@ -10,7 +10,7 @@ pub fn exec(
     score_matrix: &HashMap<(char, char), i32>,
     bta: usize,
     amb_mode: bool,
-    hofp: &HashMap<usize, String>
+    hofp: &HashMap<usize, String>,
 ) -> i32 {
     let lnz = &graph_struct.lnz;
     let nodes_w_pred = &graph_struct.nwp;
@@ -163,7 +163,7 @@ pub fn exec(
             last_row,
             last_col,
             amb_mode,
-            hofp
+            hofp,
         );
     }
 
@@ -361,7 +361,7 @@ mod tests {
             &score_matrix,
             100,
             false,
-            &HashMap::new()
+            &HashMap::new(),
         );
 
         assert_eq!(align, 4);
@@ -406,7 +406,7 @@ mod tests {
             &score_matrix,
             4,
             false,
-            &HashMap::new()
+            &HashMap::new(),
         );
 
         assert_eq!(align, 5);
@@ -453,7 +453,7 @@ mod tests {
             &score_matrix,
             4,
             false,
-            &HashMap::new()
+            &HashMap::new(),
         );
 
         assert_eq!(align, 5);
@@ -505,7 +505,7 @@ mod tests {
             &score_matrix,
             4,
             false,
-            &HashMap::new()
+            &HashMap::new(),
         );
 
         assert_eq!(align, 5);

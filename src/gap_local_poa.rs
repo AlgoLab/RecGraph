@@ -11,8 +11,8 @@ pub fn exec(
     scores_matrix: &HashMap<(char, char), i32>,
     o: i32,
     e: i32,
-    file_path: &str,
     amb_mode: bool,
+    hofp: &HashMap<usize, String>,
 ) -> i32 {
     let lnz = &graph.lnz;
     let nodes_with_pred = &graph.nwp;
@@ -120,16 +120,7 @@ pub fn exec(
     println!("Best alignment: {}", m[best_row][best_col]);
     if seq_name.1 != 0 {
         gaf_output::gaf_of_gap_local_poa(
-            &path,
-            &path_x,
-            &path_y,
-            sequence,
-            seq_name,
-            best_row,
-            best_col,
-            nodes_with_pred,
-            file_path,
-            amb_mode,
+            &path, &path_x, &path_y, sequence, seq_name, best_row, best_col, amb_mode, hofp,
         );
     }
 
@@ -248,8 +239,8 @@ mod tests {
             &score_matrix,
             -4,
             -2,
-            "prova.gfa",
             false,
+            &HashMap::new(),
         );
         assert_eq!(align_score, 3);
     }
@@ -290,8 +281,8 @@ mod tests {
             &score_matrix,
             -4,
             -2,
-            "prova.gfa",
             false,
+            &HashMap::new(),
         );
         assert_eq!(align_score, 2);
     }

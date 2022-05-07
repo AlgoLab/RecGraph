@@ -20,7 +20,7 @@ fn main() {
 
     //get score matrix
     let score_matrix = matrix::create_score_matrix();
-    
+
     //get alignment option
     let align_mode = args_parser::get_align_mode();
     let amb_strand = args_parser::get_amb_strand_mode();
@@ -29,7 +29,7 @@ fn main() {
     //get handle position for output
     let hofp_forward = gaf_output::create_handle_pos_in_lnz(&graph_struct.nwp, &graph_path, true);
     let mut hofp_reverse = HashMap::new();
-    
+
     match align_mode {
         //global alignment
         0 => {
@@ -42,11 +42,15 @@ fn main() {
                     &score_matrix,
                     bases_to_add,
                     false,
-                    &hofp_forward
+                    &hofp_forward,
                 );
                 if amb_strand && align_score < 0 {
                     if hofp_reverse.is_empty() {
-                        hofp_reverse = gaf_output::create_handle_pos_in_lnz(&graph_struct.nwp, &graph_path, false);
+                        hofp_reverse = gaf_output::create_handle_pos_in_lnz(
+                            &graph_struct.nwp,
+                            &graph_path,
+                            false,
+                        );
                     }
                     let rev_seq = sequences::rev_and_compl(seq);
                     global_mk_abpoa::exec(
@@ -56,10 +60,9 @@ fn main() {
                         &score_matrix,
                         bases_to_add,
                         true,
-                        &hofp_reverse
+                        &hofp_reverse,
                     );
                 }
-
             }
         }
         //local alignment
@@ -70,18 +73,25 @@ fn main() {
                     (&seq_names[i], i + 1),
                     &graph_struct,
                     &score_matrix,
-                    &graph_path,
                     false,
+                    &hofp_forward,
                 );
                 if align_score < 0 && amb_strand {
+                    if hofp_reverse.is_empty() {
+                        hofp_reverse = gaf_output::create_handle_pos_in_lnz(
+                            &graph_struct.nwp,
+                            &graph_path,
+                            false,
+                        );
+                    }
                     let rev_seq = sequences::rev_and_compl(seq);
                     local_poa::exec(
                         &rev_seq,
                         (&seq_names[i], i + 1),
                         &graph_struct,
                         &score_matrix,
-                        &graph_path,
-                        true,
+                        false,
+                        &hofp_reverse,
                     );
                 }
             }
@@ -100,11 +110,18 @@ fn main() {
                     g_open,
                     g_ext,
                     bases_to_add,
-                    &graph_path,
                     false,
+                    &hofp_forward,
                 );
 
                 if amb_strand && align_score < 0 {
+                    if hofp_reverse.is_empty() {
+                        hofp_reverse = gaf_output::create_handle_pos_in_lnz(
+                            &graph_struct.nwp,
+                            &graph_path,
+                            false,
+                        );
+                    }
                     let rev_seq = sequences::rev_and_compl(seq);
                     gap_mk_abpoa::exec(
                         &rev_seq,
@@ -114,8 +131,8 @@ fn main() {
                         g_open,
                         g_ext,
                         bases_to_add,
-                        &graph_path,
                         true,
+                        &hofp_reverse,
                     );
                 }
             }
@@ -131,10 +148,17 @@ fn main() {
                     &score_matrix,
                     g_open,
                     g_ext,
-                    &graph_path,
                     false,
+                    &hofp_forward,
                 );
                 if amb_strand && align_score < 0 {
+                    if hofp_reverse.is_empty() {
+                        hofp_reverse = gaf_output::create_handle_pos_in_lnz(
+                            &graph_struct.nwp,
+                            &graph_path,
+                            false,
+                        );
+                    }
                     let rev_seq = sequences::rev_and_compl(seq);
                     gap_local_poa::exec(
                         &rev_seq,
@@ -143,8 +167,8 @@ fn main() {
                         &score_matrix,
                         g_open,
                         g_ext,
-                        &graph_path,
                         true,
+                        &hofp_reverse,
                     );
                 }
             }

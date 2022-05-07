@@ -7,8 +7,8 @@ pub fn exec(
     seq_name: (&str, usize),
     graph: &LnzGraph,
     scores_matrix: &HashMap<(char, char), i32>,
-    file_path: &str,
     amb_mode: bool,
+    hofp: &HashMap<usize, String>,
 ) -> i32 {
     let lnz = &graph.lnz;
     let nodes_with_pred = &graph.nwp;
@@ -71,14 +71,7 @@ pub fn exec(
     println!("Best alignment: {}", m[best_row][best_col]);
     if seq_name.1 != 0 {
         gaf_output::gaf_of_local_poa(
-            &path,
-            sequence,
-            seq_name,
-            best_row,
-            best_col,
-            nodes_with_pred,
-            file_path,
-            amb_mode,
+            &path, sequence, seq_name, best_row, best_col, amb_mode, hofp,
         );
     }
 
@@ -175,8 +168,8 @@ mod tests {
             ("seq", 0),
             &graph_struct,
             &score_matrix,
-            "./prova.gfa",
             false,
+            &HashMap::new(),
         );
         assert_eq!(align_score, 3);
     }
@@ -214,8 +207,8 @@ mod tests {
             ("seq", 0),
             &graph_struct,
             &score_matrix,
-            "./prova.gfa",
             false,
+            &HashMap::new(),
         );
         assert_eq!(align_score, 2);
     }
