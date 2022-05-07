@@ -1,10 +1,6 @@
 use crate::{bitfield_path as bf, gaf_output, graph::LnzGraph, utils};
 use bitvec::prelude::*;
-use std::{
-    cmp::Ordering,
-    collections::HashMap,
-    vec,
-};
+use std::{cmp::Ordering, collections::HashMap, vec};
 
 pub fn exec(
     sequence: &[char],
@@ -222,7 +218,6 @@ pub fn exec(
     drop(x);
     drop(y);
 
-    println!("{}", best_value);
     if seq_name.1 != 0 {
         gaf_output::gaf_of_gap_abpoa(
             &path,

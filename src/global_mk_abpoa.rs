@@ -1,11 +1,7 @@
 use crate::graph::LnzGraph;
 use crate::{bitfield_path as bf, gaf_output, utils};
 use bitvec::prelude::*;
-use std::{
-    cmp::Ordering,
-    collections::HashMap,
-    vec,
-};
+use std::{cmp::Ordering, collections::HashMap, vec};
 
 pub fn exec(
     sequence: &[char],
@@ -152,12 +148,10 @@ pub fn exec(
             last_col = tmp_last_col;
         }
     }
-    let best_value = m[last_row][last_col];
     let check = band_ampl_enough(&path, &ampl_for_row, sequence.len(), last_row, last_col);
     if !check {
         println!("Band length probably too short, maybe try with larger b and f");
     }
-    println!("Alignment mk {:?}", best_value);
 
     if seq_name.1 != 0 {
         gaf_output::gaf_of_global_abpoa(

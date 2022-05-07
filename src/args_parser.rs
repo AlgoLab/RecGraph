@@ -3,10 +3,28 @@ use clap::Parser;
 #[derive(Parser, Debug)]
 #[clap(author = "Davide Monti <d.monti11@campus.unimib.it>", version, about = "POA in rust", long_about = None)]
 struct Args {
-    #[clap(help = "Sequence to align file path", default_value = "sequences.fa")]
+    #[clap(
+        help_heading = "I/O",
+        help = "Sequences to align file path",
+        default_value = "sequences.fa"
+    )]
     sequence_path: String,
-    #[clap(help = "Graph file path", default_value = "prova.gfa")]
+    #[clap(
+        help_heading = "I/O",
+        help = "Graph file path",
+        default_value = "prova.gfa"
+    )]
     graph_path: String,
+
+    #[clap(
+        help_heading = "I/O",
+        short = 'o',
+        long = "out_file",
+        default_value = "standard output",
+        help = "Specifies the output file, if not indicated prints in standard output"
+    )]
+    out_file: String,
+
     // Alignment mode
     #[clap(
         help_heading = "Alignment",
@@ -137,4 +155,10 @@ pub fn get_amb_strand_mode() -> bool {
     let args = Args::parse();
     let amb_strand = args.amb_strand.as_str();
     matches!(amb_strand, "true")
+}
+
+pub fn get_out_file() -> String {
+    let args = Args::parse();
+    let out_file = args.out_file;
+    out_file
 }

@@ -190,7 +190,7 @@ pub fn gaf_of_gap_abpoa(
         mapping_quality,
         comments
     );
-    write_gaf(&gaf_out, seq_name.1, "global_gap");
+    write_gaf(&gaf_out, seq_name.1);
 }
 pub fn gaf_of_global_abpoa(
     path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
@@ -324,7 +324,7 @@ pub fn gaf_of_global_abpoa(
         mapping_quality,
         comments
     );
-    write_gaf(&gaf_out, seq_name.1, "global");
+    write_gaf(&gaf_out, seq_name.1);
 }
 pub fn gaf_of_local_poa(
     path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
@@ -447,7 +447,7 @@ pub fn gaf_of_local_poa(
         mapping_quality,
         comments
     );
-    write_gaf(&gaf_out, seq_name.1, "local");
+    write_gaf(&gaf_out, seq_name.1);
 }
 
 pub fn gaf_of_gap_local_poa(
@@ -589,7 +589,7 @@ pub fn gaf_of_gap_local_poa(
         mapping_quality,
         comments
     );
-    write_gaf(&gaf_out, seq_name.1, "local_gap");
+    write_gaf(&gaf_out, seq_name.1);
 }
 
 fn node_start(hofp: &HashMap<usize, String>, row: usize) -> usize {
@@ -601,31 +601,25 @@ fn node_start(hofp: &HashMap<usize, String>, row: usize) -> usize {
     row - i
 }
 
-fn write_gaf(gaf_out: &str, number: usize, alignment_mode: &str) {
-    let file_path = args_parser::get_graph_path();
-    let file_name = Path::new(&file_path)
-        .file_name()
-        .unwrap()
-        .to_str()
-        .unwrap()
-        .split('.')
-        .collect::<Vec<&str>>()[0];
-    let file_name_out = String::from(file_name) + "_" + alignment_mode + ".gaf";
-    let path = project_root::get_project_root()
-        .unwrap()
-        .join(file_name_out);
-    let file = if Path::new(&path).exists() && number != 1 {
-        OpenOptions::new()
-            .write(true)
-            .append(true)
-            .open(path)
-            .unwrap()
+fn write_gaf(gaf_out: &str, number: usize) {
+    let out_file = args_parser::get_out_file();
+    if out_file == "standard output" {
+        println!("{}", gaf_out)
     } else {
-        File::create(path).expect("unable to create file")
-    };
+        let file_name = Path::new(&out_file);
+        let file = if file_name.exists() && number != 1 {
+            OpenOptions::new()
+                .write(true)
+                .append(true)
+                .open(file_name)
+                .unwrap()
+        } else {
+            File::create(file_name).expect("unable to create file")
+        };
 
-    let f = &mut BufWriter::new(&file);
-    writeln!(f, "{}", gaf_out).expect("error in writing");
+        let f = &mut BufWriter::new(&file);
+        writeln!(f, "{}", gaf_out).expect("error in writing");
+    }
 }
 
 fn set_cigar_substring(count_m: i32, count_i: i32, count_d: i32, cs: String) -> String {
