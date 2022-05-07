@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use rspoa::{gap_local_poa, gap_mk_abpoa, global_mk_abpoa, graph, local_poa, matrix};
 
@@ -24,8 +26,8 @@ fn global_abpoa_benchmark(c: &mut Criterion) {
                 black_box(&graph_struct),
                 black_box(&score_matrix),
                 bta,
-                "prova.gfa",
                 false,
+                &HashMap::new()
             )
         })
     });

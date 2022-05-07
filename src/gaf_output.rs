@@ -8,7 +8,7 @@ use std::path::Path;
 use std::{collections::HashMap, fs::File};
 
 // TODO: looks for arg parser use
-fn create_handle_pos_in_lnz(
+pub fn create_handle_pos_in_lnz(
     nwp: &BitVec,
     file_path: &str,
     amb_mode: bool,
@@ -196,15 +196,12 @@ pub fn gaf_of_global_abpoa(
     path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
     sequence: &[char],
     seq_name: (&str, usize),
-    //graph: &[char],  needed for path start and end?
     ampl_for_row: &[(usize, usize)],
     last_row: usize,
     last_col: usize,
-    nwp: &BitVec,
-    file_path: &str,
     amb_mode: bool,
+    hofp: &HashMap<usize, String>
 ) {
-    let hofp = create_handle_pos_in_lnz(nwp, file_path, amb_mode);
     let mut col = last_col;
     let mut row = last_row;
 

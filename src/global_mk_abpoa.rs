@@ -9,8 +9,8 @@ pub fn exec(
     graph_struct: &LnzGraph,
     score_matrix: &HashMap<(char, char), i32>,
     bta: usize,
-    file_path: &str,
     amb_mode: bool,
+    hofp: &HashMap<usize, String>
 ) -> i32 {
     let lnz = &graph_struct.lnz;
     let nodes_w_pred = &graph_struct.nwp;
@@ -162,9 +162,8 @@ pub fn exec(
             &ampl_for_row,
             last_row,
             last_col,
-            nodes_w_pred,
-            file_path,
             amb_mode,
+            hofp
         );
     }
 
@@ -357,12 +356,12 @@ mod tests {
         score_matrix.insert(('-', 'A'), -1);
         let align = super::exec(
             &s,
-            ("test", 1),
+            ("test", 0),
             &graph,
             &score_matrix,
             100,
-            "./prova.gfa",
             false,
+            &HashMap::new()
         );
 
         assert_eq!(align, 4);
@@ -402,12 +401,12 @@ mod tests {
         score_matrix.insert(('A', 'C'), -1);
         let align = super::exec(
             &s,
-            ("test", 1),
+            ("test", 0),
             &graph,
             &score_matrix,
             4,
-            "./prova.gfa",
             false,
+            &HashMap::new()
         );
 
         assert_eq!(align, 5);
@@ -449,12 +448,12 @@ mod tests {
         score_matrix.insert(('A', 'C'), -1);
         let align = super::exec(
             &s,
-            ("test", 1),
+            ("test", 0),
             &graph,
             &score_matrix,
             4,
-            "./prova.gfa",
             false,
+            &HashMap::new()
         );
 
         assert_eq!(align, 5);
@@ -501,12 +500,12 @@ mod tests {
         score_matrix.insert(('A', 'C'), -1);
         let align = super::exec(
             &s,
-            ("test", 1),
+            ("test", 0),
             &graph,
             &score_matrix,
             4,
-            "./prova.gfa",
             false,
+            &HashMap::new()
         );
 
         assert_eq!(align, 5);

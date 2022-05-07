@@ -1,4 +1,7 @@
+use std::collections::HashMap;
+
 use rspoa::args_parser;
+use rspoa::gaf_output;
 use rspoa::gap_local_poa;
 use rspoa::gap_mk_abpoa;
 use rspoa::global_mk_abpoa;
@@ -17,11 +20,16 @@ fn main() {
 
     //get score matrix
     let score_matrix = matrix::create_score_matrix();
+    
     //get alignment option
     let align_mode = args_parser::get_align_mode();
     let amb_strand = args_parser::get_amb_strand_mode();
     let (b, f) = args_parser::get_b_f();
 
+    //get handle position for output
+    let hofp_forward = gaf_output::create_handle_pos_in_lnz(&graph_struct.nwp, &graph_path, true);
+    let mut hofp_reverse = HashMap::new();
+    
     match align_mode {
         //global alignment
         0 => {
@@ -33,10 +41,13 @@ fn main() {
                     &graph_struct,
                     &score_matrix,
                     bases_to_add,
-                    &graph_path,
                     false,
+                    &hofp_forward
                 );
                 if amb_strand && align_score < 0 {
+                    if hofp_reverse.is_empty() {
+                        hofp_reverse = gaf_output::create_handle_pos_in_lnz(&graph_struct.nwp, &graph_path, false);
+                    }
                     let rev_seq = sequences::rev_and_compl(seq);
                     global_mk_abpoa::exec(
                         &rev_seq,
@@ -44,10 +55,11 @@ fn main() {
                         &graph_struct,
                         &score_matrix,
                         bases_to_add,
-                        &graph_path,
                         true,
+                        &hofp_reverse
                     );
                 }
+
             }
         }
         //local alignment
