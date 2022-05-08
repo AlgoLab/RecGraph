@@ -68,7 +68,6 @@ fn create_score_matrix_from_matrix_file(matrix_file: &str) -> HashMap<(char, cha
             matrix_score.insert((c1, c2), matrix[i][j].parse().unwrap());
         }
     }
-    // TODO: remove after local_alignment with gap O/E
     for ch in ['A', 'C', 'G', 'T', 'N'].iter() {
         matrix_score.insert((*ch, '-'), -200);
         matrix_score.insert(('-', *ch), -200);

@@ -1,7 +1,7 @@
 use crate::graph::LnzGraph;
 use crate::{bitfield_path as bf, gaf_output, utils};
 use bitvec::prelude::*;
-use std::{cmp::Ordering, collections::HashMap, vec};
+use std::{collections::HashMap, vec};
 
 pub fn exec(
     sequence: &[char],
@@ -121,7 +121,7 @@ pub fn exec(
                         d_pred = best_p;
                     }
                 }
-                let (best_val, mut dir) = get_max_d_u_l(d, u, l);
+                let (best_val, mut dir) = utils::get_max_d_u_l(d, u, l);
                 if dir == 'D' && sequence[j + left] != lnz[i] {
                     dir = 'd'
                 }
@@ -307,20 +307,6 @@ fn get_best_u(
     } else {
         Some((u, u_idx))
     }
-}
-#[inline]
-fn get_max_d_u_l(d: i32, u: i32, l: i32) -> (i32, char) {
-    let (best_val, dir) = match d.cmp(&u) {
-        Ordering::Less => match u.cmp(&l) {
-            Ordering::Less => (l, 'L'),
-            _ => (u, 'U'),
-        },
-        _ => match d.cmp(&l) {
-            Ordering::Less => (l, 'L'),
-            _ => (d, 'D'),
-        },
-    };
-    (best_val, dir)
 }
 
 #[cfg(test)]

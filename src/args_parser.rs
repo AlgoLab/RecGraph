@@ -31,7 +31,7 @@ struct Args {
         short = 'm',
         long = "aln-mode",
         default_value_t = 0,
-        help = "0: global, 1: local, 2: affine gap"
+        help = "0: global, 1: local, 2: affine gap, 3: local gap"
     )]
     alignment_mode: i32,
 
@@ -61,7 +61,7 @@ struct Args {
         short = 't',
         long = "matrix",
         default_value = "none",
-        help = "Scoring matrix file, if '-t' is used '-M' and '-X' are not used"
+        help = "Scoring matrix file, if '-t' is used '-M' and '-X' are not used, you should set gap penalties in this case"
     )]
     matrix: String,
 
@@ -92,7 +92,7 @@ struct Args {
         default_value = "false",
         short = 's',
         long = "amb-strand",
-        help = "[DISABLED] Ambigous strand mode, try reverse complement if alignment score is too low"
+        help = "Ambigous strand mode, try reverse complement if alignment score is too low"
     )]
     amb_strand: String,
 

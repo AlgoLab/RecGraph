@@ -1,4 +1,4 @@
-use std::{cmp, collections::HashMap};
+use std::{cmp::{self, Ordering}, collections::HashMap};
 #[inline]
 pub fn set_ampl_for_row(
     i: usize,
@@ -96,6 +96,21 @@ pub fn set_r_values(
     }
     r_values.iter().map(|x| *x as usize).collect()
 }
+
+#[inline]
+pub fn get_max_d_u_l(d: i32, u: i32, l: i32) -> (i32, char) {
+    match d.cmp(&u) {
+        Ordering::Less => match u.cmp(&l) {
+            Ordering::Less => (l, 'L'),
+            _ => (u, 'U'),
+        },
+        _ => match d.cmp(&l) {
+            Ordering::Less => (l, 'L'),
+            _ => (d, 'D'),
+        },
+    }
+}
+
 #[cfg(test)]
 mod tests {
     #[test]

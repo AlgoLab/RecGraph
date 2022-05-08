@@ -27,7 +27,7 @@ fn main() {
     let (b, f) = args_parser::get_b_f();
 
     //get handle position for output
-    let hofp_forward = gaf_output::create_handle_pos_in_lnz(&graph_struct.nwp, &graph_path, true);
+    let hofp_forward = gaf_output::create_handle_pos_in_lnz(&graph_struct.nwp, &graph_path, false);
     let mut hofp_reverse = HashMap::new();
 
     match align_mode {
@@ -49,7 +49,7 @@ fn main() {
                         hofp_reverse = gaf_output::create_handle_pos_in_lnz(
                             &graph_struct.nwp,
                             &graph_path,
-                            false,
+                            true,
                         );
                     }
                     let rev_seq = sequences::rev_and_compl(seq);
@@ -81,7 +81,7 @@ fn main() {
                         hofp_reverse = gaf_output::create_handle_pos_in_lnz(
                             &graph_struct.nwp,
                             &graph_path,
-                            false,
+                            true,
                         );
                     }
                     let rev_seq = sequences::rev_and_compl(seq);
@@ -90,7 +90,7 @@ fn main() {
                         (&seq_names[i], i + 1),
                         &graph_struct,
                         &score_matrix,
-                        false,
+                        true,
                         &hofp_reverse,
                     );
                 }
@@ -119,7 +119,7 @@ fn main() {
                         hofp_reverse = gaf_output::create_handle_pos_in_lnz(
                             &graph_struct.nwp,
                             &graph_path,
-                            false,
+                            true,
                         );
                     }
                     let rev_seq = sequences::rev_and_compl(seq);
@@ -156,7 +156,7 @@ fn main() {
                         hofp_reverse = gaf_output::create_handle_pos_in_lnz(
                             &graph_struct.nwp,
                             &graph_path,
-                            false,
+                            true,
                         );
                     }
                     let rev_seq = sequences::rev_and_compl(seq);
@@ -167,7 +167,7 @@ fn main() {
                         &score_matrix,
                         g_open,
                         g_ext,
-                        true,
+                        false,
                         &hofp_reverse,
                     );
                 }

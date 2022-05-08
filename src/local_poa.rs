@@ -1,7 +1,7 @@
-use crate::bitfield_path as bf;
+use crate::{bitfield_path as bf, utils};
 use crate::{gaf_output, graph::LnzGraph};
 use bitvec::prelude::*;
-use std::{cmp::Ordering, collections::HashMap};
+use std::collections::HashMap;
 pub fn exec(
     sequence: &[char],
     seq_name: (&str, usize),
@@ -47,7 +47,7 @@ pub fn exec(
                         m[i][j] = 0;
                         path[i][j] = bf::set_path_cell(0, 'O');
                     } else {
-                        let (best_val, mut dir) = get_best_d_u_l(d, u, l);
+                        let (best_val, mut dir) = utils::get_max_d_u_l(d, u, l);
                         if dir == 'D' && lnz[i] != sequence[j] {
                             dir = 'd'
                         }
@@ -68,13 +68,11 @@ pub fn exec(
         }
     }
 
-    println!("Best alignment: {}", m[best_row][best_col]);
     if seq_name.1 != 0 {
         gaf_output::gaf_of_local_poa(
             &path, sequence, seq_name, best_row, best_col, amb_mode, hofp,
         );
     }
-
     m[best_row][best_col]
 }
 
@@ -114,19 +112,6 @@ fn get_best_u(m: &[Vec<i32>], p_arr: &[usize], j: usize) -> (i32, usize) {
         }
     }
     (u, u_idx)
-}
-
-fn get_best_d_u_l(d: i32, u: i32, l: i32) -> (i32, char) {
-    match d.cmp(&u) {
-        Ordering::Less => match u.cmp(&l) {
-            Ordering::Less => (l, 'L'),
-            _ => (u, 'U'),
-        },
-        _ => match d.cmp(&l) {
-            Ordering::Less => (l, 'L'),
-            _ => (d, 'D'),
-        },
-    }
 }
 
 #[cfg(test)]
