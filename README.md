@@ -9,7 +9,7 @@ To use rspoa you need a .gfa file and a .fasta file containing the reads you wan
 ```
 cargo run --release <reads.fa> <graph.gfa>
 ```
-You can set different parameter and chose between different alignment type:
+You can set different parameters and choose between different alignment types:
 ```
 OPTIONS:
     -h, --help       Print help information
@@ -31,13 +31,13 @@ Alignment:
                                        alignment score is too low [default: false] [possible values:
                                        true, false]
     -t, --matrix <MATRIX>              Scoring matrix file, if '-t' is used '-M' and '-X' are not
-                                       used and you should set appropriate gap penalties if aln-mode is 
+                                       used. You should set appropriate gap penalties if aln-mode is 
                                        2 or 3[default: none]
 
 Adaptive banded:
-    -b, --extra-b <EXTRA_B>    First adaptive banding par, set < 0 to disable adaptive banded
+    -b, --extra-b <EXTRA_B>    First adaptive banding parameter, set < 0 to disable adaptive banded
                                [default: 1]
-    -f, --extra-f <EXTRA_F>    Second adaptive banding par, number of basis added to both side of
+    -f, --extra-f <EXTRA_F>    Second adaptive banding parameter, number of basis added to both side of
                                the band = b+f*L, l = length of the sequence [default: 0.01]
 ```
 

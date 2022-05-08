@@ -1,4 +1,7 @@
-use std::{cmp::{self, Ordering}, collections::HashMap};
+use std::{
+    cmp::{self, Ordering},
+    collections::HashMap,
+};
 #[inline]
 pub fn set_ampl_for_row(
     i: usize,
