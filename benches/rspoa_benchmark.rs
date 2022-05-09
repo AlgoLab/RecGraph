@@ -17,7 +17,7 @@ fn global_abpoa_benchmark(c: &mut Criterion) {
 
     let (b, f) = (1.0, 0.3);
     let bta = (b + f * sequence.len() as f32) as usize;
-
+    let hofp = HashMap::new();
     c.bench_function("global_abpoa", |b| {
         b.iter(|| {
             global_mk_abpoa::exec(
@@ -27,7 +27,7 @@ fn global_abpoa_benchmark(c: &mut Criterion) {
                 black_box(&score_matrix),
                 bta,
                 false,
-                &HashMap::new(),
+                &hofp
             )
         })
     });
@@ -44,6 +44,7 @@ fn local_poa_benchmark(c: &mut Criterion) {
     );
 
     let score_matrix = matrix::create_score_matrix_match_mis(2, -4);
+    let hofp = HashMap::new();
 
     c.bench_function("local_abpoa", |b| {
         b.iter(|| {
@@ -53,7 +54,7 @@ fn local_poa_benchmark(c: &mut Criterion) {
                 black_box(&graph_struct),
                 black_box(&score_matrix),
                 false,
-                &HashMap::new(),
+                &hofp,
             )
         })
     });
@@ -73,6 +74,7 @@ fn global_gap_abpoa_benchmark(c: &mut Criterion) {
 
     let (b, f) = (1.0, 0.3);
     let bta = (b + f * sequence.len() as f32) as usize;
+    let hofp = HashMap::new();
 
     c.bench_function("global_gap_abpoa", |b| {
         b.iter(|| {
@@ -85,7 +87,7 @@ fn global_gap_abpoa_benchmark(c: &mut Criterion) {
                 -5,
                 bta,
                 false,
-                &HashMap::new(),
+                &hofp,
             )
         })
     });
@@ -102,6 +104,7 @@ fn local_gap_abpoa_benchmark(c: &mut Criterion) {
     );
 
     let score_matrix = matrix::create_score_matrix_match_mis(2, -4);
+    let hofp = HashMap::new();
 
     c.bench_function("local_gap_abpoa", |b| {
         b.iter(|| {
@@ -113,7 +116,7 @@ fn local_gap_abpoa_benchmark(c: &mut Criterion) {
                 -10,
                 -5,
                 false,
-                &HashMap::new(),
+                &hofp,
             )
         })
     });

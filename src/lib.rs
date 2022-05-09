@@ -1,3 +1,4 @@
+#![feature(stdsimd)]
 pub mod args_parser;
 pub mod bitfield_path;
 pub mod gaf_output;
@@ -10,3 +11,4 @@ pub mod matrix;
 pub mod pathwise_alignment;
 pub mod sequences;
 pub mod utils;
+pub mod simd_edit_distance;
