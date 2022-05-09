@@ -21,7 +21,6 @@ jobs:
       with:
           toolchain: nightly
           override: true
-          components: rustfmt, clipp
     - name: Build
       uses: actions-rs/cargo@v1
       with:
