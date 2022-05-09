@@ -22,8 +22,11 @@ jobs:
           toolchain: nightly
           override: true
           components: rustfmt, clipp
-    - uses: actions/checkout@v2
     - name: Build
-      run: cargo build --verbose
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
     - name: Run tests
-      run: cargo test --verbose
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
