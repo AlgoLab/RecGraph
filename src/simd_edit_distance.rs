@@ -1,5 +1,6 @@
 use std::arch::x86_64::*;
-use std::{cmp, ptr, time::*};
+use std::{cmp, time::*};
+//use std::ptr;
 pub fn exec_no_simd(read: &Vec<u8>, reference: &Vec<u8>) -> i32 {
     let mut m: Vec<Vec<i32>> = vec![vec![0; read.len()]; reference.len()];
     for i in 0..reference.len() {
@@ -32,15 +33,18 @@ pub unsafe fn exec_simd_avx2(read: &Vec<u8>, reference: &Vec<u8>) -> f32 {
     for j in 0..read.len() {
         m[0][j] = j as f32
     }
-
     let one_simd = _mm256_set1_ps(1.0);
     let max_multiple = (read.len() / 8) * 8;
-
+    let read_f32 = read[0..max_multiple + 1]
+        .iter()
+        .map(|c| *c as f32)
+        .collect::<Vec<f32>>();
     for i in 1..reference.len() {
-        for j in (1..max_multiple).step_by(8) {
+        for j in (1..max_multiple + 1).step_by(8) {
             let us = _mm256_add_ps(_mm256_loadu_ps(m[i - 1].get_unchecked(j)), one_simd);
 
-            let read_simd = _mm256_loadu_ps(ptr::addr_of!(read[j]) as *const f32);
+            //let read_simd = _mm256_set_ps(read[j] as f32, read[j+1] as f32, read[j+2] as f32, read[j+3] as f32, read[j+4] as f32, read[j+5] as f32, read[j+6] as f32, read[j+7] as f32);
+            let read_simd = _mm256_loadu_ps(read_f32.get_unchecked(j));
             let ref_simd = _mm256_set1_ps(reference[i] as f32);
             let eq_char = _mm256_cmp_ps(read_simd, ref_simd, _CMP_EQ_OS);
             let neq_ds = _mm256_add_ps(_mm256_loadu_ps(m[i - 1].get_unchecked(j - 1)), one_simd);
@@ -51,12 +55,25 @@ pub unsafe fn exec_simd_avx2(read: &Vec<u8>, reference: &Vec<u8>) -> f32 {
             let result = _mm256_blendv_ps(us, ds, best_choice);
 
             _mm256_storeu_ps(m[i].get_unchecked_mut(j), result);
+            for idx in j..cmp::min(j + 8, read.len()) {
+                if m[i][idx - 1] + 1f32 < m[i][idx] {
+                    m[i][idx] = m[i][idx - 1] + 1f32
+                }
+            }
+        }
+        for j in max_multiple + 1..read.len() {
+            let l = m[i][j - 1] + 1f32;
+            let u = m[i - 1][j] + 1f32;
+            let d = m[i - 1][j - 1] + if read[j] == reference[i] { 0f32 } else { 1f32 };
+
+            m[i][j] = [l, u, d].into_iter().reduce(f32::min).unwrap();
         }
     }
     //m.iter().for_each(|line| println!("{:?}", line));
     //println!();
     m[reference.len() - 1][read.len() - 1]
 }
+
 #[target_feature(enable = "sse2")]
 pub unsafe fn exec_simd(read: &Vec<u8>, reference: &Vec<u8>) -> i32 {
     let mut m: Vec<Vec<i32>> = vec![vec![0; read.len()]; reference.len()];
@@ -92,8 +109,8 @@ pub unsafe fn exec_simd(read: &Vec<u8>, reference: &Vec<u8>) -> i32 {
             );
             _mm_storeu_epi32(m[i].get_unchecked_mut(j), result);
             for idx in j..cmp::min(j + 4, read.len()) {
-                if m[i][idx - 1] < m[i][idx] {
-                    m[i][idx] = m[i][idx - 1]
+                if m[i][idx - 1] + 1 < m[i][idx] {
+                    m[i][idx] = m[i][idx - 1] + 1
                 }
             }
         }
@@ -111,20 +128,19 @@ pub unsafe fn exec_simd(read: &Vec<u8>, reference: &Vec<u8>) -> i32 {
 
     m[reference.len() - 1][read.len() - 1]
 }
-
 pub unsafe fn prova() {
-    let s1 = "GGGGGAAGGGATGTGGTTGTGATATGATATAAAGAAATGAGATTTATTGCCTTGTGGGGGGAAGGGATGTGGTTGTGATAA"
+    let s1 = "GGGGGAAGGGATGTGGTTGTGATATGATATAAAGAAATGAGATTTATTGCCTTGTGGGGGGAAGGGATGTGGTTGTGATAAGGGGGAAGGGATGTGGTTGTGATATGATATAAAGAAATGAGATTTATTGCCTTGTGGGGGGAAGGGATGTGGTTGTGATAAGGGGGAAGGGATGTGGTTGTGATATGATATAAAGAAATGAGATTTATTGCCTTGTGGGGGGAAGGGATGTGGTTGTGATAA"
         .chars()
         .map(|c| c as u8)
         .collect::<Vec<u8>>();
-    let s2 = "AAGATATAAAGAAATGAGATTTATTGCCTTGTGGGGGGAAGGGATGTGGTTGTGATATGATATAAAGAAATGAGATTTATTGCCTTGTGGGGGGAAGGGATGTGGTTGTGATAA".chars().map(|c| c as u8).collect::<Vec<u8>>();
+    let s2 = "AAGATATAAAGAAATGAGATTTATTGCCTTGTGGGGGGAAGGGATGTGGTTGTGATATGATATAAAGAAATGAGATTTATTGCCTTGTGGGGGGAAGGGATGTGGTTGTGATAAAAGATATAAAGAAATGAGATTTATTGCCTTGTGGGGGGAAGGGATGTGGTTGTGATATGATATAAAGAAATGAGATTTATTGCCTTGTGGGGGGAAGGGATGTGGTTGTGATAAAAGATATAAAGAAATGAGATTTATTGCCTTGTGGGGGGAAGGGATGTGGTTGTGATATGATATAAAGAAATGAGATTTATTGCCTTGTGGGGGGAAGGGATGTGGTTGTGATAA".chars().map(|c| c as u8).collect::<Vec<u8>>();
 
     let now1 = Instant::now();
     let ed1 = exec_no_simd(&s1, &s2);
     let t1 = now1.elapsed();
 
     let now2 = Instant::now();
-    let ed2 = exec_simd_avx2(&s2, &s1);
+    let ed2 = exec_simd_avx2(&s1, &s2);
     let t2 = now2.elapsed();
 
     println!("No Simd: {}, Simd: {}", t1.as_micros(), t2.as_micros());
