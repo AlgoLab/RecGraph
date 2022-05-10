@@ -1,6 +1,7 @@
 use std::arch::x86_64::*;
-use std::{cmp, time::*};
+use std::cmp;
 //use std::ptr;
+
 pub fn exec_no_simd(read: &Vec<u8>, reference: &Vec<u8>) -> i32 {
     let mut m: Vec<Vec<i32>> = vec![vec![0; read.len()]; reference.len()];
     for i in 0..reference.len() {
@@ -23,7 +24,6 @@ pub fn exec_no_simd(read: &Vec<u8>, reference: &Vec<u8>) -> i32 {
     m[reference.len() - 1][read.len() - 1]
 }
 
-//TODO: iterate in remaining cells, consider l values
 #[target_feature(enable = "avx2")]
 pub unsafe fn exec_simd_avx2(read: &Vec<u8>, reference: &Vec<u8>) -> f32 {
     let mut m: Vec<Vec<f32>> = vec![vec![0f32; read.len()]; reference.len()];
@@ -43,7 +43,6 @@ pub unsafe fn exec_simd_avx2(read: &Vec<u8>, reference: &Vec<u8>) -> f32 {
         for j in (1..max_multiple + 1).step_by(8) {
             let us = _mm256_add_ps(_mm256_loadu_ps(m[i - 1].get_unchecked(j)), one_simd);
 
-            //let read_simd = _mm256_set_ps(read[j] as f32, read[j+1] as f32, read[j+2] as f32, read[j+3] as f32, read[j+4] as f32, read[j+5] as f32, read[j+6] as f32, read[j+7] as f32);
             let read_simd = _mm256_loadu_ps(read_f32.get_unchecked(j));
             let ref_simd = _mm256_set1_ps(reference[i] as f32);
             let eq_char = _mm256_cmp_ps(read_simd, ref_simd, _CMP_EQ_OS);
@@ -69,11 +68,10 @@ pub unsafe fn exec_simd_avx2(read: &Vec<u8>, reference: &Vec<u8>) -> f32 {
             m[i][j] = [l, u, d].into_iter().reduce(f32::min).unwrap();
         }
     }
-    //m.iter().for_each(|line| println!("{:?}", line));
-    //println!();
+    
     m[reference.len() - 1][read.len() - 1]
 }
-
+/* 
 #[target_feature(enable = "sse2")]
 pub unsafe fn exec_simd(read: &Vec<u8>, reference: &Vec<u8>) -> i32 {
     let mut m: Vec<Vec<i32>> = vec![vec![0; read.len()]; reference.len()];
@@ -123,29 +121,9 @@ pub unsafe fn exec_simd(read: &Vec<u8>, reference: &Vec<u8>) -> i32 {
         }
     }
 
-    //m.iter().for_each(|line| println!("{:?}", line));
-    //println!();
-
     m[reference.len() - 1][read.len() - 1]
 }
-pub unsafe fn prova() {
-    let s1 = "GGGGGAAGGGATGTGGTTGTGATATGATATAAAGAAATGAGATTTATTGCCTTGTGGGGGGAAGGGATGTGGTTGTGATAAGGGGGAAGGGATGTGGTTGTGATATGATATAAAGAAATGAGATTTATTGCCTTGTGGGGGGAAGGGATGTGGTTGTGATAAGGGGGAAGGGATGTGGTTGTGATATGATATAAAGAAATGAGATTTATTGCCTTGTGGGGGGAAGGGATGTGGTTGTGATAA"
-        .chars()
-        .map(|c| c as u8)
-        .collect::<Vec<u8>>();
-    let s2 = "AAGATATAAAGAAATGAGATTTATTGCCTTGTGGGGGGAAGGGATGTGGTTGTGATATGATATAAAGAAATGAGATTTATTGCCTTGTGGGGGGAAGGGATGTGGTTGTGATAAAAGATATAAAGAAATGAGATTTATTGCCTTGTGGGGGGAAGGGATGTGGTTGTGATATGATATAAAGAAATGAGATTTATTGCCTTGTGGGGGGAAGGGATGTGGTTGTGATAAAAGATATAAAGAAATGAGATTTATTGCCTTGTGGGGGGAAGGGATGTGGTTGTGATATGATATAAAGAAATGAGATTTATTGCCTTGTGGGGGGAAGGGATGTGGTTGTGATAA".chars().map(|c| c as u8).collect::<Vec<u8>>();
-
-    let now1 = Instant::now();
-    let ed1 = exec_no_simd(&s1, &s2);
-    let t1 = now1.elapsed();
-
-    let now2 = Instant::now();
-    let ed2 = exec_simd_avx2(&s1, &s2);
-    let t2 = now2.elapsed();
-
-    println!("No Simd: {}, Simd: {}", t1.as_micros(), t2.as_micros());
-    println!("{} {}", ed1, ed2);
-}
+*/
 #[cfg(test)]
 mod tests {
 
@@ -162,5 +140,19 @@ mod tests {
 
         assert_eq!(ed1, 1);
         assert_eq!(ed2, 2);
+    }
+    #[test]
+    fn test_avx2_simd_version() {
+        let s1 = "AAAAAAAAAAAAAAA".chars().map(|c| c as u8).collect::<Vec<u8>>();
+        let s2 = "AAAAAAAAAAAAAAAA".chars().map(|c| c as u8).collect::<Vec<u8>>();
+
+        let s3 = "ACAAAAAAAAAAAAAAA".chars().map(|c| c as u8).collect::<Vec<u8>>();
+        let s4 = "AAAACAAAAAAAAAAAA".chars().map(|c| c as u8).collect::<Vec<u8>>();
+        unsafe {
+            let ed1 = super::exec_simd_avx2(&s1, &s2);
+            let ed2 = super::exec_simd_avx2(&s3, &s4);
+            assert_eq!(ed1, 1f32);
+            assert_eq!(ed2, 2f32);
+        }
     }
 }

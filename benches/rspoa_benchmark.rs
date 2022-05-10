@@ -124,15 +124,7 @@ fn local_gap_abpoa_benchmark(c: &mut Criterion) {
         })
     });
 }
-fn simd_edit(c: &mut Criterion) {
-    unsafe {
-        let s1 = "TGATATAAAGAAATGAGATTTATTGCCTTGTGGGGGGAAGGGATGTGGTTGTGATAGGCAGGCCACTCTGGGATCCCTGGGATGCAAGCCCAGGGACAGCAGAGTCCCCAGGTGGGAAATCTACACACACACCCCAGGGATGTCCCAGAGACTTCTACC".chars().map(|c| c as u8).collect::<Vec<u8>>();
-        let s2 = "TGATATAAAGAAATGAGATTTATTGCCTTGTGGGGGGAAGGGATGTGGTTGTGATAGGCAGGCCACTCTGGGATCCCTGGGATGCAAGCCCAGGGACAGCAGAGTCCCCAGGTGGGAAATCTACACACACACCCCAGGGATGTCCCAGAGACTTCTACC".chars().map(|c| c as u8).collect::<Vec<u8>>();
-        c.bench_function("simd", |b| {
-            b.iter(|| exec_simd(black_box(&s1), black_box(&s2)))
-        });
-    }
-}
+
 fn bench_eds(c: &mut Criterion) {
     let mut group = c.benchmark_group("Edit Distance");
     let s1 = "TGATATAAAGAAATGAGATTTATTGCCTTGTGGGGGGAAGGGATGTGGTTGTGATAGGCAGGCCACTCTGGGATCCCTGGGATGCAAGCCCAGGGACAGCAGAGTCCCCAGGTGGGAAATCTACACACACACCCCAGGGATGTCCCAGAGACTTCTACCTGATATAAAGAAATGAGATTTATTGCCTTGTGGGGGGAAGGGATGTGGTTGTGATAGGCAGGCCACTCTGGGATCCCTGGGATGCAAGCCCAGGGACAGCAGAGTCCCCAGGTGGGAAATCTACACACACACCCCAGGGATGTCCCAGAGACTTCTACC".chars().map(|c| c as u8).collect::<Vec<u8>>();
@@ -152,7 +144,6 @@ fn bench_eds(c: &mut Criterion) {
 }
 criterion_group!(
     benches,
-    simd_edit,
     bench_eds,
     global_abpoa_benchmark,
     local_poa_benchmark,

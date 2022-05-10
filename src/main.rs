@@ -10,11 +10,7 @@ use rspoa::local_poa;
 use rspoa::matrix;
 use rspoa::pathwise_alignment;
 use rspoa::sequences;
-use rspoa::simd_edit_distance;
 fn main() {
-    unsafe {
-        simd_edit_distance::prova();
-    }
     // get sequence
     let (sequences, seq_names) = sequences::get_sequences();
 
