@@ -2,6 +2,75 @@ use std::{arch::x86_64::*, cmp};
 
 use crate::graph::LnzGraph;
 
+pub fn exec_no_simd(read: &Vec<u8>, graph: &LnzGraph) {
+    let mut m: Vec<Vec<f32>> = vec![vec![0f32; read.len()]; graph.lnz.len()];
+    for i in 1..graph.lnz.len() {
+        if !graph.nwp[i] {
+            m[i][0] = m[i - 1][0] + 1f32;
+        } else {
+            let pred = graph.pred_hash.get(&i).unwrap();
+            let best_p = pred.iter().min().unwrap();
+            m[i][0] = m[*best_p][0] + 1f32;
+        }
+    }
+    for j in 0..read.len() {
+        m[0][j] = j as f32
+    }
+    for i in 1..graph.lnz.len() {
+        for j in 1..read.len() {
+            if !graph.nwp[i] {
+                let l = m[i][j - 1] + 1f32;
+                let u = m[i - 1][j] + 1f32;
+                let d = m[i - 1][j - 1]
+                    + if read[j] == graph.lnz[i] as u8 {
+                        0f32
+                    } else {
+                        1f32
+                    };
+
+                m[i][j] = [l, u, d].into_iter().reduce(f32::min).unwrap();
+            } else {
+                let mut u = 0f32;
+                let mut d = 0f32;
+                let mut first = false;
+                for p in graph.pred_hash.get(&i).unwrap() {
+                    if first {
+                        u = m[*p][j];
+                        d = m[*p][j - 1];
+                        first = false
+                    }
+                    if m[*p][j] < u {
+                        u = m[*p][j];
+                    }
+                    if m[*p][j - 1] < d {
+                        d = m[*p][j - 1];
+                    }
+                }
+                u += 1f32;
+                d += if read[j] == graph.lnz[i] as u8 {
+                    0f32
+                } else {
+                    1f32
+                };
+                let l = m[i][j - 1] + 1f32;
+
+                m[i][j] = [l, u, d].into_iter().reduce(f32::min).unwrap();
+            }
+        }
+    }
+    let mut best_result = 0f32;
+    let mut first = true;
+    for p in graph.pred_hash.get(&(m.len() - 1)).unwrap().iter() {
+        if first {
+            best_result = m[*p][read.len() - 1];
+            first = false;
+        }
+        if m[*p][read.len() - 1] < best_result {
+            best_result = m[*p][read.len() - 1];
+        }
+    }
+}
+
 #[target_feature(enable = "avx2")]
 pub unsafe fn exec(read: &Vec<u8>, graph: &LnzGraph) {
     let mut m: Vec<Vec<f32>> = vec![vec![0f32; read.len()]; graph.lnz.len()];
@@ -134,5 +203,4 @@ pub unsafe fn exec(read: &Vec<u8>, graph: &LnzGraph) {
             best_result = m[*p][read.len() - 1];
         }
     }
-    println!("Ed result: {best_result}");
 }
