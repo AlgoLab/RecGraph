@@ -35,6 +35,10 @@ fn main() {
             &sequences[0].iter().map(|c| *c as u8).collect::<Vec<u8>>(),
             &graph_struct,
         );
+        simd_poa_ed::exec_no_simd(
+            &sequences[0].iter().map(|c| *c as u8).collect::<Vec<u8>>(),
+            &graph_struct,
+        );
     }
 
     match align_mode {

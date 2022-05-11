@@ -2,9 +2,9 @@ use std::{arch::x86_64::*, cmp};
 
 use crate::graph::LnzGraph;
 
-pub fn exec_no_simd(read: &Vec<u8>, graph: &LnzGraph) {
+pub fn exec_no_simd(read: &Vec<u8>, graph: &LnzGraph) -> f32 {
     let mut m: Vec<Vec<f32>> = vec![vec![0f32; read.len()]; graph.lnz.len()];
-    for i in 1..graph.lnz.len() {
+    for i in 1..graph.lnz.len() - 1 {
         if !graph.nwp[i] {
             m[i][0] = m[i - 1][0] + 1f32;
         } else {
@@ -16,7 +16,7 @@ pub fn exec_no_simd(read: &Vec<u8>, graph: &LnzGraph) {
     for j in 0..read.len() {
         m[0][j] = j as f32
     }
-    for i in 1..graph.lnz.len() {
+    for i in 1..graph.lnz.len() - 1 {
         for j in 1..read.len() {
             if !graph.nwp[i] {
                 let l = m[i][j - 1] + 1f32;
@@ -32,7 +32,7 @@ pub fn exec_no_simd(read: &Vec<u8>, graph: &LnzGraph) {
             } else {
                 let mut u = 0f32;
                 let mut d = 0f32;
-                let mut first = false;
+                let mut first = true;
                 for p in graph.pred_hash.get(&i).unwrap() {
                     if first {
                         u = m[*p][j];
@@ -69,13 +69,14 @@ pub fn exec_no_simd(read: &Vec<u8>, graph: &LnzGraph) {
             best_result = m[*p][read.len() - 1];
         }
     }
+    best_result
 }
 
 #[target_feature(enable = "avx2")]
-pub unsafe fn exec(read: &Vec<u8>, graph: &LnzGraph) {
+pub unsafe fn exec(read: &Vec<u8>, graph: &LnzGraph) -> f32 {
     let mut m: Vec<Vec<f32>> = vec![vec![0f32; read.len()]; graph.lnz.len()];
 
-    for i in 1..graph.lnz.len() {
+    for i in 1..graph.lnz.len() - 1 {
         if !graph.nwp[i] {
             m[i][0] = m[i - 1][0] + 1f32;
         } else {
@@ -203,4 +204,5 @@ pub unsafe fn exec(read: &Vec<u8>, graph: &LnzGraph) {
             best_result = m[*p][read.len() - 1];
         }
     }
+    best_result
 }
