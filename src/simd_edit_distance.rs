@@ -43,9 +43,11 @@ pub unsafe fn exec_simd_avx2(read: &Vec<u8>, reference: &Vec<u8>) -> f32 {
         for j in (1..max_multiple + 1).step_by(8) {
             let us = _mm256_add_ps(_mm256_loadu_ps(m[i - 1].get_unchecked(j)), one_simd);
 
-            let read_simd = _mm256_loadu_ps(read_f32.get_unchecked(j));
-            let ref_simd = _mm256_set1_ps(reference[i] as f32);
-            let eq_char = _mm256_cmp_ps(read_simd, ref_simd, _CMP_EQ_OS);
+            let eq_char = _mm256_cmp_ps(
+                _mm256_loadu_ps(read_f32.get_unchecked(j)), //read chars simd
+                _mm256_set1_ps(reference[i] as f32),        // reference char simd
+                _CMP_EQ_OS,
+            );
             let neq_ds = _mm256_add_ps(_mm256_loadu_ps(m[i - 1].get_unchecked(j - 1)), one_simd);
             let eq_ds = _mm256_loadu_ps(m[i - 1].get_unchecked(j - 1));
             let ds = _mm256_blendv_ps(neq_ds, eq_ds, eq_char);
@@ -68,10 +70,10 @@ pub unsafe fn exec_simd_avx2(read: &Vec<u8>, reference: &Vec<u8>) -> f32 {
             m[i][j] = [l, u, d].into_iter().reduce(f32::min).unwrap();
         }
     }
-    
+
     m[reference.len() - 1][read.len() - 1]
 }
-/* 
+/*
 #[target_feature(enable = "sse2")]
 pub unsafe fn exec_simd(read: &Vec<u8>, reference: &Vec<u8>) -> i32 {
     let mut m: Vec<Vec<i32>> = vec![vec![0; read.len()]; reference.len()];
@@ -143,11 +145,23 @@ mod tests {
     }
     #[test]
     fn test_avx2_simd_version() {
-        let s1 = "AAAAAAAAAAAAAAA".chars().map(|c| c as u8).collect::<Vec<u8>>();
-        let s2 = "AAAAAAAAAAAAAAAA".chars().map(|c| c as u8).collect::<Vec<u8>>();
+        let s1 = "AAAAAAAAAAAAAAA"
+            .chars()
+            .map(|c| c as u8)
+            .collect::<Vec<u8>>();
+        let s2 = "AAAAAAAAAAAAAAAA"
+            .chars()
+            .map(|c| c as u8)
+            .collect::<Vec<u8>>();
 
-        let s3 = "ACAAAAAAAAAAAAAAA".chars().map(|c| c as u8).collect::<Vec<u8>>();
-        let s4 = "AAAACAAAAAAAAAAAA".chars().map(|c| c as u8).collect::<Vec<u8>>();
+        let s3 = "ACAAAAAAAAAAAAAAA"
+            .chars()
+            .map(|c| c as u8)
+            .collect::<Vec<u8>>();
+        let s4 = "AAAACAAAAAAAAAAAA"
+            .chars()
+            .map(|c| c as u8)
+            .collect::<Vec<u8>>();
         unsafe {
             let ed1 = super::exec_simd_avx2(&s1, &s2);
             let ed2 = super::exec_simd_avx2(&s3, &s4);

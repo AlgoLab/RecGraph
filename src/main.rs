@@ -10,6 +10,7 @@ use rspoa::local_poa;
 use rspoa::matrix;
 use rspoa::pathwise_alignment;
 use rspoa::sequences;
+use rspoa::simd_poa_ed;
 fn main() {
     // get sequence
     let (sequences, seq_names) = sequences::get_sequences();
@@ -29,6 +30,12 @@ fn main() {
     //get handle position for output
     let hofp_forward = gaf_output::create_handle_pos_in_lnz(&graph_struct.nwp, &graph_path, false);
     let mut hofp_reverse = HashMap::new();
+    unsafe {
+        simd_poa_ed::exec(
+            &sequences[0].iter().map(|c| *c as u8).collect::<Vec<u8>>(),
+            &graph_struct,
+        );
+    }
 
     match align_mode {
         //global alignment
