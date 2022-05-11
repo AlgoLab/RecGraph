@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::time::Instant;
 
 use rspoa::args_parser;
 use rspoa::gaf_output;
@@ -31,14 +32,20 @@ fn main() {
     let hofp_forward = gaf_output::create_handle_pos_in_lnz(&graph_struct.nwp, &graph_path, false);
     let mut hofp_reverse = HashMap::new();
     unsafe {
-        simd_poa_ed::exec(
+        let start1 = Instant::now();
+        let simd_res = simd_poa_ed::exec(
             &sequences[0].iter().map(|c| *c as u8).collect::<Vec<u8>>(),
             &graph_struct,
         );
-        simd_poa_ed::exec_no_simd(
+        let i1 = start1.elapsed();
+        let start2 = Instant::now();
+        let not_simd_res = simd_poa_ed::exec_no_simd(
             &sequences[0].iter().map(|c| *c as u8).collect::<Vec<u8>>(),
             &graph_struct,
         );
+        let i2 = start2.elapsed();
+        println!("Simd score: {simd_res} No simd score: {not_simd_res}");
+        println!("Simd: {} No Simd: {}", i1.as_micros(), i2.as_micros());
     }
 
     match align_mode {

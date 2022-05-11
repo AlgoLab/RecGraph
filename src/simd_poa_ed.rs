@@ -1,7 +1,7 @@
 use std::{arch::x86_64::*, cmp};
 
 use crate::graph::LnzGraph;
-
+// TODO: path implementation
 pub fn exec_no_simd(read: &Vec<u8>, graph: &LnzGraph) -> f32 {
     let mut m: Vec<Vec<f32>> = vec![vec![0f32; read.len()]; graph.lnz.len()];
     for i in 1..graph.lnz.len() - 1 {
@@ -117,34 +117,41 @@ pub unsafe fn exec(read: &Vec<u8>, graph: &LnzGraph) -> f32 {
                 _mm256_storeu_ps(m[i].get_unchecked_mut(j), result);
             } else {
                 let preds = graph.pred_hash.get(&i).unwrap();
-                let mut result = _mm256_set1_ps(0f32);
+                let mut best_ds = _mm256_set1_ps(0f32);
+                let mut best_us = _mm256_set1_ps(0f32);
                 let mut first = true;
                 for p in preds {
-                    let us = _mm256_add_ps(_mm256_loadu_ps(m[*p].get_unchecked(j)), one_simd);
+                    let us = _mm256_loadu_ps(m[*p].get_unchecked(j));
 
-                    let eq_char = _mm256_cmp_ps(
-                        _mm256_loadu_ps(read_f32.get_unchecked(j)), //read chars simd
-                        _mm256_set1_ps(graph.lnz[i] as u8 as f32),  // reference char simd
-                        _CMP_EQ_OS,
-                    );
-                    let neq_ds =
-                        _mm256_add_ps(_mm256_loadu_ps(m[*p].get_unchecked(j - 1)), one_simd);
-                    let eq_ds = _mm256_loadu_ps(m[*p].get_unchecked(j - 1));
-                    let ds = _mm256_blendv_ps(neq_ds, eq_ds, eq_char);
+                    let ds = _mm256_loadu_ps(m[*p].get_unchecked(j - 1));
 
-                    let best_choice = _mm256_cmp_ps(ds, us, _CMP_LT_OS);
-                    let tmp_result = _mm256_blendv_ps(us, ds, best_choice);
                     if first {
-                        result = tmp_result;
                         first = false;
+                        best_us = us;
+                        best_ds = ds;
                     } else {
-                        let best_choice = _mm256_cmp_ps(tmp_result, result, _CMP_LT_OS);
-                        let update_result = _mm256_blendv_ps(result, tmp_result, best_choice);
-                        result = update_result
+                        let best_us_choices = _mm256_cmp_ps(us, best_us, _CMP_LT_OS);
+                        best_us = _mm256_blendv_ps(best_us, us, best_us_choices);
+
+                        let best_ds_choices = _mm256_cmp_ps(ds, best_ds, _CMP_LT_OS);
+                        best_ds = _mm256_blendv_ps(best_ds, ds, best_ds_choices);
                     }
                 }
+                best_us = _mm256_add_ps(best_us, one_simd);
+
+                let eq_char = _mm256_cmp_ps(
+                    _mm256_loadu_ps(read_f32.get_unchecked(j)), //read chars simd
+                    _mm256_set1_ps(graph.lnz[i] as u8 as f32),  // reference char simd
+                    _CMP_EQ_OS,
+                );
+                let neq_ds = _mm256_add_ps(best_ds, one_simd);
+                best_ds = _mm256_blendv_ps(neq_ds, best_ds, eq_char);
+
+                let best_choice = _mm256_cmp_ps(best_ds, best_us, _CMP_LT_OS);
+                let result = _mm256_blendv_ps(best_us, best_ds, best_choice);
                 _mm256_storeu_ps(m[i].get_unchecked_mut(j), result);
             }
+
             // update with l for each one
             for idx in j..cmp::min(j + 8, read.len()) {
                 if m[i][idx - 1] + 1f32 < m[i][idx] {
