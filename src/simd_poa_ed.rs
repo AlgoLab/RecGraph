@@ -1,6 +1,7 @@
 use std::{arch::x86_64::*, cmp};
 
 use crate::graph::LnzGraph;
+//TODO: more difference between d u l dir_ value
 pub fn exec_no_simd(read: &Vec<u8>, graph: &LnzGraph) -> f32 {
     let mut m: Vec<Vec<f32>> = vec![vec![0f32; read.len()]; graph.lnz.len()];
     let mut path: Vec<Vec<f32>> = vec![vec![0f32; read.len()]; graph.lnz.len()];
@@ -93,6 +94,7 @@ pub fn exec_no_simd(read: &Vec<u8>, graph: &LnzGraph) -> f32 {
             best_result = m[*p][read.len() - 1];
         }
     }
+    rebuild_path(&path);
     best_result
 }
 
@@ -122,7 +124,8 @@ pub unsafe fn exec(read: &Vec<u8>, graph: &LnzGraph) -> f32 {
         .map(|c| *c as f32)
         .collect::<Vec<f32>>();
     let one_simd = _mm256_set1_ps(1.0);
-
+    let d_move_simd = _mm256_set1_ps(0.1);
+    let u_move_simd = _mm256_set1_ps(0.2);
     for i in 1..graph.lnz.len() - 1 {
         for j in (1..max_multiple + 1).step_by(8) {
             if !graph.nwp[i] {
@@ -143,13 +146,9 @@ pub unsafe fn exec(read: &Vec<u8>, graph: &LnzGraph) -> f32 {
 
                 _mm256_storeu_ps(m[i].get_unchecked_mut(j), result);
 
-                //path update
-                
-                let dir_result = _mm256_blendv_ps(_mm256_set1_ps(0.2), _mm256_set1_ps(0.1), best_choice);
+                let dir_result = _mm256_blendv_ps(u_move_simd, d_move_simd, best_choice);
                 let path_update = _mm256_add_ps(_mm256_set1_ps((i - 1) as f32), dir_result);
                 _mm256_storeu_ps(path[i].get_unchecked_mut(j), path_update);
-
-            // TODO: update path for multiple predecessor
             } else {
                 let preds = graph.pred_hash.get(&i).unwrap();
                 let mut best_ds = _mm256_set1_ps(0f32);
@@ -192,8 +191,8 @@ pub unsafe fn exec(read: &Vec<u8>, graph: &LnzGraph) -> f32 {
                 let result = _mm256_blendv_ps(best_us, best_ds, best_choice);
                 _mm256_storeu_ps(m[i].get_unchecked_mut(j), result);
 
-                pred_best_ds = _mm256_add_ps(pred_best_ds, _mm256_set1_ps(0.1));
-                pred_best_us = _mm256_add_ps(pred_best_us, _mm256_set1_ps(0.2));
+                pred_best_ds = _mm256_add_ps(pred_best_ds, d_move_simd);
+                pred_best_us = _mm256_add_ps(pred_best_us, u_move_simd);
 
                 let dir_result = _mm256_blendv_ps(pred_best_us, pred_best_ds, best_choice);
                 _mm256_storeu_ps(path[i].get_unchecked_mut(j), dir_result);
@@ -280,34 +279,24 @@ pub unsafe fn exec(read: &Vec<u8>, graph: &LnzGraph) -> f32 {
             best_result = m[*p][read.len() - 1];
         }
     }
-    //rebuild_path(&path);
+    rebuild_path(&path);
     best_result
 }
 
 fn rebuild_path(path: &Vec<Vec<f32>>) {
-    for j in 0..path[0].len() {
-        let val = path[0][j];
+    let mut row = path.len() - 2;
+    let mut col = path[row].len() - 1;
+    while path[row][col] != 0.0 {
+        let val = path[row][col];
         let pred = val as usize;
         let dir = val - (val as i32) as f32;
-        match (dir * 10f32) as i32 {
-            1 | 2 | 3 => {
-                println!("ok")
-            }
+        row = pred;
+        col = match (dir * 11f32) as i32 {
+            1 => col - 1,
+            2 => col,
+            3 => col - 1,
             _ => {
-                println!(" ERROR:  pred: {pred} dir: {dir}");
-            }
-        }
-    }
-    for i in 0..path.len() - 1 {
-        let val = path[i][0];
-        let pred = val as usize;
-        let dir = val - (val as i32) as f32;
-        match (dir * 10f32) as i32 {
-            1 | 2 | 3 => {
-                println!("ok")
-            }
-            _ => {
-                println!(" ERROR:  pred: {pred} dir: {dir}");
+                panic!();
             }
         }
     }

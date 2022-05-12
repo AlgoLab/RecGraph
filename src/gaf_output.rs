@@ -165,8 +165,8 @@ pub fn gaf_of_gap_abpoa(
         .collect::<Vec<String>>()
         .join(">");
     //path_length obtained from iterating in path matrix
-    let path_start = node_start(&hofp, row); // first letter used in first node of alignment
-    let path_end = node_start(&hofp, last_row); // last letter used in last node of alignment
+    let path_start = node_start(hofp, row); // first letter used in first node of alignment
+    let path_end = node_start(hofp, last_row); // last letter used in last node of alignment
     let number_residue = residue_matching;
     let align_block_length = "*"; // to set
     let mapping_quality = "*"; // to set
@@ -296,8 +296,8 @@ pub fn gaf_of_global_abpoa(
         .collect::<Vec<String>>()
         .join(">");
     //path_length obtained from iterating in path matrix
-    let path_start = node_start(&hofp, row); // first letter used in first node of alignment
-    let path_end = node_start(&hofp, last_row); // last letter used in last node of alignment
+    let path_start = node_start(hofp, row); // first letter used in first node of alignment
+    let path_end = node_start(hofp, last_row); // last letter used in last node of alignment
     let number_residue = residue_matching; // to set
     let align_block_length = "*"; // to set
     let mapping_quality = "*"; // to set
@@ -417,8 +417,8 @@ pub fn gaf_of_local_poa(
         .collect::<Vec<String>>()
         .join(">");
     //path_length obtained from iterating in path matrix
-    let path_start = node_start(&hofp, row); // first letter used in first node of alignment
-    let path_end = node_start(&hofp, last_row); // last letter used in last node of alignment
+    let path_start = node_start(hofp, row); // first letter used in first node of alignment
+    let path_end = node_start(hofp, last_row); // last letter used in last node of alignment
     let number_residue_matching = residue_matching;
     let align_block_length = "*"; // to set
     let mapping_quality = "*"; // to set
@@ -556,8 +556,8 @@ pub fn gaf_of_gap_local_poa(
         .collect::<Vec<String>>()
         .join(">");
     //path_length obtained from iterating in path matrix
-    let path_start = node_start(&hofp, row); // first letter used in first node of alignment
-    let path_end = node_start(&hofp, last_row); // last letter used in last node of alignment
+    let path_start = node_start(hofp, row); // first letter used in first node of alignment
+    let path_end = node_start(hofp, last_row); // last letter used in last node of alignment
     let number_residue_matching = residue_matching;
     let align_block_length = "*"; // to set
     let mapping_quality = "*"; // to set

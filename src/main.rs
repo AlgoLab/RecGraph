@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::time::Instant;
 
 use rspoa::args_parser;
 use rspoa::gaf_output;
@@ -31,22 +30,6 @@ fn main() {
     //get handle position for output
     let hofp_forward = gaf_output::create_handle_pos_in_lnz(&graph_struct.nwp, &graph_path, false);
     let mut hofp_reverse = HashMap::new();
-    unsafe {
-        let start1 = Instant::now();
-        let simd_res = simd_poa_ed::exec(
-            &sequences[0].iter().map(|c| *c as u8).collect::<Vec<u8>>(),
-            &graph_struct,
-        );
-        let i1 = start1.elapsed();
-        let start2 = Instant::now();
-        let not_simd_res = simd_poa_ed::exec_no_simd(
-            &sequences[0].iter().map(|c| *c as u8).collect::<Vec<u8>>(),
-            &graph_struct,
-        );
-        let i2 = start2.elapsed();
-        println!("Simd score: {simd_res} No simd score: {not_simd_res}");
-        println!("Simd: {} No Simd: {}", i1.as_micros(), i2.as_micros());
-    }
 
     match align_mode {
         //global alignment
@@ -194,6 +177,23 @@ fn main() {
         4 => {
             let path_node = graph::create_nodes_paths(&graph_path);
             pathwise_alignment::exec(&sequences[4], &graph_struct, &path_node, &score_matrix, 3);
+        }
+        5 => {
+            if is_x86_feature_detected!("avx2") {
+                unsafe {
+                    simd_poa_ed::exec(
+                        &sequences[0].iter().map(|c| *c as u8).collect::<Vec<u8>>(),
+                        &graph_struct,
+                    );
+                    println!("simd executed");
+                }
+            } else {
+                simd_poa_ed::exec_no_simd(
+                    &sequences[0].iter().map(|c| *c as u8).collect::<Vec<u8>>(),
+                    &graph_struct,
+                );
+                println!("not simd executed");
+            }
         }
         _ => {
             panic!("alignment mode must be 0, 1, 2 or 3");

@@ -159,6 +159,5 @@ pub fn get_amb_strand_mode() -> bool {
 
 pub fn get_out_file() -> String {
     let args = Args::parse();
-    let out_file = args.out_file;
-    out_file
+    args.out_file
 }
