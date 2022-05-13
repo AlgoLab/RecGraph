@@ -10,7 +10,8 @@ use rspoa::local_poa;
 use rspoa::matrix;
 use rspoa::pathwise_alignment;
 use rspoa::sequences;
-use rspoa::simd_poa_ed;
+use rspoa::simd_abpoa_m_mm;
+use rspoa::simd_poa;
 fn main() {
     // get sequence
     let (sequences, seq_names) = sequences::get_sequences();
@@ -180,18 +181,20 @@ fn main() {
         }
         5 => {
             let (m, mm) = args_parser::get_match_mismatch();
+            let bases_to_add = (b + f * sequences[0].len() as f32) as usize;
             if is_x86_feature_detected!("avx2") {
                 unsafe {
-                    let align_score = simd_poa_ed::exec(
+                    let align_score = simd_abpoa_m_mm::exec(
                         &sequences[0].iter().map(|c| *c as u8).collect::<Vec<u8>>(),
                         &graph_struct,
                         m as f32,
                         mm as f32,
+                        bases_to_add,
                     );
                     println!("simd executed, result: {align_score}");
                 }
             }
-            let align_score = simd_poa_ed::exec_no_simd(
+            let align_score = simd_poa::exec_no_simd(
                 &sequences[0].iter().map(|c| *c as u8).collect::<Vec<u8>>(),
                 &graph_struct,
                 m as f32,

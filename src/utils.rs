@@ -63,7 +63,7 @@ pub fn set_ampl_for_row(
 fn set_left_right_x64(left: usize, right: usize, seq_len: usize) -> (usize, usize) {
     let mut new_right = right;
     let mut new_left = left;
-    while (new_right - new_left) % 64 != 0 {
+    while (new_right - new_left) % 8 != 0 {
         if (new_right - new_left) % 2 == 0 && new_right < seq_len {
             new_right += 1;
         } else if new_left > 0 {
@@ -72,6 +72,17 @@ fn set_left_right_x64(left: usize, right: usize, seq_len: usize) -> (usize, usiz
             break;
         }
     }
+    if new_left == 0 {
+        while (new_right - 1) % 8 != 0 && new_right < seq_len - 1 {
+            new_right += 1;
+        }
+    }
+    if new_right == seq_len {
+        while (new_right - new_left) % 8 != 0 && new_left > 1 {
+            new_left -= 1
+        }
+    }
+
     (new_left, new_right)
 }
 
@@ -111,40 +122,5 @@ pub fn get_max_d_u_l(d: i32, u: i32, l: i32) -> (i32, char) {
             Ordering::Less => (l, 'L'),
             _ => (d, 'D'),
         },
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn ampl_for_row_multiple_of_64_if_simd() {
-        let seq_len = 1000;
-        let l1 = 100;
-        let r1 = 200;
-        let ampl1 = super::set_left_right_x64(l1, r1, seq_len);
-        let delta1 = ampl1.1 - ampl1.0;
-
-        let l2 = 5;
-        let r2 = 15;
-        let ampl2 = super::set_left_right_x64(l2, r2, seq_len);
-        let delta2 = ampl1.1 - ampl1.0;
-
-        let l3 = 989;
-        let r3 = 990;
-        let ampl3 = super::set_left_right_x64(l3, r3, seq_len);
-        let delta3 = ampl1.1 - ampl1.0;
-
-        let ampl4 = super::set_left_right_x64(5, 10, 15);
-
-        assert_eq!(delta1 % 64, 0);
-
-        assert_eq!(delta2 % 64, 0);
-        assert_eq!(ampl2.0, 0);
-
-        assert_eq!(delta3 % 64, 0);
-        assert_eq!(ampl3.1, 1000);
-
-        assert_eq!(ampl4.0, 0);
-        assert_eq!(ampl4.1, 15);
     }
 }

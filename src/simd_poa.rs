@@ -308,9 +308,22 @@ fn rebuild_path(path: &Vec<Vec<f32>>) {
         }
     }
 }
-/*
-path [i][j] = pred(int) + dir(decimal)
-D = 0.1
-U = 0.2
-L = 0.3
-*/
+
+#[cfg(test)]
+mod tests {
+    use crate::graph;
+
+    #[test]
+    fn test_simd_nosimd_equal_result() {
+        let lnz_graph = graph::read_graph("./prova.gfa", false);
+        let read = "CAAATAAGATTTGAAAATAATTTCTGGAGTTCTATAGTTCTATAATATTCCAACTCTCTG"
+            .chars()
+            .map(|c| c as u8)
+            .collect::<Vec<u8>>();
+        unsafe {
+            let simd_align = super::exec(&read, &lnz_graph, 2f32, -4f32);
+            let no_simd_align = super::exec_no_simd(&read, &lnz_graph, 2f32, -4f32);
+            assert_eq!(simd_align, no_simd_align);
+        }
+    }
+}

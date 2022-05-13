@@ -10,5 +10,6 @@ pub mod local_poa;
 pub mod matrix;
 pub mod pathwise_alignment;
 pub mod sequences;
-pub mod simd_poa_ed;
+pub mod simd_abpoa_m_mm;
+pub mod simd_poa;
 pub mod utils;
