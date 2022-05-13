@@ -166,21 +166,21 @@ pub unsafe fn exec(read: &Vec<u8>, graph: &LnzGraph, score_match: f32, score_mis
                     let us = _mm256_loadu_ps(m[*p].get_unchecked(j));
 
                     let ds = _mm256_loadu_ps(m[*p].get_unchecked(j - 1));
-                    let preds = _mm256_set1_ps(*p as f32);
+                    let pred_simd = _mm256_set1_ps(*p as f32);
                     if first {
                         first = false;
                         best_us = us;
                         best_ds = ds;
-                        pred_best_us = preds;
-                        pred_best_ds = preds;
+                        pred_best_us = pred_simd;
+                        pred_best_ds = pred_simd;
                     } else {
                         let best_us_choices = _mm256_cmp_ps(us, best_us, _CMP_GT_OS);
                         best_us = _mm256_blendv_ps(best_us, us, best_us_choices);
-                        pred_best_us = _mm256_blendv_ps(pred_best_us, preds, best_us_choices);
+                        pred_best_us = _mm256_blendv_ps(pred_best_us, pred_simd, best_us_choices);
 
                         let best_ds_choices = _mm256_cmp_ps(ds, best_ds, _CMP_GT_OS);
                         best_ds = _mm256_blendv_ps(best_ds, ds, best_ds_choices);
-                        pred_best_ds = _mm256_blendv_ps(pred_best_ds, preds, best_ds_choices);
+                        pred_best_ds = _mm256_blendv_ps(pred_best_ds, pred_simd, best_ds_choices);
                     }
                 }
                 best_us = _mm256_add_ps(best_us, mismatch_simd);
