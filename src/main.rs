@@ -179,21 +179,25 @@ fn main() {
             pathwise_alignment::exec(&sequences[4], &graph_struct, &path_node, &score_matrix, 3);
         }
         5 => {
+            let (m, mm) = args_parser::get_match_mismatch();
             if is_x86_feature_detected!("avx2") {
                 unsafe {
-                    simd_poa_ed::exec(
+                    let align_score = simd_poa_ed::exec(
                         &sequences[0].iter().map(|c| *c as u8).collect::<Vec<u8>>(),
                         &graph_struct,
+                        m as f32,
+                        mm as f32,
                     );
-                    println!("simd executed");
+                    println!("simd executed, result: {align_score}");
                 }
-            } else {
-                simd_poa_ed::exec_no_simd(
-                    &sequences[0].iter().map(|c| *c as u8).collect::<Vec<u8>>(),
-                    &graph_struct,
-                );
-                println!("not simd executed");
             }
+            let align_score = simd_poa_ed::exec_no_simd(
+                &sequences[0].iter().map(|c| *c as u8).collect::<Vec<u8>>(),
+                &graph_struct,
+                m as f32,
+                mm as f32,
+            );
+            println!("not simd executed, result: {align_score}");
         }
         _ => {
             panic!("alignment mode must be 0, 1, 2 or 3");

@@ -2,37 +2,37 @@ use std::{arch::x86_64::*, cmp};
 
 use crate::graph::LnzGraph;
 //TODO: more difference between d u l dir_ value
-pub fn exec_no_simd(read: &Vec<u8>, graph: &LnzGraph) -> f32 {
+pub fn exec_no_simd(read: &Vec<u8>, graph: &LnzGraph, score_match: f32, score_mis: f32) -> f32 {
     let mut m: Vec<Vec<f32>> = vec![vec![0f32; read.len()]; graph.lnz.len()];
     let mut path: Vec<Vec<f32>> = vec![vec![0f32; read.len()]; graph.lnz.len()];
     for i in 1..graph.lnz.len() - 1 {
         if !graph.nwp[i] {
-            m[i][0] = m[i - 1][0] + 1f32;
+            m[i][0] = m[i - 1][0] + score_mis;
             path[i][0] = (i - 1) as f32 + 0.2;
         } else {
             let pred = graph.pred_hash.get(&i).unwrap();
             let best_p = pred.iter().min().unwrap();
-            m[i][0] = m[*best_p][0] + 1f32;
+            m[i][0] = m[*best_p][0] + score_mis;
             path[i][0] = *best_p as f32 + 0.2;
         }
     }
     for j in 1..read.len() {
-        m[0][j] = j as f32;
+        m[0][j] = m[0][j - 1] + score_mis;
         path[0][j] = 0.3;
     }
     for i in 1..graph.lnz.len() - 1 {
         for j in 1..read.len() {
             if !graph.nwp[i] {
-                let l = m[i][j - 1] + 1f32;
-                let u = m[i - 1][j] + 1f32;
+                let l = m[i][j - 1] + score_mis;
+                let u = m[i - 1][j] + score_mis;
                 let d = m[i - 1][j - 1]
                     + if read[j] == graph.lnz[i] as u8 {
-                        0f32
+                        score_match
                     } else {
-                        1f32
+                        score_mis
                     };
 
-                m[i][j] = [l, u, d].into_iter().reduce(f32::min).unwrap();
+                m[i][j] = [l, u, d].into_iter().reduce(f32::max).unwrap();
                 if m[i][j] == d {
                     path[i][j] = (i - 1) as f32 + 0.1;
                 } else if m[i][j] == u {
@@ -54,24 +54,24 @@ pub fn exec_no_simd(read: &Vec<u8>, graph: &LnzGraph) -> f32 {
                         d_pred = *p;
                         first = false
                     }
-                    if m[*p][j] < u {
+                    if m[*p][j] > u {
                         u = m[*p][j];
                         u_pred = *p;
                     }
-                    if m[*p][j - 1] < d {
+                    if m[*p][j - 1] > d {
                         d = m[*p][j - 1];
                         d_pred = *p;
                     }
                 }
-                u += 1f32;
+                u += score_mis;
                 d += if read[j] == graph.lnz[i] as u8 {
-                    0f32
+                    score_match
                 } else {
-                    1f32
+                    score_mis
                 };
-                let l = m[i][j - 1] + 1f32;
+                let l = m[i][j - 1] + score_mis;
 
-                m[i][j] = [l, u, d].into_iter().reduce(f32::min).unwrap();
+                m[i][j] = [l, u, d].into_iter().reduce(f32::max).unwrap();
 
                 if m[i][j] == d {
                     path[i][j] = d_pred as f32 + 0.1;
@@ -90,7 +90,7 @@ pub fn exec_no_simd(read: &Vec<u8>, graph: &LnzGraph) -> f32 {
             best_result = m[*p][read.len() - 1];
             first = false;
         }
-        if m[*p][read.len() - 1] < best_result {
+        if m[*p][read.len() - 1] > best_result {
             best_result = m[*p][read.len() - 1];
         }
     }
@@ -99,22 +99,22 @@ pub fn exec_no_simd(read: &Vec<u8>, graph: &LnzGraph) -> f32 {
 }
 
 #[target_feature(enable = "avx2")]
-pub unsafe fn exec(read: &Vec<u8>, graph: &LnzGraph) -> f32 {
+pub unsafe fn exec(read: &Vec<u8>, graph: &LnzGraph, score_match: f32, score_mis: f32) -> f32 {
     let mut m: Vec<Vec<f32>> = vec![vec![0f32; read.len()]; graph.lnz.len()];
     let mut path: Vec<Vec<f32>> = vec![vec![0f32; read.len()]; graph.lnz.len()];
     for i in 1..graph.lnz.len() - 1 {
         if !graph.nwp[i] {
-            m[i][0] = m[i - 1][0] + 1f32;
+            m[i][0] = m[i - 1][0] + score_mis;
             path[i][0] = (i - 1) as f32 + 0.2;
         } else {
             let pred = graph.pred_hash.get(&i).unwrap();
             let best_p = pred.iter().min().unwrap();
-            m[i][0] = m[*best_p][0] + 1f32;
+            m[i][0] = m[*best_p][0] + score_mis;
             path[i][0] = *best_p as f32 + 0.2;
         }
     }
     for j in 1..read.len() {
-        m[0][j] = j as f32;
+        m[0][j] = m[0][j - 1] + score_mis;
         path[0][j] = 0.3;
     }
 
@@ -123,25 +123,31 @@ pub unsafe fn exec(read: &Vec<u8>, graph: &LnzGraph) -> f32 {
         .iter()
         .map(|c| *c as f32)
         .collect::<Vec<f32>>();
-    let one_simd = _mm256_set1_ps(1.0);
+
+    let mismatch_simd = _mm256_set1_ps(score_mis);
+    let match_simd = _mm256_set1_ps(score_match);
     let d_move_simd = _mm256_set1_ps(0.1);
     let u_move_simd = _mm256_set1_ps(0.2);
+
     for i in 1..graph.lnz.len() - 1 {
         for j in (1..max_multiple + 1).step_by(8) {
             if !graph.nwp[i] {
-                let us = _mm256_add_ps(_mm256_loadu_ps(m[i - 1].get_unchecked(j)), one_simd);
+                let us = _mm256_add_ps(_mm256_loadu_ps(m[i - 1].get_unchecked(j)), mismatch_simd);
 
                 let eq_char = _mm256_cmp_ps(
                     _mm256_loadu_ps(read_f32.get_unchecked(j)), //read chars simd
                     _mm256_set1_ps(graph.lnz[i] as u8 as f32),  // reference char simd
                     _CMP_EQ_OS,
                 );
-                let neq_ds =
-                    _mm256_add_ps(_mm256_loadu_ps(m[i - 1].get_unchecked(j - 1)), one_simd);
-                let eq_ds = _mm256_loadu_ps(m[i - 1].get_unchecked(j - 1));
+                let neq_ds = _mm256_add_ps(
+                    _mm256_loadu_ps(m[i - 1].get_unchecked(j - 1)),
+                    mismatch_simd,
+                );
+                let eq_ds =
+                    _mm256_add_ps(_mm256_loadu_ps(m[i - 1].get_unchecked(j - 1)), match_simd);
                 let ds = _mm256_blendv_ps(neq_ds, eq_ds, eq_char);
 
-                let best_choice = _mm256_cmp_ps(ds, us, _CMP_LT_OS);
+                let best_choice = _mm256_cmp_ps(ds, us, _CMP_GT_OS);
                 let result = _mm256_blendv_ps(us, ds, best_choice);
 
                 _mm256_storeu_ps(m[i].get_unchecked_mut(j), result);
@@ -168,26 +174,27 @@ pub unsafe fn exec(read: &Vec<u8>, graph: &LnzGraph) -> f32 {
                         pred_best_us = preds;
                         pred_best_ds = preds;
                     } else {
-                        let best_us_choices = _mm256_cmp_ps(us, best_us, _CMP_LT_OS);
+                        let best_us_choices = _mm256_cmp_ps(us, best_us, _CMP_GT_OS);
                         best_us = _mm256_blendv_ps(best_us, us, best_us_choices);
                         pred_best_us = _mm256_blendv_ps(pred_best_us, preds, best_us_choices);
 
-                        let best_ds_choices = _mm256_cmp_ps(ds, best_ds, _CMP_LT_OS);
+                        let best_ds_choices = _mm256_cmp_ps(ds, best_ds, _CMP_GT_OS);
                         best_ds = _mm256_blendv_ps(best_ds, ds, best_ds_choices);
                         pred_best_ds = _mm256_blendv_ps(pred_best_ds, preds, best_ds_choices);
                     }
                 }
-                best_us = _mm256_add_ps(best_us, one_simd);
+                best_us = _mm256_add_ps(best_us, mismatch_simd);
 
                 let eq_char = _mm256_cmp_ps(
                     _mm256_loadu_ps(read_f32.get_unchecked(j)), //read chars simd
                     _mm256_set1_ps(graph.lnz[i] as u8 as f32),  // reference char simd
                     _CMP_EQ_OS,
                 );
-                let neq_ds = _mm256_add_ps(best_ds, one_simd);
+                let neq_ds = _mm256_add_ps(best_ds, mismatch_simd);
+                best_ds = _mm256_add_ps(best_ds, match_simd);
                 best_ds = _mm256_blendv_ps(neq_ds, best_ds, eq_char);
 
-                let best_choice = _mm256_cmp_ps(best_ds, best_us, _CMP_LT_OS);
+                let best_choice = _mm256_cmp_ps(best_ds, best_us, _CMP_GT_OS);
                 let result = _mm256_blendv_ps(best_us, best_ds, best_choice);
                 _mm256_storeu_ps(m[i].get_unchecked_mut(j), result);
 
@@ -200,24 +207,24 @@ pub unsafe fn exec(read: &Vec<u8>, graph: &LnzGraph) -> f32 {
 
             // update with l for each one
             for idx in j..cmp::min(j + 8, read.len()) {
-                if m[i][idx - 1] + 1f32 < m[i][idx] {
-                    m[i][idx] = m[i][idx - 1] + 1f32;
+                if m[i][idx - 1] + score_mis > m[i][idx] {
+                    m[i][idx] = m[i][idx - 1] + score_mis;
                     path[i][idx] = i as f32 + 0.3;
                 }
             }
         }
         for j in max_multiple + 1..read.len() {
             if !graph.nwp[i] {
-                let l = m[i][j - 1] + 1f32;
-                let u = m[i - 1][j] + 1f32;
+                let l = m[i][j - 1] + score_mis;
+                let u = m[i - 1][j] + score_mis;
                 let d = m[i - 1][j - 1]
                     + if read[j] == graph.lnz[i] as u8 {
-                        0f32
+                        score_match
                     } else {
-                        1f32
+                        score_mis
                     };
 
-                m[i][j] = [l, u, d].into_iter().reduce(f32::min).unwrap();
+                m[i][j] = [l, u, d].into_iter().reduce(f32::max).unwrap();
                 if m[i][j] == d {
                     path[i][j] = (i - 1) as f32 + 0.1;
                 } else if m[i][j] == u {
@@ -239,24 +246,24 @@ pub unsafe fn exec(read: &Vec<u8>, graph: &LnzGraph) -> f32 {
                         d_pred = *p;
                         first = false
                     }
-                    if m[*p][j] < u {
+                    if m[*p][j] > u {
                         u = m[*p][j];
                         u_pred = *p;
                     }
-                    if m[*p][j - 1] < d {
+                    if m[*p][j - 1] > d {
                         d = m[*p][j - 1];
                         d_pred = *p;
                     }
                 }
-                u += 1f32;
+                u += score_mis;
                 d += if read[j] == graph.lnz[i] as u8 {
-                    0f32
+                    score_match
                 } else {
-                    1f32
+                    score_mis
                 };
-                let l = m[i][j - 1] + 1f32;
+                let l = m[i][j - 1] + score_mis;
 
-                m[i][j] = [l, u, d].into_iter().reduce(f32::min).unwrap();
+                m[i][j] = [l, u, d].into_iter().reduce(f32::max).unwrap();
 
                 if m[i][j] == d {
                     path[i][j] = d_pred as f32 + 0.1;
@@ -275,7 +282,7 @@ pub unsafe fn exec(read: &Vec<u8>, graph: &LnzGraph) -> f32 {
             best_result = m[*p][read.len() - 1];
             first = false;
         }
-        if m[*p][read.len() - 1] < best_result {
+        if m[*p][read.len() - 1] > best_result {
             best_result = m[*p][read.len() - 1];
         }
     }
