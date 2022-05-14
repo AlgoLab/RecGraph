@@ -9,6 +9,7 @@ pub unsafe fn exec(
     score_match: f32,
     score_mis: f32,
     bta: usize,
+    r_values: &Vec<usize>,
 ) -> f32 {
     let min_score = 2.0 * read.len() as f32 * score_mis;
     let mut m: Vec<Vec<f32>> = vec![vec![min_score; read.len()]; graph.lnz.len()];
@@ -21,7 +22,6 @@ pub unsafe fn exec(
     let d_move_simd = _mm256_set1_ps(0.1);
     let u_move_simd = _mm256_set1_ps(0.2);
 
-    let r_values = utils::set_r_values(&graph.nwp, &graph.pred_hash, graph.lnz.len());
     let mut best_scoring_pos = vec![0; graph.lnz.len()];
     let mut ampl_for_row: Vec<(usize, usize)> = vec![(0, 0); graph.lnz.len()];
 
@@ -242,7 +242,7 @@ pub unsafe fn exec(
             best_result = m[*p][read.len() - 1];
         }
     }
-    rebuild_path(&path);
+    //rebuild_path(&path);
     best_result
 }
 

@@ -12,9 +12,10 @@ use rspoa::pathwise_alignment;
 use rspoa::sequences;
 use rspoa::simd_abpoa_m_mm;
 use rspoa::simd_poa;
+use rspoa::utils;
 fn main() {
     // get sequence
-    let (sequences, seq_names) = sequences::get_sequences();
+    let (sequences, seq_names) = sequences::get_sequences(args_parser::get_sequence_path());
 
     //get graph
     let graph_path = args_parser::get_graph_path();
@@ -182,25 +183,29 @@ fn main() {
         5 => {
             let (m, mm) = args_parser::get_match_mismatch();
             let bases_to_add = (b + f * sequences[0].len() as f32) as usize;
-            if is_x86_feature_detected!("avx2") {
-                unsafe {
-                    let align_score = simd_abpoa_m_mm::exec(
-                        &sequences[0].iter().map(|c| *c as u8).collect::<Vec<u8>>(),
-                        &graph_struct,
-                        m as f32,
-                        mm as f32,
-                        bases_to_add,
-                    );
-                    println!("simd executed, result: {align_score}");
-                }
-            }
-            let align_score = simd_poa::exec_no_simd(
-                &sequences[0].iter().map(|c| *c as u8).collect::<Vec<u8>>(),
-                &graph_struct,
-                m as f32,
-                mm as f32,
+            let r_values = utils::set_r_values(
+                &graph_struct.nwp,
+                &graph_struct.pred_hash,
+                graph_struct.lnz.len(),
             );
-            println!("not simd executed, result: {align_score}");
+            for read in sequences.iter() {
+                let read = read.iter().map(|c| *c as u8).collect::<Vec<u8>>();
+                if is_x86_feature_detected!("avx2") {
+                    unsafe {
+                        let align_score = simd_abpoa_m_mm::exec(
+                            &read,
+                            &graph_struct,
+                            m as f32,
+                            mm as f32,
+                            bases_to_add,
+                            &r_values,
+                        );
+                        println!("simd executed, result: {align_score}");
+                    }
+                }
+                let align_score = simd_poa::exec_no_simd(&read, &graph_struct, m as f32, mm as f32);
+                println!("not simd executed, result: {align_score}");
+            }
         }
         _ => {
             panic!("alignment mode must be 0, 1, 2 or 3");

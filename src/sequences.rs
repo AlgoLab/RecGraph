@@ -1,8 +1,6 @@
-use crate::args_parser;
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
-pub fn get_sequences() -> (Vec<Vec<char>>, Vec<String>) {
-    let file_path = args_parser::get_sequence_path();
+pub fn get_sequences(file_path: String) -> (Vec<Vec<char>>, Vec<String>) {
     let file = File::open(file_path).unwrap();
     let reader = BufReader::new(file);
 
