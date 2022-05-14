@@ -128,8 +128,11 @@ fn local_gap_abpoa_benchmark(c: &mut Criterion) {
 */
 fn bench_poa_eds(c: &mut Criterion) {
     let mut group = c.benchmark_group("Partial Order Alignment");
-    let graph_struct = graph::read_graph(&"tests/MICA-100507436_graph.gfa", false);
-    let seqs = sequences::get_sequences(String::from("tests/MICA-100507436.fa"));
+    let graph_struct = graph::read_graph(
+        &"tests/DMA-3108.fa.353ea42.34ee7b1.1576367.smooth.fix.gfa",
+        false,
+    );
+    let seqs = sequences::get_sequences(String::from("tests/dma-3108.fa"));
     let r_values = utils::set_r_values(
         &graph_struct.nwp,
         &graph_struct.pred_hash,

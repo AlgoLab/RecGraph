@@ -201,6 +201,8 @@ fn main() {
                             &r_values,
                         );
                         println!("simd executed, result: {align_score}");
+                        let align_score = simd_poa::exec(&read, &graph_struct, m as f32, mm as f32);
+                        println!("not simd executed, result: {align_score}");
                     }
                 }
                 let align_score = simd_poa::exec_no_simd(&read, &graph_struct, m as f32, mm as f32);

@@ -118,7 +118,11 @@ pub unsafe fn exec(read: &Vec<u8>, graph: &LnzGraph, score_match: f32, score_mis
         path[0][j] = 0.3;
     }
 
-    let max_multiple = (read.len() / 8) * 8;
+    let max_multiple = if read.len() % 8 != 0 {
+        (read.len() / 8) * 8
+    } else {
+        read.len() - 8
+    };
     let read_f32 = &read[0..max_multiple + 1]
         .iter()
         .map(|c| *c as f32)
@@ -157,31 +161,22 @@ pub unsafe fn exec(read: &Vec<u8>, graph: &LnzGraph, score_match: f32, score_mis
                 _mm256_storeu_ps(path[i].get_unchecked_mut(j), path_update);
             } else {
                 let preds = graph.pred_hash.get(&i).unwrap();
-                let mut best_ds = _mm256_set1_ps(0f32);
-                let mut best_us = _mm256_set1_ps(0f32);
-                let mut pred_best_us = _mm256_set1_ps(0f32);
-                let mut pred_best_ds = _mm256_set1_ps(0f32);
-                let mut first = true;
-                for p in preds {
+                let mut best_us = _mm256_loadu_ps(m[preds[0]].get_unchecked(j));
+                let mut best_ds = _mm256_loadu_ps(m[preds[0]].get_unchecked(j - 1));
+                let mut pred_best_us = _mm256_set1_ps(preds[0] as f32);
+                let mut pred_best_ds = _mm256_set1_ps(preds[0] as f32);
+                for p in preds[1..].iter() {
                     let us = _mm256_loadu_ps(m[*p].get_unchecked(j));
-
                     let ds = _mm256_loadu_ps(m[*p].get_unchecked(j - 1));
                     let pred_simd = _mm256_set1_ps(*p as f32);
-                    if first {
-                        first = false;
-                        best_us = us;
-                        best_ds = ds;
-                        pred_best_us = pred_simd;
-                        pred_best_ds = pred_simd;
-                    } else {
-                        let best_us_choices = _mm256_cmp_ps(us, best_us, _CMP_GT_OS);
-                        best_us = _mm256_blendv_ps(best_us, us, best_us_choices);
-                        pred_best_us = _mm256_blendv_ps(pred_best_us, pred_simd, best_us_choices);
 
-                        let best_ds_choices = _mm256_cmp_ps(ds, best_ds, _CMP_GT_OS);
-                        best_ds = _mm256_blendv_ps(best_ds, ds, best_ds_choices);
-                        pred_best_ds = _mm256_blendv_ps(pred_best_ds, pred_simd, best_ds_choices);
-                    }
+                    let best_us_choices = _mm256_cmp_ps(us, best_us, _CMP_GT_OS);
+                    best_us = _mm256_blendv_ps(best_us, us, best_us_choices);
+                    pred_best_us = _mm256_blendv_ps(pred_best_us, pred_simd, best_us_choices);
+
+                    let best_ds_choices = _mm256_cmp_ps(ds, best_ds, _CMP_GT_OS);
+                    best_ds = _mm256_blendv_ps(best_ds, ds, best_ds_choices);
+                    pred_best_ds = _mm256_blendv_ps(pred_best_ds, pred_simd, best_ds_choices);
                 }
                 best_us = _mm256_add_ps(best_us, mismatch_simd);
 
@@ -286,7 +281,7 @@ pub unsafe fn exec(read: &Vec<u8>, graph: &LnzGraph, score_match: f32, score_mis
             best_result = m[*p][read.len() - 1];
         }
     }
-    rebuild_path(&path);
+    //rebuild_path(&path);
     best_result
 }
 
