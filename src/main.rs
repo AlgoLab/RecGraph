@@ -192,7 +192,7 @@ fn main() {
                 let read = read.iter().map(|c| *c as u8).collect::<Vec<u8>>();
                 if is_x86_feature_detected!("avx2") {
                     unsafe {
-                        let align_score = simd_abpoa_m_mm::exec(
+                        simd_abpoa_m_mm::exec(
                             &read,
                             &graph_struct,
                             m as f32,
@@ -200,7 +200,6 @@ fn main() {
                             bases_to_add,
                             &r_values,
                         );
-                        //println!("simd executed, result: {align_score}");
                     }
                 } else {
                     let align_score =

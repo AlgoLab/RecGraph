@@ -3,12 +3,12 @@ use std::arch::x86_64::*;
 use crate::{graph::LnzGraph, utils};
 #[target_feature(enable = "avx2")]
 pub unsafe fn exec(
-    read: &Vec<u8>,
+    read: &[u8],
     graph: &LnzGraph,
     score_match: f32,
     score_mis: f32,
     bta: usize,
-    r_values: &Vec<usize>,
+    r_values: &[usize],
 ) -> f32 {
     let min_score = 2.0 * read.len() as f32 * score_mis;
     let mut m: Vec<Vec<f32>> = vec![vec![min_score; read.len()]; graph.lnz.len()];
@@ -235,16 +235,22 @@ pub unsafe fn exec(
     best_result
 }
 
-fn output_creation(path: &Vec<Vec<f32>>) {
+fn output_creation(path: &[Vec<f32>]) {
     let mut row = path.len() - 2;
     let mut col = path[row].len() - 1;
     let mut cigar = String::new();
     while path[row][col] != 0.0 {
         let val = path[row][col];
-        let pred = val as usize;
-        let dir = val - (val as i32) as f32;
-        match (dir * 11f32) as i32 {
-            0 | 1 => {
+        if val == -1f32 {
+            println!("larger band needed for a correct output");
+            break;
+        }
+        let val_str = val.to_string();
+        let pred_dir = val_str.split('.').collect::<Vec<&str>>();
+        let pred = pred_dir[0].parse::<usize>().unwrap();
+        let dir = pred_dir[1].parse::<i32>().unwrap();
+        match dir {
+            1 => {
                 cigar.push('M');
                 col -= 1;
             }

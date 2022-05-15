@@ -2,7 +2,7 @@ use std::{arch::x86_64::*, cmp};
 
 use crate::graph::LnzGraph;
 //TODO: more difference between d u l dir_ value
-pub fn exec_no_simd(read: &Vec<u8>, graph: &LnzGraph, score_match: f32, score_mis: f32) -> f32 {
+pub fn exec_no_simd(read: &[u8], graph: &LnzGraph, score_match: f32, score_mis: f32) -> f32 {
     let mut m: Vec<Vec<f32>> = vec![vec![0f32; read.len()]; graph.lnz.len()];
     let mut path: Vec<Vec<f32>> = vec![vec![0f32; read.len()]; graph.lnz.len()];
     for i in 1..graph.lnz.len() - 1 {
@@ -99,7 +99,7 @@ pub fn exec_no_simd(read: &Vec<u8>, graph: &LnzGraph, score_match: f32, score_mi
 }
 
 #[target_feature(enable = "avx2")]
-pub unsafe fn exec(read: &Vec<u8>, graph: &LnzGraph, score_match: f32, score_mis: f32) -> f32 {
+pub unsafe fn exec(read: &[u8], graph: &LnzGraph, score_match: f32, score_mis: f32) -> f32 {
     let mut m: Vec<Vec<f32>> = vec![vec![0f32; read.len()]; graph.lnz.len()];
     let mut path: Vec<Vec<f32>> = vec![vec![0f32; read.len()]; graph.lnz.len()];
     for i in 1..graph.lnz.len() - 1 {
@@ -285,7 +285,7 @@ pub unsafe fn exec(read: &Vec<u8>, graph: &LnzGraph, score_match: f32, score_mis
     best_result
 }
 
-fn rebuild_path(path: &Vec<Vec<f32>>) {
+fn rebuild_path(path: &[Vec<f32>]) {
     let mut row = path.len() - 2;
     let mut col = path[row].len() - 1;
     while path[row][col] != 0.0 {
