@@ -1,7 +1,6 @@
-use std::{arch::x86_64::*, cmp};
+use std::arch::x86_64::*;
 
 use crate::{graph::LnzGraph, utils};
-//TODO: no match(i, j) set i = 0 and j = 0 before;
 #[target_feature(enable = "avx2")]
 pub unsafe fn exec(
     read: &Vec<u8>,
@@ -26,8 +25,7 @@ pub unsafe fn exec(
     let mut ampl_for_row: Vec<(usize, usize)> = vec![(0, 0); graph.lnz.len()];
 
     m[0][0] = 0f32;
-    path[0][0] = 0f32;
-
+    path[0][0] = 0.00;
     for i in 1..graph.lnz.len() - 1 {
         if !graph.nwp[i] {
             m[i][0] = m[i - 1][0] + score_mis;
@@ -142,7 +140,7 @@ pub unsafe fn exec(
                 let dir_result = _mm256_blendv_ps(pred_best_us, pred_best_ds, best_choice);
                 _mm256_storeu_ps(path[i].get_unchecked_mut(j), dir_result);
             }
-            for idx in j..cmp::min(j + 8, read.len()) {
+            for idx in j..j + 8 {
                 if m[i][idx - 1] + score_mis > m[i][idx] {
                     m[i][idx] = m[i][idx - 1] + score_mis;
                     path[i][idx] = i as f32 + 0.3;
@@ -154,8 +152,8 @@ pub unsafe fn exec(
             }
         }
         // set last position without simd
-        if end != right {
-            for j in end..read.len() {
+        if end < right {
+            for j in end..right {
                 if !graph.nwp[i] {
                     let l = m[i][j - 1] + score_mis;
                     let u = m[i - 1][j] + score_mis;
@@ -233,25 +231,89 @@ pub unsafe fn exec(
             best_result = m[*p][read.len() - 1];
         }
     }
-    //rebuild_path(&path);
+    output_creation(&path);
     best_result
 }
 
-fn rebuild_path(path: &Vec<Vec<f32>>) {
+fn output_creation(path: &Vec<Vec<f32>>) {
     let mut row = path.len() - 2;
     let mut col = path[row].len() - 1;
+    let mut cigar = String::new();
     while path[row][col] != 0.0 {
         let val = path[row][col];
         let pred = val as usize;
         let dir = val - (val as i32) as f32;
-        row = pred;
-        col = match (dir * 11f32) as i32 {
-            1 => col - 1,
-            2 => col,
-            3 => col - 1,
+        match (dir * 11f32) as i32 {
+            0 | 1 => {
+                cigar.push('M');
+                col -= 1;
+            }
+            2 => {
+                cigar.push('I');
+            }
+            3 => {
+                cigar.push('D');
+                col -= 1;
+            }
             _ => {
                 panic!();
             }
+        };
+        row = pred;
+    }
+    cigar = cigar.chars().rev().collect::<String>();
+    let mut count_m = 0;
+    let mut count_i = 0;
+    let mut count_d = 0;
+    let mut output = String::new();
+    for c in cigar.chars() {
+        match c {
+            'M' => {
+                if count_i > 0 {
+                    output = format!("{}{}I", output, count_i);
+                    count_i = 0;
+                }
+                if count_d > 0 {
+                    output = format!("{}{}D", output, count_d);
+                    count_d = 0;
+                }
+                count_m += 1;
+            }
+            'I' => {
+                if count_m > 0 {
+                    output = format!("{}{}M", output, count_m);
+                    count_m = 0;
+                }
+                if count_d > 0 {
+                    output = format!("{}{}D", output, count_d);
+                    count_d = 0;
+                }
+                count_i += 1;
+            }
+            'D' => {
+                if count_m > 0 {
+                    output = format!("{}{}M", output, count_m);
+                    count_m = 0;
+                }
+                if count_i > 0 {
+                    output = format!("{}{}I", output, count_i);
+                    count_i = 0;
+                }
+                count_d += 1;
+            }
+            _ => {
+                panic!()
+            }
         }
     }
+    if count_m > 0 {
+        output = format!("{}{}M", output, count_m);
+    }
+    if count_i > 0 {
+        output = format!("{}{}I", output, count_i);
+    }
+    if count_d > 0 {
+        output = format!("{}{}D", output, count_d);
+    }
+    println!("{}", output);
 }

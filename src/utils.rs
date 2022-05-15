@@ -73,7 +73,7 @@ fn set_left_right_x64(left: usize, right: usize, seq_len: usize) -> (usize, usiz
         }
     }
     if new_left == 0 {
-        while (new_right - 1) % 8 != 0 && new_right < seq_len - 1 {
+        while (new_right - 1) % 8 != 0 && new_right < seq_len {
             new_right += 1;
         }
     }
