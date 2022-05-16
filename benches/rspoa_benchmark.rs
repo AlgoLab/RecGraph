@@ -144,6 +144,7 @@ fn bench_poa_eds(c: &mut Criterion) {
                         black_box(&graph_struct),
                         black_box(m),
                         black_box(mm),
+                        0,
                     )
                 })
             });
@@ -168,6 +169,7 @@ fn bench_poa_eds(c: &mut Criterion) {
                         black_box(mm),
                         5,
                         &r_values,
+                        0,
                     )
                 })
             });

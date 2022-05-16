@@ -124,3 +124,97 @@ pub fn get_max_d_u_l(d: i32, u: i32, l: i32) -> (i32, char) {
         },
     }
 }
+
+pub fn output_creation(path: &[Vec<f32>], read_number: usize) {
+    let mut row = path.len() - 2;
+    let mut col = path[row].len() - 1;
+    let mut cigar = String::new();
+    let mut output_ok = true;
+
+    while path[row][col] != 0.0 {
+        let val = path[row][col];
+        if val == -1f32 {
+            println!("larger band needed for a correct output");
+            output_ok = false;
+            break;
+        }
+        let val_str = val.to_string();
+        let pred_dir = val_str.split('.').collect::<Vec<&str>>();
+        let pred = pred_dir[0].parse::<usize>().unwrap();
+        let dir = pred_dir[1].parse::<i32>().unwrap();
+        match dir {
+            1 => {
+                cigar.push('M');
+                col -= 1;
+            }
+            2 => {
+                cigar.push('I');
+            }
+            3 => {
+                cigar.push('D');
+                col -= 1;
+            }
+            _ => {
+                panic!();
+            }
+        };
+        row = pred;
+    }
+    if output_ok {
+        cigar = cigar.chars().rev().collect::<String>();
+        let mut count_m = 0;
+        let mut count_i = 0;
+        let mut count_d = 0;
+        let mut output = String::new();
+        for c in cigar.chars() {
+            match c {
+                'M' => {
+                    if count_i > 0 {
+                        output = format!("{}{}I", output, count_i);
+                        count_i = 0;
+                    }
+                    if count_d > 0 {
+                        output = format!("{}{}D", output, count_d);
+                        count_d = 0;
+                    }
+                    count_m += 1;
+                }
+                'I' => {
+                    if count_m > 0 {
+                        output = format!("{}{}M", output, count_m);
+                        count_m = 0;
+                    }
+                    if count_d > 0 {
+                        output = format!("{}{}D", output, count_d);
+                        count_d = 0;
+                    }
+                    count_i += 1;
+                }
+                'D' => {
+                    if count_m > 0 {
+                        output = format!("{}{}M", output, count_m);
+                        count_m = 0;
+                    }
+                    if count_i > 0 {
+                        output = format!("{}{}I", output, count_i);
+                        count_i = 0;
+                    }
+                    count_d += 1;
+                }
+                _ => {
+                    panic!()
+                }
+            }
+        }
+        if count_m > 0 {
+            output = format!("{}{}M", output, count_m);
+        }
+        if count_i > 0 {
+            output = format!("{}{}I", output, count_i);
+        }
+        if count_d > 0 {
+            output = format!("{}{}D", output, count_d);
+        }
+        println!(">{}\t{}", read_number, output);
+    }
+}

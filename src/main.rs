@@ -188,7 +188,7 @@ fn main() {
                 &graph_struct.pred_hash,
                 graph_struct.lnz.len(),
             );
-            for read in sequences.iter() {
+            for (idx, read) in sequences.iter().enumerate() {
                 let read = read.iter().map(|c| *c as u8).collect::<Vec<u8>>();
                 if is_x86_feature_detected!("avx2") {
                     unsafe {
@@ -199,11 +199,12 @@ fn main() {
                             mm as f32,
                             bases_to_add,
                             &r_values,
+                            idx + 1,
                         );
                     }
                 } else {
                     let align_score =
-                        simd_poa::exec_no_simd(&read, &graph_struct, m as f32, mm as f32);
+                        simd_poa::exec_no_simd(&read, &graph_struct, m as f32, mm as f32, idx);
                     println!("not simd executed, result: {align_score}");
                 }
             }

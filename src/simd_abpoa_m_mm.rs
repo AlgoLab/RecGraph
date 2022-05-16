@@ -9,6 +9,7 @@ pub unsafe fn exec(
     score_mis: f32,
     bta: usize,
     r_values: &[usize],
+    read_number: usize,
 ) -> f32 {
     let min_score = 2.0 * read.len() as f32 * score_mis;
     let mut m: Vec<Vec<f32>> = vec![vec![min_score; read.len()]; graph.lnz.len()];
@@ -231,95 +232,31 @@ pub unsafe fn exec(
             best_result = m[*p][read.len() - 1];
         }
     }
-    output_creation(&path);
+    if read_number != 0 {
+        utils::output_creation(&path, read_number);
+    }
     best_result
 }
 
-fn output_creation(path: &[Vec<f32>]) {
-    let mut row = path.len() - 2;
-    let mut col = path[row].len() - 1;
-    let mut cigar = String::new();
-    while path[row][col] != 0.0 {
-        let val = path[row][col];
-        if val == -1f32 {
-            println!("larger band needed for a correct output");
-            break;
-        }
-        let val_str = val.to_string();
-        let pred_dir = val_str.split('.').collect::<Vec<&str>>();
-        let pred = pred_dir[0].parse::<usize>().unwrap();
-        let dir = pred_dir[1].parse::<i32>().unwrap();
-        match dir {
-            1 => {
-                cigar.push('M');
-                col -= 1;
-            }
-            2 => {
-                cigar.push('I');
-            }
-            3 => {
-                cigar.push('D');
-                col -= 1;
-            }
-            _ => {
-                panic!();
-            }
-        };
-        row = pred;
-    }
-    cigar = cigar.chars().rev().collect::<String>();
-    let mut count_m = 0;
-    let mut count_i = 0;
-    let mut count_d = 0;
-    let mut output = String::new();
-    for c in cigar.chars() {
-        match c {
-            'M' => {
-                if count_i > 0 {
-                    output = format!("{}{}I", output, count_i);
-                    count_i = 0;
-                }
-                if count_d > 0 {
-                    output = format!("{}{}D", output, count_d);
-                    count_d = 0;
-                }
-                count_m += 1;
-            }
-            'I' => {
-                if count_m > 0 {
-                    output = format!("{}{}M", output, count_m);
-                    count_m = 0;
-                }
-                if count_d > 0 {
-                    output = format!("{}{}D", output, count_d);
-                    count_d = 0;
-                }
-                count_i += 1;
-            }
-            'D' => {
-                if count_m > 0 {
-                    output = format!("{}{}M", output, count_m);
-                    count_m = 0;
-                }
-                if count_i > 0 {
-                    output = format!("{}{}I", output, count_i);
-                    count_i = 0;
-                }
-                count_d += 1;
-            }
-            _ => {
-                panic!()
-            }
+#[cfg(test)]
+mod tests {
+    use crate::{graph, utils};
+
+    #[test]
+    fn test_simd_nosimd_equal_result() {
+        let lnz_graph = graph::read_graph("./prova.gfa", false);
+        let read = "CAAATAAGATTTGAAAATAATTTCTGGAGTTCTATAGTTCTATAATATTCCAACTCTCTG"
+            .chars()
+            .map(|c| c as u8)
+            .collect::<Vec<u8>>();
+        unsafe {
+            let simd_align = crate::simd_poa::exec(&read, &lnz_graph, 2f32, -4f32);
+            let no_simd_align = crate::simd_poa::exec_no_simd(&read, &lnz_graph, 2f32, -4f32, 0);
+            let r_values =
+                utils::set_r_values(&lnz_graph.nwp, &lnz_graph.pred_hash, lnz_graph.lnz.len());
+            let simd_ab_align = super::exec(&read, &lnz_graph, 2f32, -4f32, 10, &r_values, 0);
+            assert_eq!(simd_align, no_simd_align);
+            assert_eq!(simd_align, simd_ab_align);
         }
     }
-    if count_m > 0 {
-        output = format!("{}{}M", output, count_m);
-    }
-    if count_i > 0 {
-        output = format!("{}{}I", output, count_i);
-    }
-    if count_d > 0 {
-        output = format!("{}{}D", output, count_d);
-    }
-    println!("{}", output);
 }

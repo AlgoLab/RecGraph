@@ -1,8 +1,14 @@
 use std::{arch::x86_64::*, cmp};
 
-use crate::graph::LnzGraph;
+use crate::{graph::LnzGraph, utils};
 //TODO: more difference between d u l dir_ value
-pub fn exec_no_simd(read: &[u8], graph: &LnzGraph, score_match: f32, score_mis: f32) -> f32 {
+pub fn exec_no_simd(
+    read: &[u8],
+    graph: &LnzGraph,
+    score_match: f32,
+    score_mis: f32,
+    read_number: usize,
+) -> f32 {
     let mut m: Vec<Vec<f32>> = vec![vec![0f32; read.len()]; graph.lnz.len()];
     let mut path: Vec<Vec<f32>> = vec![vec![0f32; read.len()]; graph.lnz.len()];
     for i in 1..graph.lnz.len() - 1 {
@@ -94,7 +100,9 @@ pub fn exec_no_simd(read: &[u8], graph: &LnzGraph, score_match: f32, score_mis: 
             best_result = m[*p][read.len() - 1];
         }
     }
-    rebuild_path(&path);
+    if read_number != 0 {
+        utils::output_creation(&path, read_number);
+    }
     best_result
 }
 
@@ -281,27 +289,7 @@ pub unsafe fn exec(read: &[u8], graph: &LnzGraph, score_match: f32, score_mis: f
             best_result = m[*p][read.len() - 1];
         }
     }
-    //rebuild_path(&path);
     best_result
-}
-
-fn rebuild_path(path: &[Vec<f32>]) {
-    let mut row = path.len() - 2;
-    let mut col = path[row].len() - 1;
-    while path[row][col] != 0.0 {
-        let val = path[row][col];
-        let pred = val as usize;
-        let dir = val - (val as i32) as f32;
-        row = pred;
-        col = match (dir * 11f32) as i32 {
-            1 => col - 1,
-            2 => col,
-            3 => col - 1,
-            _ => {
-                panic!();
-            }
-        }
-    }
 }
 
 #[cfg(test)]
@@ -317,7 +305,7 @@ mod tests {
             .collect::<Vec<u8>>();
         unsafe {
             let simd_align = super::exec(&read, &lnz_graph, 2f32, -4f32);
-            let no_simd_align = super::exec_no_simd(&read, &lnz_graph, 2f32, -4f32);
+            let no_simd_align = super::exec_no_simd(&read, &lnz_graph, 2f32, -4f32, 0);
             assert_eq!(simd_align, no_simd_align);
         }
     }
