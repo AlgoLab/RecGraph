@@ -177,6 +177,7 @@ fn main() {
             }
         }
         4 => {
+            println!("DEMO VERSION");
             let path_node = graph::create_nodes_paths(&graph_path);
             pathwise_alignment::exec(&sequences[4], &graph_struct, &path_node, &score_matrix, 3);
         }

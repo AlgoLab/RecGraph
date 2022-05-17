@@ -31,7 +31,7 @@ struct Args {
         short = 'm',
         long = "aln-mode",
         default_value_t = 0,
-        help = "0: global, 1: local, 2: affine gap, 3: local gap"
+        help = "0: global, 1: local, 2: affine gap, 3: local gap, 4: pathwise alignment[DEMO], 5: match/mismatch with SIMD instructions"
     )]
     alignment_mode: i32,
 

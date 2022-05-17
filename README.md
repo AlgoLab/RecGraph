@@ -22,7 +22,8 @@ I/O:
                                  output [default: "standard output"]
 
 Alignment:
-    -m, --aln-mode <ALIGNMENT_MODE>    0: global, 1: local, 2: affine gap, 3: local gap [default: 0]
+    -m, --aln-mode <ALIGNMENT_MODE>    0: global, 1: local, 2: affine gap, 3: local gap, 4: pathwise alignment[DEMO], 
+                                       5: match/mismatch with SIMD instructions [default: 0]
     -M, --match <MATCH_SCORE>          Match score [default: 2]
     -X, --mismatch <MISMATCH_SCORE>    Mismatch penalty [default: 4]
     -O, --gap-open <GAP_OPEN>          Gap opening penalty [default: 4]
