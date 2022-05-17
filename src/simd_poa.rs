@@ -101,7 +101,7 @@ pub fn exec_no_simd(
         }
     }
     if read_number != 0 {
-        utils::output_creation(&path, read_number);
+        utils::output_creation(&path, &graph.lnz, read_number);
     }
     best_result
 }
@@ -290,23 +290,4 @@ pub unsafe fn exec(read: &[u8], graph: &LnzGraph, score_match: f32, score_mis: f
         }
     }
     best_result
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::graph;
-
-    #[test]
-    fn test_simd_nosimd_equal_result() {
-        let lnz_graph = graph::read_graph("./prova.gfa", false);
-        let read = "CAAATAAGATTTGAAAATAATTTCTGGAGTTCTATAGTTCTATAATATTCCAACTCTCTG"
-            .chars()
-            .map(|c| c as u8)
-            .collect::<Vec<u8>>();
-        unsafe {
-            let simd_align = super::exec(&read, &lnz_graph, 2f32, -4f32);
-            let no_simd_align = super::exec_no_simd(&read, &lnz_graph, 2f32, -4f32, 0);
-            assert_eq!(simd_align, no_simd_align);
-        }
-    }
 }

@@ -233,7 +233,7 @@ pub unsafe fn exec(
         }
     }
     if read_number != 0 {
-        utils::output_creation(&path, read_number);
+        utils::output_creation(&path, &graph.lnz, read_number);
     }
     best_result
 }

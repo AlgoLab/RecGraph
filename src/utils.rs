@@ -125,11 +125,12 @@ pub fn get_max_d_u_l(d: i32, u: i32, l: i32) -> (i32, char) {
     }
 }
 
-pub fn output_creation(path: &[Vec<f32>], read_number: usize) {
+pub fn output_creation(path: &[Vec<f32>], graph_lnz: &Vec<char>, read_number: usize) {
     let mut row = path.len() - 2;
     let mut col = path[row].len() - 1;
     let mut cigar = String::new();
     let mut output_ok = true;
+    let mut graph_sequence = String::new();
 
     while path[row][col] != 0.0 {
         let val = path[row][col];
@@ -146,9 +147,11 @@ pub fn output_creation(path: &[Vec<f32>], read_number: usize) {
             1 => {
                 cigar.push('M');
                 col -= 1;
+                graph_sequence.push(graph_lnz[row]);
             }
             2 => {
                 cigar.push('I');
+                graph_sequence.push(graph_lnz[row]);
             }
             3 => {
                 cigar.push('D');
@@ -162,6 +165,7 @@ pub fn output_creation(path: &[Vec<f32>], read_number: usize) {
     }
     if output_ok {
         cigar = cigar.chars().rev().collect::<String>();
+        graph_sequence = graph_sequence.chars().rev().collect();
         let mut count_m = 0;
         let mut count_i = 0;
         let mut count_d = 0;
@@ -215,6 +219,8 @@ pub fn output_creation(path: &[Vec<f32>], read_number: usize) {
         if count_d > 0 {
             output = format!("{}{}D", output, count_d);
         }
+        println!("graph:\t{}", graph_sequence);
         println!(">{}\t{}", read_number, output);
+        println!();
     }
 }
