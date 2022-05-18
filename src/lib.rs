@@ -1,3 +1,4 @@
+pub mod api;
 pub mod args_parser;
 pub mod bitfield_path;
 pub mod gaf_output;

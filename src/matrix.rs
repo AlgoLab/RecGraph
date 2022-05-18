@@ -4,7 +4,7 @@ use std::{
     fs::File,
     io::{prelude::*, BufReader},
 };
-pub fn creat_f32_scores_matrix() -> HashMap<(char, char), f32> {
+pub fn create_f32_scores_matrix() -> HashMap<(char, char), f32> {
     let matrix = create_score_matrix();
     let mut f32_matrix: HashMap<(char, char), f32> = HashMap::new();
     for (k, v) in matrix.iter() {
@@ -42,7 +42,21 @@ pub fn create_score_matrix_match_mis(m: i32, x: i32) -> HashMap<(char, char), i3
     score_matrix.remove(&('-', '-'));
     score_matrix
 }
-
+pub fn create_score_matrix_match_mis_f32(m: f32, x: f32) -> HashMap<(char, char), f32> {
+    let mut score_matrix: HashMap<(char, char), f32> = HashMap::new();
+    for i in ['A', 'C', 'G', 'T', 'N', '-'].iter() {
+        for j in ['A', 'C', 'G', 'T', 'N', '-'].iter() {
+            if i == j {
+                score_matrix.insert((*i, *j), m);
+            } else {
+                score_matrix.insert((*i, *j), x);
+            }
+        }
+    }
+    score_matrix.insert(('N', 'N'), x);
+    score_matrix.remove(&('-', '-'));
+    score_matrix
+}
 fn create_score_matrix_from_matrix_file(matrix_file: &str) -> HashMap<(char, char), i32> {
     let mut matrix: Vec<Vec<String>> = Vec::new();
     let file_path = project_root::get_project_root().unwrap().join(matrix_file);

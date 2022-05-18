@@ -105,14 +105,14 @@ pub unsafe fn exec_simd(
         let us_update = _mm256_set1_ps(*scores_matrix.get(&(graph.lnz[i], '-')).unwrap());
         for j in (1..max_multiple + 1).step_by(8) {
             let ds_update = _mm256_set_ps(
-                *scores_matrix.get(&(graph.lnz[i], read[j])).unwrap(),
-                *scores_matrix.get(&(graph.lnz[i], read[j + 1])).unwrap(),
-                *scores_matrix.get(&(graph.lnz[i], read[j + 2])).unwrap(),
-                *scores_matrix.get(&(graph.lnz[i], read[j + 3])).unwrap(),
-                *scores_matrix.get(&(graph.lnz[i], read[j + 4])).unwrap(),
-                *scores_matrix.get(&(graph.lnz[i], read[j + 5])).unwrap(),
-                *scores_matrix.get(&(graph.lnz[i], read[j + 6])).unwrap(),
                 *scores_matrix.get(&(graph.lnz[i], read[j + 7])).unwrap(),
+                *scores_matrix.get(&(graph.lnz[i], read[j + 6])).unwrap(),
+                *scores_matrix.get(&(graph.lnz[i], read[j + 5])).unwrap(),
+                *scores_matrix.get(&(graph.lnz[i], read[j + 4])).unwrap(),
+                *scores_matrix.get(&(graph.lnz[i], read[j + 3])).unwrap(),
+                *scores_matrix.get(&(graph.lnz[i], read[j + 2])).unwrap(),
+                *scores_matrix.get(&(graph.lnz[i], read[j + 1])).unwrap(),
+                *scores_matrix.get(&(graph.lnz[i], read[j])).unwrap(),
             );
             if !graph.nwp[i] {
                 let us = _mm256_add_ps(_mm256_loadu_ps(m[i - 1].get_unchecked(j)), us_update);

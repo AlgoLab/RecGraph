@@ -41,6 +41,22 @@ pub fn get_sequences(file_path: String) -> (Vec<Vec<char>>, Vec<String>) {
     }
     (sequences, sequences_name) //update with also sequences_name
 }
+
+pub fn build_align_string(line: &String) -> Vec<char> {
+    let mut sequence = Vec::new();
+    let mut line: Vec<char> = line
+        .chars()
+        .map(|c| {
+            if c == '-' {
+                'N'
+            } else {
+                c.to_ascii_uppercase()
+            }
+        })
+        .collect::<Vec<char>>();
+    sequence.append(&mut line);
+    sequence
+}
 //TODO: verify score from rev&cmpl string equal score from rev&cmpl graph
 pub fn rev_and_compl(seq: &[char]) -> Vec<char> {
     let mut rev_seq = seq[1..]

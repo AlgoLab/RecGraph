@@ -701,7 +701,6 @@ pub fn gaf_of_global_abpoa_simd(
     path: &[Vec<f32>],
     sequence: &[char],
     seq_name: (&str, usize),
-    ampl_for_row: &[(usize, usize)],
     last_row: usize,
     last_col: usize,
     amb_mode: bool,
@@ -787,7 +786,7 @@ pub fn gaf_of_global_abpoa_simd(
 
         let seq_length = sequence.len() - 1; // $ doesn't count
         let query_start = col;
-        let query_end = last_col + ampl_for_row.get(last_row).unwrap().0;
+        let query_end = last_col;
         let strand = if amb_mode { "-" } else { "+" };
         let path_matching: String = handle_id_alignment
             .iter()

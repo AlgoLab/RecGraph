@@ -23,7 +23,7 @@ fn main() {
 
     //get score matrix
     let score_matrix = matrix::create_score_matrix();
-    let scores_f32 = matrix::creat_f32_scores_matrix();
+    let scores_f32 = matrix::create_f32_scores_matrix();
 
     //get alignment option
     let align_mode = args_parser::get_align_mode();
