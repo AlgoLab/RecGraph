@@ -1,6 +1,7 @@
 use crate::graph::LnzGraph;
 use crate::{bitfield_path as bf, gaf_output, utils};
 use bitvec::prelude::*;
+use std::arch::x86_64::*;
 use std::{collections::HashMap, vec};
 
 pub fn exec(
@@ -496,4 +497,235 @@ mod tests {
 
         assert_eq!(align, 5);
     }
+}
+
+#[target_feature(enable = "avx2")]
+pub unsafe fn exec_simd(
+    read: &[char],
+    seq_name: (&str, usize),
+    graph: &LnzGraph,
+    score_matrix: &HashMap<(char, char), f32>,
+    bta: usize,
+    amb_mode: bool,
+    hofp: &HashMap<usize, String>,
+    r_values: &Vec<usize>,
+) -> f32 {
+    let min_score = 2.0 * read.len() as f32 * score_matrix.get(&(read[1], '-')).unwrap();
+    let mut m: Vec<Vec<f32>> = vec![vec![min_score; read.len()]; graph.lnz.len()];
+    let mut path: Vec<Vec<f32>> = vec![vec![-1f32; read.len()]; graph.lnz.len()];
+
+    let d_move_simd = _mm256_set1_ps(0.1);
+    let u_move_simd = _mm256_set1_ps(0.2);
+
+    let mut best_scoring_pos = vec![0; graph.lnz.len()];
+    let mut ampl_for_row: Vec<(usize, usize)> = vec![(0, 0); graph.lnz.len()];
+
+    m[0][0] = 0f32;
+    path[0][0] = 0.00;
+    for i in 1..graph.lnz.len() - 1 {
+        if !graph.nwp[i] {
+            m[i][0] = m[i - 1][0] + score_matrix.get(&(graph.lnz[i], '-')).unwrap();
+            path[i][0] = (i - 1) as f32 + 0.2;
+        } else {
+            let pred = graph.pred_hash.get(&i).unwrap();
+            let best_p = pred.iter().min().unwrap();
+            m[i][0] = m[*best_p][0] + score_matrix.get(&(graph.lnz[i], '-')).unwrap();
+            path[i][0] = *best_p as f32 + 0.2;
+        }
+    }
+    let p_arr: Vec<usize> = vec![];
+    let (left, right) = utils::set_ampl_for_row(
+        0,
+        &p_arr,
+        r_values[0],
+        &best_scoring_pos,
+        read.len(),
+        bta,
+        true,
+    );
+    for j in 1..right {
+        m[0][j] = m[0][j - 1] + score_matrix.get(&(read[j], '-')).unwrap();
+        path[0][j] = 0.3;
+    }
+    ampl_for_row[0] = (left, right);
+
+    for i in 1..graph.lnz.len() - 1 {
+        let mut p_arr = &vec![];
+        if graph.nwp[i] {
+            p_arr = graph.pred_hash.get(&i).unwrap()
+        }
+        let (left, right) = utils::set_ampl_for_row(
+            i,
+            p_arr,
+            r_values[i],
+            &best_scoring_pos,
+            read.len(),
+            bta,
+            true,
+        );
+        ampl_for_row[i] = (left, right);
+        let mut best_col = left;
+        let start = if left == 0 { 1 } else { left };
+        let end = if right == read.len() {
+            ((right - start) / 8) * 8 + start
+        } else {
+            right
+        };
+        let us_update = _mm256_set1_ps(*score_matrix.get(&(graph.lnz[i], '-')).unwrap());
+        for j in (start..end).step_by(8) {
+            let ds_update = _mm256_set_ps(
+                *score_matrix.get(&(graph.lnz[i], read[j])).unwrap(),
+                *score_matrix.get(&(graph.lnz[i], read[j + 1])).unwrap(),
+                *score_matrix.get(&(graph.lnz[i], read[j + 2])).unwrap(),
+                *score_matrix.get(&(graph.lnz[i], read[j + 3])).unwrap(),
+                *score_matrix.get(&(graph.lnz[i], read[j + 4])).unwrap(),
+                *score_matrix.get(&(graph.lnz[i], read[j + 5])).unwrap(),
+                *score_matrix.get(&(graph.lnz[i], read[j + 6])).unwrap(),
+                *score_matrix.get(&(graph.lnz[i], read[j + 7])).unwrap(),
+            );
+            if !graph.nwp[i] {
+                let us = _mm256_add_ps(_mm256_loadu_ps(m[i - 1].get_unchecked(j)), us_update);
+
+                let ds = _mm256_add_ps(_mm256_loadu_ps(m[i - 1].get_unchecked(j - 1)), ds_update);
+
+                let best_choice = _mm256_cmp_ps(ds, us, _CMP_GT_OS);
+                let result = _mm256_blendv_ps(us, ds, best_choice);
+
+                _mm256_storeu_ps(m[i].get_unchecked_mut(j), result);
+
+                let dir_result = _mm256_blendv_ps(u_move_simd, d_move_simd, best_choice);
+                let path_update = _mm256_add_ps(_mm256_set1_ps((i - 1) as f32), dir_result);
+                _mm256_storeu_ps(path[i].get_unchecked_mut(j), path_update);
+            } else {
+                let preds = graph.pred_hash.get(&i).unwrap();
+                let mut best_us = _mm256_loadu_ps(m[preds[0]].get_unchecked(j));
+                let mut best_ds = _mm256_loadu_ps(m[preds[0]].get_unchecked(j - 1));
+                let mut pred_best_us = _mm256_set1_ps(preds[0] as f32);
+                let mut pred_best_ds = _mm256_set1_ps(preds[0] as f32);
+                for p in preds[1..].iter() {
+                    let us = _mm256_loadu_ps(m[*p].get_unchecked(j));
+                    let ds = _mm256_loadu_ps(m[*p].get_unchecked(j - 1));
+                    let pred_simd = _mm256_set1_ps(*p as f32);
+
+                    let best_us_choices = _mm256_cmp_ps(us, best_us, _CMP_GT_OS);
+                    best_us = _mm256_blendv_ps(best_us, us, best_us_choices);
+                    pred_best_us = _mm256_blendv_ps(pred_best_us, pred_simd, best_us_choices);
+
+                    let best_ds_choices = _mm256_cmp_ps(ds, best_ds, _CMP_GT_OS);
+                    best_ds = _mm256_blendv_ps(best_ds, ds, best_ds_choices);
+                    pred_best_ds = _mm256_blendv_ps(pred_best_ds, pred_simd, best_ds_choices);
+                }
+                best_us = _mm256_add_ps(best_us, us_update);
+
+                best_ds = _mm256_add_ps(best_ds, ds_update);
+
+                let best_choice = _mm256_cmp_ps(best_ds, best_us, _CMP_GT_OS);
+                let result = _mm256_blendv_ps(best_us, best_ds, best_choice);
+
+                _mm256_storeu_ps(m[i].get_unchecked_mut(j), result);
+
+                pred_best_ds = _mm256_add_ps(pred_best_ds, d_move_simd);
+                pred_best_us = _mm256_add_ps(pred_best_us, u_move_simd);
+
+                let dir_result = _mm256_blendv_ps(pred_best_us, pred_best_ds, best_choice);
+                _mm256_storeu_ps(path[i].get_unchecked_mut(j), dir_result);
+            }
+            for idx in j..j + 8 {
+                let l = m[i][idx - 1] + score_matrix.get(&(read[j], '-')).unwrap();
+                if l > m[i][idx] {
+                    m[i][idx] = l;
+                    path[i][idx] = i as f32 + 0.3;
+                }
+                if m[i][idx] >= m[i][best_col] {
+                    best_col = idx
+                }
+            }
+        }
+        // set last position without simd
+        if end < right {
+            for j in end..right {
+                if !graph.nwp[i] {
+                    let l = m[i][j - 1] + score_matrix.get(&(read[j], '-')).unwrap();
+                    let u = m[i - 1][j] + score_matrix.get(&(graph.lnz[i], '-')).unwrap();
+                    let d = m[i - 1][j - 1] + score_matrix.get(&(graph.lnz[i], read[j])).unwrap();
+                    m[i][j] = [l, u, d].into_iter().reduce(f32::max).unwrap();
+                    if m[i][j] == d {
+                        path[i][j] = (i - 1) as f32 + 0.1;
+                    } else if m[i][j] == u {
+                        path[i][j] = (i - 1) as f32 + 0.2;
+                    } else {
+                        path[i][j] = i as f32 + 0.3;
+                    }
+                } else {
+                    let mut u = 0f32;
+                    let mut u_pred = 0;
+                    let mut d = 0f32;
+                    let mut d_pred = 0;
+                    let mut first = true;
+                    for p in graph.pred_hash.get(&i).unwrap() {
+                        if first {
+                            u = m[*p][j];
+                            d = m[*p][j - 1];
+                            u_pred = *p;
+                            d_pred = *p;
+                            first = false
+                        }
+                        if m[*p][j] > u {
+                            u = m[*p][j];
+                            u_pred = *p;
+                        }
+                        if m[*p][j - 1] > d {
+                            d = m[*p][j - 1];
+                            d_pred = *p;
+                        }
+                    }
+                    u += score_matrix.get(&(graph.lnz[i], '-')).unwrap();
+                    d += score_matrix.get(&(read[j], graph.lnz[i])).unwrap();
+
+                    let l = m[i][j - 1] + score_matrix.get(&(read[j], '-')).unwrap();
+
+                    m[i][j] = [l, u, d].into_iter().reduce(f32::max).unwrap();
+
+                    if m[i][j] == d {
+                        path[i][j] = d_pred as f32 + 0.1;
+                    } else if m[i][j] == u {
+                        path[i][j] = u_pred as f32 + 0.2;
+                    } else {
+                        path[i][j] = i as f32 + 0.3;
+                    }
+                }
+                if m[i][j] >= m[i][best_col] {
+                    best_col = j
+                }
+            }
+        }
+        best_scoring_pos[i] = best_col;
+    }
+    let mut best_result = 0f32;
+    let mut first = true;
+    let mut last_row = 0;
+    for p in graph.pred_hash.get(&(m.len() - 1)).unwrap().iter() {
+        if first {
+            best_result = m[*p][read.len() - 1];
+            last_row = *p;
+            first = false;
+        }
+        if m[*p][read.len() - 1] > best_result {
+            best_result = m[*p][read.len() - 1];
+        }
+    }
+
+    if seq_name.1 != 0 {
+        gaf_output::gaf_of_global_abpoa_simd(
+            &path,
+            &read,
+            seq_name,
+            &ampl_for_row,
+            last_row,
+            read.len() - 1,
+            amb_mode,
+            hofp,
+        );
+    }
+    best_result
 }

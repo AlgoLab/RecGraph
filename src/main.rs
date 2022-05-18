@@ -23,6 +23,7 @@ fn main() {
 
     //get score matrix
     let score_matrix = matrix::create_score_matrix();
+    let scores_f32 = matrix::creat_f32_scores_matrix();
 
     //get alignment option
     let align_mode = args_parser::get_align_mode();
@@ -36,17 +37,37 @@ fn main() {
     match align_mode {
         //global alignment
         0 => {
+            let r_values = utils::set_r_values(
+                &graph_struct.nwp,
+                &graph_struct.pred_hash,
+                graph_struct.lnz.len(),
+            );
             for (i, seq) in sequences.iter().enumerate() {
                 let bases_to_add = (b + f * seq.len() as f32) as usize;
-                let align_score = global_mk_abpoa::exec(
-                    seq,
-                    (&seq_names[i], i + 1),
-                    &graph_struct,
-                    &score_matrix,
-                    bases_to_add,
-                    false,
-                    &hofp_forward,
-                );
+                let align_score = if is_x86_feature_detected!("avx2") {
+                    unsafe {
+                        global_mk_abpoa::exec_simd(
+                            seq,
+                            (&seq_names[i], i + 1),
+                            &graph_struct,
+                            &scores_f32,
+                            bases_to_add,
+                            false,
+                            &hofp_forward,
+                            &r_values,
+                        ) as i32
+                    }
+                } else {
+                    global_mk_abpoa::exec(
+                        seq,
+                        (&seq_names[i], i + 1),
+                        &graph_struct,
+                        &score_matrix,
+                        bases_to_add,
+                        false,
+                        &hofp_forward,
+                    )
+                };
                 if amb_strand && align_score < 0 {
                     if hofp_reverse.is_empty() {
                         hofp_reverse = gaf_output::create_handle_pos_in_lnz(
@@ -73,7 +94,6 @@ fn main() {
             for (i, seq) in sequences.iter().enumerate() {
                 let align_score = if is_x86_feature_detected!("avx2") {
                     unsafe {
-                        let scores_f32 = matrix::creat_f32_scores_matrix();
                         local_poa::exec_simd(
                             seq,
                             (&seq_names[i], i + 1),
@@ -104,7 +124,6 @@ fn main() {
                     let rev_seq = sequences::rev_and_compl(seq);
                     unsafe {
                         if is_x86_feature_detected!("avx2") {
-                            let scores_f32 = matrix::creat_f32_scores_matrix();
                             local_poa::exec_simd(
                                 &rev_seq,
                                 (&seq_names[i], i + 1),
