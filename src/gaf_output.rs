@@ -324,7 +324,6 @@ pub fn gaf_of_local_poa(
     path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
     sequence: &[char],
     seq_name: (&str, usize),
-    //graph: &[char],  needed for path start and end?
     last_row: usize,
     last_col: usize,
     amb_mode: bool,
@@ -534,6 +533,123 @@ pub fn gaf_of_gap_local_poa(
                     path_length += 1;
                     row = pred;
                 }
+            }
+            _ => {
+                panic!("impossible value in poa path")
+            }
+        }
+    }
+    cigar = set_cigar_substring(count_m, count_i, count_d, cigar);
+    cigars.insert(0, cigar);
+
+    handle_id_alignment.dedup();
+    handle_id_alignment.reverse();
+
+    let seq_length = sequence.len() - 1; // $ doesn't count
+    let query_start = col;
+    let query_end = last_col;
+    let strand = if amb_mode { "-" } else { "+" };
+    let path_matching: String = handle_id_alignment
+        .iter()
+        .map(|line| line.chars().collect::<Vec<char>>().into_iter().collect())
+        .collect::<Vec<String>>()
+        .join(">");
+    //path_length obtained from iterating in path matrix
+    let path_start = node_start(hofp, row); // first letter used in first node of alignment
+    let path_end = node_start(hofp, last_row); // last letter used in last node of alignment
+    let number_residue_matching = residue_matching;
+    let align_block_length = "*"; // to set
+    let mapping_quality = "*"; // to set
+    let comments = cigars[..cigars.len() - 1].join(",");
+    let gaf_out = format!(
+        "{}\t{}\t{}\t{}\t{}\t>{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+        seq_name.0,
+        seq_length,
+        query_start,
+        query_end,
+        strand,
+        path_matching,
+        path_length,
+        path_start,
+        path_end,
+        number_residue_matching,
+        align_block_length,
+        mapping_quality,
+        comments
+    );
+    write_gaf(&gaf_out, seq_name.1);
+}
+
+pub fn gaf_of_local_poa_simd(
+    path: &[Vec<f32>],
+    sequence: &[char],
+    seq_name: (&str, usize),
+    last_row: usize,
+    last_col: usize,
+    amb_mode: bool,
+    hofp: &HashMap<usize, String>,
+) {
+    let mut col = last_col;
+    let mut row = last_row;
+
+    let mut handle_id_alignment = Vec::new();
+
+    let mut cigars = Vec::new();
+    let mut cigar = String::new();
+
+    let mut count_m = 0;
+    let mut count_i = 0;
+    let mut count_d = 0;
+
+    let mut curr_handle = "";
+    let mut last_dir = -1;
+    let mut path_length = 0;
+    let mut residue_matching = 0;
+    while path[row][col] != 0.0 {
+        let val = path[row][col];
+
+        let val_str = val.to_string();
+        let pred_dir = val_str.split('.').collect::<Vec<&str>>();
+        let pred = pred_dir[0].parse::<usize>().unwrap();
+        let dir = pred_dir[1].parse::<i32>().unwrap();
+
+        if hofp.get(&row).unwrap() != curr_handle {
+            cigar = set_cigar_substring(count_m, count_i, count_d, cigar);
+            cigars.insert(0, cigar);
+
+            cigar = String::new();
+            count_m = 0;
+            count_i = 0;
+            count_d = 0;
+        }
+        curr_handle = hofp.get(&row).unwrap();
+        if dir != last_dir {
+            cigar = set_cigar_substring(count_m, count_i, count_d, cigar);
+            count_m = 0;
+            count_i = 0;
+            count_d = 0;
+        }
+        last_dir = dir;
+
+        match dir {
+            1 => {
+                handle_id_alignment.push(hofp.get(&row).unwrap());
+                row = pred;
+                col -= 1;
+                count_m += 1;
+                path_length += 1;
+                residue_matching += 1;
+            }
+            3 => {
+                col -= 1;
+                count_d += 1;
+            }
+            2 => {
+                handle_id_alignment.push(hofp.get(&row).unwrap());
+
+                row = pred;
+                count_i += 1;
+                path_length += 1;
             }
             _ => {
                 panic!("impossible value in poa path")

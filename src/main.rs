@@ -71,14 +71,28 @@ fn main() {
         //local alignment
         1 => {
             for (i, seq) in sequences.iter().enumerate() {
-                let align_score = local_poa::exec(
-                    seq,
-                    (&seq_names[i], i + 1),
-                    &graph_struct,
-                    &score_matrix,
-                    false,
-                    &hofp_forward,
-                );
+                let align_score = if is_x86_feature_detected!("avx2") {
+                    unsafe {
+                        let scores_f32 = matrix::creat_f32_scores_matrix();
+                        local_poa::exec_simd(
+                            seq,
+                            (&seq_names[i], i + 1),
+                            &graph_struct,
+                            &scores_f32,
+                            false,
+                            &hofp_forward,
+                        ) as i32
+                    }
+                } else {
+                    local_poa::exec(
+                        seq,
+                        (&seq_names[i], i + 1),
+                        &graph_struct,
+                        &score_matrix,
+                        false,
+                        &hofp_forward,
+                    )
+                };
                 if align_score < 0 && amb_strand {
                     if hofp_reverse.is_empty() {
                         hofp_reverse = gaf_output::create_handle_pos_in_lnz(
@@ -88,14 +102,28 @@ fn main() {
                         );
                     }
                     let rev_seq = sequences::rev_and_compl(seq);
-                    local_poa::exec(
-                        &rev_seq,
-                        (&seq_names[i], i + 1),
-                        &graph_struct,
-                        &score_matrix,
-                        true,
-                        &hofp_reverse,
-                    );
+                    unsafe {
+                        if is_x86_feature_detected!("avx2") {
+                            let scores_f32 = matrix::creat_f32_scores_matrix();
+                            local_poa::exec_simd(
+                                &rev_seq,
+                                (&seq_names[i], i + 1),
+                                &graph_struct,
+                                &scores_f32,
+                                true,
+                                &hofp_reverse,
+                            );
+                        } else {
+                            local_poa::exec(
+                                &rev_seq,
+                                (&seq_names[i], i + 1),
+                                &graph_struct,
+                                &score_matrix,
+                                true,
+                                &hofp_reverse,
+                            );
+                        }
+                    }
                 }
             }
         }

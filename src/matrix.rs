@@ -4,7 +4,14 @@ use std::{
     fs::File,
     io::{prelude::*, BufReader},
 };
-
+pub fn creat_f32_scores_matrix() -> HashMap<(char, char), f32> {
+    let matrix = create_score_matrix();
+    let mut f32_matrix: HashMap<(char, char), f32> = HashMap::new();
+    for (k, v) in matrix.iter() {
+        f32_matrix.insert(*k, *v as f32);
+    }
+    f32_matrix
+}
 pub fn create_score_matrix() -> HashMap<(char, char), i32> {
     let matrix_type = args_parser::get_matrix_type();
     match matrix_type.as_str() {
