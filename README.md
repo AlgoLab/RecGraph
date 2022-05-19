@@ -48,4 +48,11 @@ The output is in .gaf format, in reference to the graph in input.
 >read1	50	0	50	+	>1>3>5>6>8>9>11>12>13>15>16>18>19	50	0	11	49	*	*	8M,1M,1M,3M,1M,4M,5M,2M,8M,1M,4M,1M,11M
 ```
 ### Library
-rsPOA can also be used as a library for your project. In this case you can use the functions inside the api.rs file, they need only the read as a string and the graph as an HashGraph, other parameters can be set or left by default.
+rsPOA can also be used as a library for your project. 
+In order to do so add to your Cargo.toml file:
+```
+[dependencies]
+rspoa= { git = "https://github.com/AlgoLab/rspoa" }
+```
+In this case you can use the functions inside the api.rs file, they need only the read as a string and the graph as an HashGraph, other parameters can be set or left by default.
+You can use them by adding ```use rspoa::api::*``` in your file.
