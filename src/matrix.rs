@@ -57,7 +57,7 @@ pub fn create_score_matrix_match_mis_f32(m: f32, x: f32) -> HashMap<(char, char)
     score_matrix.remove(&('-', '-'));
     score_matrix
 }
-fn create_score_matrix_from_matrix_file(matrix_file: &str) -> HashMap<(char, char), i32> {
+pub fn create_score_matrix_from_matrix_file(matrix_file: &str) -> HashMap<(char, char), i32> {
     let mut matrix: Vec<Vec<String>> = Vec::new();
     let file_path = project_root::get_project_root().unwrap().join(matrix_file);
 

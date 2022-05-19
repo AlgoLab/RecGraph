@@ -113,3 +113,45 @@ pub fn align_local_gap(
         &hofp,
     );
 }
+// this matrix is used in affine gap alignment
+pub fn create_score_matrix_i32(
+    match_score: Option<i32>,
+    mismatch_score: Option<i32>,
+    matrix_type: Option<&str>,
+) -> HashMap<(char, char), i32> {
+    let score_matrix_i32;
+    match matrix_type {
+        Some(matrix_from_file) => match matrix_from_file {
+            "HOXD70" => {
+                score_matrix_i32 = matrix::create_score_matrix_from_matrix_file("./HOXD70.mtx");
+            }
+            "HOXD55" => {
+                score_matrix_i32 = matrix::create_score_matrix_from_matrix_file("./HOXD55.mtx");
+            }
+            _ => {
+                panic!("matrix type must be HOXD70 or HOXD55");
+            }
+        },
+        _ => {
+            score_matrix_i32 = matrix::create_score_matrix_match_mis(
+                match_score.unwrap(),
+                mismatch_score.unwrap(),
+            );
+        }
+    }
+    score_matrix_i32
+}
+
+// this matrix is used in not affine gap alignment
+pub fn create_score_matrix_f32(
+    match_score: Option<i32>,
+    mismatch_score: Option<i32>,
+    matrix_type: Option<&str>,
+) -> HashMap<(char, char), f32> {
+    let score_matrix_i32 = create_score_matrix_i32(match_score, mismatch_score, matrix_type);
+    let mut score_matrix_f32: HashMap<(char, char), f32> = HashMap::new();
+    for (k, v) in score_matrix_i32.iter() {
+        score_matrix_f32.insert(*k, *v as f32);
+    }
+    score_matrix_f32
+}
