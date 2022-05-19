@@ -117,20 +117,13 @@ pub fn align_local_gap(
 pub fn create_score_matrix_i32(
     match_score: Option<i32>,
     mismatch_score: Option<i32>,
-    matrix_type: Option<&str>,
+    matrix_file_path: Option<&str>,
 ) -> HashMap<(char, char), i32> {
     let score_matrix_i32;
-    match matrix_type {
-        Some(matrix_from_file) => match matrix_from_file {
-            "HOXD70" => {
-                score_matrix_i32 = matrix::create_score_matrix_from_matrix_file("./HOXD70.mtx");
-            }
-            "HOXD55" => {
-                score_matrix_i32 = matrix::create_score_matrix_from_matrix_file("./HOXD55.mtx");
-            }
-            _ => {
-                panic!("matrix type must be HOXD70 or HOXD55");
-            }
+    match matrix_file_path {
+        Some(matrix_from_file) => {
+            score_matrix_i32 = matrix::create_score_matrix_from_matrix_file(matrix_from_file);
+            
         },
         _ => {
             score_matrix_i32 = matrix::create_score_matrix_match_mis(
