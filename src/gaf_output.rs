@@ -1,35 +1,10 @@
 use crate::args_parser;
 use crate::bitfield_path as bf;
-use bit_vec::BitVec;
 use bitvec::prelude::*;
 use std::fs::OpenOptions;
 use std::io::{prelude::*, BufWriter};
 use std::path::Path;
 use std::{collections::HashMap, fs::File};
-
-// TODO: looks for arg parser use
-pub fn create_handle_pos_in_lnz(
-    nwp: &BitVec,
-    file_path: &str,
-    amb_mode: bool,
-) -> HashMap<usize, String> {
-    let sorted_handles = crate::graph::get_sorted_handles(file_path, amb_mode);
-    let mut curr_handle_idx = 0;
-    let mut handle_of_lnz_pos = HashMap::new();
-    for i in 1..nwp.len() - 1 {
-        if nwp[i] {
-            curr_handle_idx += 1;
-        }
-        handle_of_lnz_pos.insert(
-            i,
-            sorted_handles[(curr_handle_idx - 1) as usize]
-                .id()
-                .to_string(),
-        );
-    }
-    handle_of_lnz_pos.insert(0, String::from("-1"));
-    handle_of_lnz_pos
-}
 
 pub fn gaf_of_gap_abpoa(
     path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],

@@ -2,6 +2,9 @@ use std::{
     cmp::{self, Ordering},
     collections::HashMap,
 };
+
+use bit_vec::BitVec;
+use handlegraph::{handle::Handle, handlegraph::HandleGraph, hashgraph::HashGraph};
 #[inline]
 pub fn set_ampl_for_row(
     i: usize,
@@ -223,4 +226,57 @@ pub fn output_creation(path: &[Vec<f32>], graph_lnz: &Vec<char>, read_number: us
         println!(">{}\t{}", read_number, output);
         println!();
     }
+}
+pub fn create_handle_pos_in_lnz(
+    nwp: &BitVec,
+    file_path: &str,
+    amb_mode: bool,
+) -> HashMap<usize, String> {
+    let sorted_handles = crate::graph::get_sorted_handles(file_path, amb_mode);
+    let mut curr_handle_idx = 0;
+    let mut handle_of_lnz_pos = HashMap::new();
+    for i in 1..nwp.len() - 1 {
+        if nwp[i] {
+            curr_handle_idx += 1;
+        }
+        handle_of_lnz_pos.insert(
+            i,
+            sorted_handles[(curr_handle_idx - 1) as usize]
+                .id()
+                .to_string(),
+        );
+    }
+    handle_of_lnz_pos.insert(0, String::from("-1"));
+    handle_of_lnz_pos
+}
+
+pub fn handle_pos_in_lnz_from_hashgraph(
+    nwp: &BitVec,
+    graph: &HashGraph,
+    amb_mode: bool,
+) -> HashMap<usize, String> {
+    let mut sorted_handles: Vec<Handle> = graph.handles_iter().collect();
+    sorted_handles.sort();
+    if amb_mode {
+        sorted_handles.reverse();
+        sorted_handles = sorted_handles
+            .iter()
+            .map(|h| h.flip())
+            .collect::<Vec<Handle>>();
+    }
+    let mut curr_handle_idx = 0;
+    let mut handle_of_lnz_pos = HashMap::new();
+    for i in 1..nwp.len() - 1 {
+        if nwp[i] {
+            curr_handle_idx += 1;
+        }
+        handle_of_lnz_pos.insert(
+            i,
+            sorted_handles[(curr_handle_idx - 1) as usize]
+                .id()
+                .to_string(),
+        );
+    }
+    handle_of_lnz_pos.insert(0, String::from("-1"));
+    handle_of_lnz_pos
 }

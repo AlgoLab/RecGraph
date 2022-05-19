@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use rspoa::args_parser;
-use rspoa::gaf_output;
 use rspoa::gap_local_poa;
 use rspoa::gap_mk_abpoa;
 use rspoa::global_mk_abpoa;
@@ -10,8 +9,6 @@ use rspoa::local_poa;
 use rspoa::matrix;
 use rspoa::pathwise_alignment;
 use rspoa::sequences;
-use rspoa::simd_abpoa_m_mm;
-use rspoa::simd_poa;
 use rspoa::utils;
 fn main() {
     // get sequence
@@ -31,7 +28,7 @@ fn main() {
     let (b, f) = args_parser::get_b_f();
 
     //get handle position for output
-    let hofp_forward = gaf_output::create_handle_pos_in_lnz(&graph_struct.nwp, &graph_path, false);
+    let hofp_forward = utils::create_handle_pos_in_lnz(&graph_struct.nwp, &graph_path, false);
     let mut hofp_reverse = HashMap::new();
 
     match align_mode {
@@ -70,11 +67,8 @@ fn main() {
                 };
                 if amb_strand && align_score < 0 {
                     if hofp_reverse.is_empty() {
-                        hofp_reverse = gaf_output::create_handle_pos_in_lnz(
-                            &graph_struct.nwp,
-                            &graph_path,
-                            true,
-                        );
+                        hofp_reverse =
+                            utils::create_handle_pos_in_lnz(&graph_struct.nwp, &graph_path, true);
                     }
                     let rev_seq = sequences::rev_and_compl(seq);
                     global_mk_abpoa::exec(
@@ -115,11 +109,8 @@ fn main() {
                 };
                 if align_score < 0 && amb_strand {
                     if hofp_reverse.is_empty() {
-                        hofp_reverse = gaf_output::create_handle_pos_in_lnz(
-                            &graph_struct.nwp,
-                            &graph_path,
-                            true,
-                        );
+                        hofp_reverse =
+                            utils::create_handle_pos_in_lnz(&graph_struct.nwp, &graph_path, true);
                     }
                     let rev_seq = sequences::rev_and_compl(seq);
                     unsafe {
@@ -166,11 +157,8 @@ fn main() {
 
                 if amb_strand && align_score < 0 {
                     if hofp_reverse.is_empty() {
-                        hofp_reverse = gaf_output::create_handle_pos_in_lnz(
-                            &graph_struct.nwp,
-                            &graph_path,
-                            true,
-                        );
+                        hofp_reverse =
+                            utils::create_handle_pos_in_lnz(&graph_struct.nwp, &graph_path, true);
                     }
                     let rev_seq = sequences::rev_and_compl(seq);
                     gap_mk_abpoa::exec(
@@ -203,11 +191,8 @@ fn main() {
                 );
                 if amb_strand && align_score < 0 {
                     if hofp_reverse.is_empty() {
-                        hofp_reverse = gaf_output::create_handle_pos_in_lnz(
-                            &graph_struct.nwp,
-                            &graph_path,
-                            true,
-                        );
+                        hofp_reverse =
+                            utils::create_handle_pos_in_lnz(&graph_struct.nwp, &graph_path, true);
                     }
                     let rev_seq = sequences::rev_and_compl(seq);
                     gap_local_poa::exec(
@@ -227,35 +212,6 @@ fn main() {
             println!("DEMO VERSION");
             let path_node = graph::create_nodes_paths(&graph_path);
             pathwise_alignment::exec(&sequences[4], &graph_struct, &path_node, &score_matrix, 3);
-        }
-        5 => {
-            let (m, mm) = args_parser::get_match_mismatch();
-            let bases_to_add = (b + f * sequences[0].len() as f32) as usize;
-            let r_values = utils::set_r_values(
-                &graph_struct.nwp,
-                &graph_struct.pred_hash,
-                graph_struct.lnz.len(),
-            );
-            for (idx, read) in sequences.iter().enumerate() {
-                let read = read.iter().map(|c| *c as u8).collect::<Vec<u8>>();
-                if is_x86_feature_detected!("avx2") {
-                    unsafe {
-                        simd_abpoa_m_mm::exec(
-                            &read,
-                            &graph_struct,
-                            m as f32,
-                            mm as f32,
-                            bases_to_add,
-                            &r_values,
-                            idx + 1,
-                        );
-                    }
-                } else {
-                    let align_score =
-                        simd_poa::exec_no_simd(&read, &graph_struct, m as f32, mm as f32, idx);
-                    println!("not simd executed, result: {align_score}");
-                }
-            }
         }
         _ => {
             panic!("alignment mode must be 0, 1, 2 or 3");
