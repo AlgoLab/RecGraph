@@ -24,7 +24,6 @@ I/O:
 Alignment:
     -m, --aln-mode <ALIGNMENT_MODE>    0: global, 1: local, 2: affine gap, 3: local gap, 
                                        4: pathwise alignment[DEMO], 
-                                       5: match/mismatch with SIMD instructions [default: 0]
     -M, --match <MATCH_SCORE>          Match score [default: 2]
     -X, --mismatch <MISMATCH_SCORE>    Mismatch penalty [default: 4]
     -O, --gap-open <GAP_OPEN>          Gap opening penalty [default: 4]
@@ -48,3 +47,5 @@ The output is in .gaf format, in reference to the graph in input.
 ```
 >read1	50	0	50	+	>1>3>5>6>8>9>11>12>13>15>16>18>19	50	0	11	49	*	*	8M,1M,1M,3M,1M,4M,5M,2M,8M,1M,4M,1M,11M
 ```
+### Library
+rsPOA can also be used as a library for your project. In this case you can use the functions inside the api.rs file, they need only the read as a string and the graph as an HashGraph, other parameters can be set or left by default.
