@@ -31,11 +31,11 @@ struct Args {
         short = 'm',
         long = "aln-mode",
         default_value_t = 0,
-        help = "0: global, 1: local, 2: affine gap, 3: local gap, 4: pathwise alignment[DEMO], 5: match/mismatch with SIMD instructions"
+        help = "0: global, 1: local, 2: affine gap, 3: local gap, 4: pathwise alignment[DEMO]"
     )]
     alignment_mode: i32,
 
-    /// Match score
+    // Match score
     #[clap(
         help_heading = "Alignment",
         short = 'M',
@@ -45,7 +45,7 @@ struct Args {
     )]
     match_score: i32,
 
-    /// Mismatch score
+    // Mismatch score
     #[clap(
         help_heading = "Alignment",
         short = 'X',

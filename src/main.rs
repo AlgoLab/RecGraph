@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use rspoa::args_parser;
+use rspoa::gap_global_abpoa;
 use rspoa::gap_local_poa;
-use rspoa::gap_mk_abpoa;
-use rspoa::global_mk_abpoa;
+use rspoa::global_abpoa;
 use rspoa::graph;
 use rspoa::local_poa;
 use rspoa::matrix;
@@ -43,7 +43,7 @@ fn main() {
                 let bases_to_add = (b + f * seq.len() as f32) as usize;
                 let align_score = if is_x86_feature_detected!("avx2") {
                     unsafe {
-                        global_mk_abpoa::exec_simd(
+                        global_abpoa::exec_simd(
                             seq,
                             (&seq_names[i], i + 1),
                             &graph_struct,
@@ -55,7 +55,7 @@ fn main() {
                         ) as i32
                     }
                 } else {
-                    global_mk_abpoa::exec(
+                    global_abpoa::exec(
                         seq,
                         (&seq_names[i], i + 1),
                         &graph_struct,
@@ -71,7 +71,7 @@ fn main() {
                             utils::create_handle_pos_in_lnz(&graph_struct.nwp, &graph_path, true);
                     }
                     let rev_seq = sequences::rev_and_compl(seq);
-                    global_mk_abpoa::exec(
+                    global_abpoa::exec(
                         &rev_seq,
                         (&seq_names[i], i + 1),
                         &graph_struct,
@@ -143,7 +143,7 @@ fn main() {
 
             for (i, seq) in sequences.iter().enumerate() {
                 let bases_to_add = (b + f * seq.len() as f32) as usize;
-                let align_score = gap_mk_abpoa::exec(
+                let align_score = gap_global_abpoa::exec(
                     seq,
                     (&seq_names[i], i + 1),
                     &graph_struct,
@@ -161,7 +161,7 @@ fn main() {
                             utils::create_handle_pos_in_lnz(&graph_struct.nwp, &graph_path, true);
                     }
                     let rev_seq = sequences::rev_and_compl(seq);
-                    gap_mk_abpoa::exec(
+                    gap_global_abpoa::exec(
                         &rev_seq,
                         (&seq_names[i], i + 1),
                         &graph_struct,

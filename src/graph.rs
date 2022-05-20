@@ -6,7 +6,8 @@ use handlegraph::{
     hashgraph::HashGraph,
 };
 use std::collections::HashMap;
-
+/// Create a LnzGraph from a .gfa file.
+/// Important: nodes must be in topological order
 pub fn read_graph(file_path: &str, amb_mode: bool) -> LnzGraph {
     let parser = GFAParser::new();
     let gfa: GFA<usize, ()> = parser.parse_file(file_path).unwrap();
@@ -15,11 +16,18 @@ pub fn read_graph(file_path: &str, amb_mode: bool) -> LnzGraph {
     create_graph_struct(&graph, amb_mode)
 }
 
+/// Representation of a HandleGraph inside POA.   
+/// lnz represents the label of each node   
+/// nwp(i) is true if node i has multiple predecessor   
+/// pred_hash contains the predecessor of each node with more than one predecessor   
 pub struct LnzGraph {
     pub lnz: Vec<char>,
     pub nwp: BitVec,
     pub pred_hash: HashMap<usize, Vec<usize>>,
 }
+
+/// Transform an &HashGraph into a LnzGraph, amb_mode returns the rev and compl of the graph, this is needed only
+/// for showing a better output.
 pub fn create_graph_struct(graph: &HashGraph, amb_mode: bool) -> LnzGraph {
     let mut sorted_handles: Vec<Handle> = graph.handles_iter().collect();
     sorted_handles.sort();
@@ -133,7 +141,8 @@ pub fn get_sorted_handles(file_path: &str, amb_mode: bool) -> Vec<Handle> {
     }
     sorted_handles
 }
-
+/// DEMO, used by pathwise_alignment   
+/// Returns, for each node, the paths the node belong to.
 pub fn create_nodes_paths(file_path: &str) -> Vec<Vec<usize>> {
     let parser = GFAParser::new();
     let gfa: GFA<usize, ()> = parser.parse_file(file_path).unwrap();

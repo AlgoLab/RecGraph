@@ -1,5 +1,7 @@
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
+
+/// Returns a vector of (read, read_name) from a .fasta file, ready for the alignment
 pub fn get_sequences(file_path: String) -> (Vec<Vec<char>>, Vec<String>) {
     let file = File::open(file_path).unwrap();
     let reader = BufReader::new(file);
@@ -42,6 +44,7 @@ pub fn get_sequences(file_path: String) -> (Vec<Vec<char>>, Vec<String>) {
     (sequences, sequences_name) //update with also sequences_name
 }
 
+/// Prepare a string for the alignment algorithms
 pub fn build_align_string(line: &String) -> Vec<char> {
     let mut sequence = Vec::new();
     let mut line: Vec<char> = line
@@ -57,7 +60,9 @@ pub fn build_align_string(line: &String) -> Vec<char> {
     sequence.append(&mut line);
     sequence
 }
-//TODO: verify score from rev&cmpl string equal score from rev&cmpl graph
+
+/// If ambigous strand is set to true the alignment is done also on the reverse anc complement
+/// of the input read.
 pub fn rev_and_compl(seq: &[char]) -> Vec<char> {
     let mut rev_seq = seq[1..]
         .iter()

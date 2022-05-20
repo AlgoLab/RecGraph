@@ -4,6 +4,9 @@ use std::{
     fs::File,
     io::{prelude::*, BufReader},
 };
+
+/// Returns the same matrix of create_score_matrix with every score transformed into an f32
+/// this is done in order to works with f32 values needed in alignment with simd instruction.
 pub fn create_f32_scores_matrix() -> HashMap<(char, char), f32> {
     let matrix = create_score_matrix();
     let mut f32_matrix: HashMap<(char, char), f32> = HashMap::new();
@@ -12,6 +15,9 @@ pub fn create_f32_scores_matrix() -> HashMap<(char, char), f32> {
     }
     f32_matrix
 }
+
+/// Returned score matrix can be set by match/mismatch score or by a .mtx file (currently only HOXD70 and HOXD55).
+/// This function is meant to be used by rspoa directly, if you want to create a score matrix use the functions defined in api.rs
 pub fn create_score_matrix() -> HashMap<(char, char), i32> {
     let matrix_type = args_parser::get_matrix_type();
     match matrix_type.as_str() {
@@ -26,7 +32,6 @@ pub fn create_score_matrix() -> HashMap<(char, char), i32> {
         }
     }
 }
-// TODO: remove '-' after local_alignment with gap O/E
 pub fn create_score_matrix_match_mis(m: i32, x: i32) -> HashMap<(char, char), i32> {
     let mut score_matrix: HashMap<(char, char), i32> = HashMap::new();
     for i in ['A', 'C', 'G', 'T', 'N', '-'].iter() {
