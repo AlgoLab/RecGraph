@@ -6,7 +6,7 @@ use rspoa::gap_local_poa;
 use rspoa::global_abpoa;
 use rspoa::graph;
 use rspoa::local_poa;
-use rspoa::matrix;
+use rspoa::score_matrix;
 use rspoa::pathwise_alignment;
 use rspoa::sequences;
 use rspoa::utils;
@@ -19,8 +19,8 @@ fn main() {
     let graph_struct = graph::read_graph(&graph_path, false);
 
     //get score matrix
-    let score_matrix = matrix::create_score_matrix();
-    let scores_f32 = matrix::create_f32_scores_matrix();
+    let score_matrix = score_matrix::create_score_matrix();
+    let scores_f32 = score_matrix::create_f32_scores_matrix();
 
     //get alignment option
     let align_mode = args_parser::get_align_mode();

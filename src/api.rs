@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    gap_global_abpoa, gap_local_poa, global_abpoa, graph, local_poa, matrix, sequences, utils,
+    gap_global_abpoa, gap_local_poa, global_abpoa, graph, local_poa, score_matrix, sequences, utils,
 };
 use handlegraph::hashgraph::HashGraph;
 
@@ -17,7 +17,7 @@ pub fn align_global_no_gap(
     let read_for_alignment = sequences::build_align_string(read);
     let lnz_graph = graph::create_graph_struct(graph, false);
     let score_matrix_f32 =
-        score_matrix.unwrap_or(matrix::create_score_matrix_match_mis_f32(2f32, -4f32));
+        score_matrix.unwrap_or(score_matrix::create_score_matrix_match_mis_f32(2f32, -4f32));
     let bases_to_add = bases_to_add.unwrap_or(read_for_alignment.len() * 0.1 as usize);
 
     let r_values = utils::set_r_values(&lnz_graph.nwp, &lnz_graph.pred_hash, lnz_graph.lnz.len());
@@ -49,7 +49,7 @@ pub fn align_global_gap(
 ) {
     let read_for_alignment = sequences::build_align_string(read);
     let lnz_graph = graph::create_graph_struct(graph, false);
-    let score_matrix_i32 = score_matrix.unwrap_or(matrix::create_score_matrix_match_mis(2, -4));
+    let score_matrix_i32 = score_matrix.unwrap_or(score_matrix::create_score_matrix_match_mis(2, -4));
     let bases_to_add = bases_to_add.unwrap_or(read_for_alignment.len() * 0.1 as usize);
 
     let hofp = utils::handle_pos_in_lnz_from_hashgraph(&lnz_graph.nwp, &graph, false);
@@ -77,7 +77,7 @@ pub fn align_local_no_gap(
     let read_for_alignment = sequences::build_align_string(read);
     let lnz_graph = graph::create_graph_struct(graph, false);
     let score_matrix_f32 =
-        score_matrix.unwrap_or(matrix::create_score_matrix_match_mis_f32(2f32, -4f32));
+        score_matrix.unwrap_or(score_matrix::create_score_matrix_match_mis_f32(2f32, -4f32));
     let hofp = utils::handle_pos_in_lnz_from_hashgraph(&lnz_graph.nwp, &graph, false);
 
     unsafe {
@@ -103,7 +103,7 @@ pub fn align_local_gap(
 ) {
     let read_for_alignment = sequences::build_align_string(read);
     let lnz_graph = graph::create_graph_struct(graph, false);
-    let score_matrix_i32 = score_matrix.unwrap_or(matrix::create_score_matrix_match_mis(2, -4));
+    let score_matrix_i32 = score_matrix.unwrap_or(score_matrix::create_score_matrix_match_mis(2, -4));
 
     let hofp = utils::handle_pos_in_lnz_from_hashgraph(&lnz_graph.nwp, &graph, false);
 
@@ -128,10 +128,10 @@ pub fn create_score_matrix_i32(
     let score_matrix_i32;
     match matrix_file_path {
         Some(matrix_from_file) => {
-            score_matrix_i32 = matrix::create_score_matrix_from_matrix_file(matrix_from_file);
+            score_matrix_i32 = score_matrix::create_score_matrix_from_matrix_file(matrix_from_file);
         }
         _ => {
-            score_matrix_i32 = matrix::create_score_matrix_match_mis(
+            score_matrix_i32 = score_matrix::create_score_matrix_match_mis(
                 match_score.unwrap(),
                 mismatch_score.unwrap(),
             );
