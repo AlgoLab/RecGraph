@@ -6,6 +6,9 @@ use std::{
 use bit_vec::BitVec;
 use handlegraph::{handle::Handle, handlegraph::HandleGraph, hashgraph::HashGraph};
 #[inline]
+
+/// Needed for adaptive band settings, set the leftmost and rightmost position for each row of the dp matrix   
+/// The algorithm used is the same as abPOA
 pub fn set_ampl_for_row(
     i: usize,
     p_arr: &[usize],
@@ -89,6 +92,9 @@ fn set_left_right_x64(left: usize, right: usize, seq_len: usize) -> (usize, usiz
     (new_left, new_right)
 }
 
+/// Set R score for each node of the graph, this is done before the dp algorithm.   
+/// R represent the most likely distance of each node to the last node of the graph and is used
+/// in order to compute the band size for this node in the DP matrix   
 pub fn set_r_values(
     nwp: &bit_vec::BitVec,
     pred_hash: &HashMap<usize, Vec<usize>>,
@@ -128,105 +134,8 @@ pub fn get_max_d_u_l(d: i32, u: i32, l: i32) -> (i32, char) {
     }
 }
 
-pub fn output_creation(path: &[Vec<f32>], graph_lnz: &Vec<char>, read_number: usize) {
-    let mut row = path.len() - 2;
-    let mut col = path[row].len() - 1;
-    let mut cigar = String::new();
-    let mut output_ok = true;
-    let mut graph_sequence = String::new();
-
-    while path[row][col] != 0.0 {
-        let val = path[row][col];
-        if val == -1f32 {
-            println!("larger band needed for a correct output");
-            output_ok = false;
-            break;
-        }
-        let val_str = val.to_string();
-        let pred_dir = val_str.split('.').collect::<Vec<&str>>();
-        let pred = pred_dir[0].parse::<usize>().unwrap();
-        let dir = pred_dir[1].parse::<i32>().unwrap();
-        match dir {
-            1 => {
-                cigar.push('M');
-                col -= 1;
-                graph_sequence.push(graph_lnz[row]);
-            }
-            2 => {
-                cigar.push('I');
-                graph_sequence.push(graph_lnz[row]);
-            }
-            3 => {
-                cigar.push('D');
-                col -= 1;
-            }
-            _ => {
-                panic!();
-            }
-        };
-        row = pred;
-    }
-    if output_ok {
-        cigar = cigar.chars().rev().collect::<String>();
-        graph_sequence = graph_sequence.chars().rev().collect();
-        let mut count_m = 0;
-        let mut count_i = 0;
-        let mut count_d = 0;
-        let mut output = String::new();
-        for c in cigar.chars() {
-            match c {
-                'M' => {
-                    if count_i > 0 {
-                        output = format!("{}{}I", output, count_i);
-                        count_i = 0;
-                    }
-                    if count_d > 0 {
-                        output = format!("{}{}D", output, count_d);
-                        count_d = 0;
-                    }
-                    count_m += 1;
-                }
-                'I' => {
-                    if count_m > 0 {
-                        output = format!("{}{}M", output, count_m);
-                        count_m = 0;
-                    }
-                    if count_d > 0 {
-                        output = format!("{}{}D", output, count_d);
-                        count_d = 0;
-                    }
-                    count_i += 1;
-                }
-                'D' => {
-                    if count_m > 0 {
-                        output = format!("{}{}M", output, count_m);
-                        count_m = 0;
-                    }
-                    if count_i > 0 {
-                        output = format!("{}{}I", output, count_i);
-                        count_i = 0;
-                    }
-                    count_d += 1;
-                }
-                _ => {
-                    panic!()
-                }
-            }
-        }
-        if count_m > 0 {
-            output = format!("{}{}M", output, count_m);
-        }
-        if count_i > 0 {
-            output = format!("{}{}I", output, count_i);
-        }
-        if count_d > 0 {
-            output = format!("{}{}D", output, count_d);
-        }
-        println!("graph:\t{}", graph_sequence);
-        println!(">{}\t{}", read_number, output);
-        println!();
-    }
-}
+/// Set for each node of the LnzGraph the handle id in the .gfa file,
+/// this enable the creation of the gaf output with same nodes as the original .gfa file
 pub fn create_handle_pos_in_lnz(
     nwp: &BitVec,
     file_path: &str,
@@ -250,6 +159,8 @@ pub fn create_handle_pos_in_lnz(
     handle_of_lnz_pos
 }
 
+/// Same as create_handle_pos_in_lnz, but works with an HashGraph and a LnzGraph instead of
+/// a .gfa file
 pub fn handle_pos_in_lnz_from_hashgraph(
     nwp: &BitVec,
     graph: &HashGraph,
