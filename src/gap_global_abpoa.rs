@@ -2,6 +2,7 @@ use crate::{bitfield_path as bf, gaf_output, graph::LnzGraph, utils};
 use bitvec::prelude::*;
 use std::{cmp::Ordering, collections::HashMap, vec};
 
+/// gap penalty POA, if matrix type is different than default, set gap opening and extension penalty for valid result
 pub fn exec(
     sequence: &[char],
     seq_name: (&str, usize),
@@ -13,25 +14,28 @@ pub fn exec(
     amb_mode: bool,
     hofp: &HashMap<usize, String>,
 ) -> i32 {
-    let lnz = &graph_struct.lnz;
-    let nodes_w_pred = &graph_struct.nwp;
-    let pred_hash = &graph_struct.pred_hash;
+    let lnz = &graph_struct.lnz; // label of each node
+    let nodes_w_pred = &graph_struct.nwp; // true if node has more than one pred
+    let pred_hash = &graph_struct.pred_hash; // predecessors of nodes with multiple preds
 
     let mut m = vec![vec![]; lnz.len()]; // best alignment
     let mut x = vec![vec![]; lnz.len()]; //best alignment final gap in graph
     let mut y = vec![vec![]; lnz.len()]; // best alignment final gap in sequence
 
-    let mut path = vec![vec![]; lnz.len()];
-    let mut path_x = vec![vec![]; lnz.len()];
-    let mut path_y = vec![vec![]; lnz.len()];
+    // path cells are bitvector of 32 bits
+    // 0..15 for predecessor
+    // 16..31 for direction
+    let mut path = vec![vec![]; lnz.len()]; //directions for best alignment
+    let mut path_x = vec![vec![]; lnz.len()]; // insertion gap length
+    let mut path_y = vec![vec![]; lnz.len()]; // deletion gap length
 
+    // values for adaptive band computation
     let r_values = utils::set_r_values(nodes_w_pred, pred_hash, lnz.len());
     let mut best_scoring_pos = vec![0; lnz.len()];
     let mut ampl_for_row: Vec<(usize, usize)> = vec![(0, 0); lnz.len()];
 
-    // TODO: set true if using simd
-    let simd_version = false;
     for i in 0..lnz.len() - 1 {
+        // set band ampl for current row
         let mut p_arr = &vec![];
         if nodes_w_pred[i] {
             p_arr = pred_hash.get(&i).unwrap()
@@ -43,7 +47,7 @@ pub fn exec(
             &best_scoring_pos,
             sequence.len(),
             bta,
-            simd_version,
+            false,
         );
         ampl_for_row[i] = (left, right);
         let mut best_val_pos: usize = 0;
@@ -60,12 +64,14 @@ pub fn exec(
                 m[i][j] = 0;
                 path[i][j] = bf::set_path_cell(0, 'O');
             } else if i == 0 {
+                //first row
                 // set y
                 y[i][j] = o + e * (j + left) as i32;
                 // set m
                 m[i][j] = y[i][j];
                 path[i][j] = bf::set_path_cell(i, 'L');
             } else if j == 0 && left == 0 {
+                // first column
                 // set x
 
                 let best_p = if !nodes_w_pred[i] {
@@ -182,7 +188,6 @@ pub fn exec(
                         }
                     }
                 }
-                // set m with best d, u, l != from None
             }
             //update best scoring position
             if m[i][j] >= m[i][best_val_pos] {
@@ -192,6 +197,7 @@ pub fn exec(
         // set best scoring position for current row
         best_scoring_pos[i] = best_val_pos + left;
     }
+    // get best alignment between every ending node
     let mut last_row = m.len() - 2;
     let mut last_col = m[last_row].len() - 1;
     for p in pred_hash.get(&(m.len() - 1)).unwrap().iter() {
@@ -219,6 +225,7 @@ pub fn exec(
     drop(y);
 
     if seq_name.1 != 0 {
+        // set to 0 during testing/benchmarking
         gaf_output::gaf_of_gap_abpoa(
             &path,
             &path_x,
@@ -236,6 +243,7 @@ pub fn exec(
     best_value
 }
 
+// get best diagonal value considering every predecessor of current node
 #[inline]
 fn get_best_d(
     p_arr: &[usize],
@@ -277,6 +285,7 @@ fn get_best_d(
     }
 }
 
+// get best upper value considering every predecessor of current node
 #[inline]
 fn get_best_u(
     p_arr: &[usize],
@@ -330,6 +339,7 @@ fn get_best_u(
     }
 }
 
+// get left value if possible
 #[inline]
 fn get_best_l(
     m: &[Vec<i32>],
@@ -351,6 +361,7 @@ fn get_best_l(
     }
 }
 
+// looks if computed align uses band margins, if true larger band is needed for optimal alignment (not necessary)
 fn band_ampl_enough(
     path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
     path_x: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],

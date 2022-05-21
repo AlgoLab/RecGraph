@@ -6,8 +6,8 @@ use rspoa::gap_local_poa;
 use rspoa::global_abpoa;
 use rspoa::graph;
 use rspoa::local_poa;
-use rspoa::score_matrix;
 use rspoa::pathwise_alignment;
+use rspoa::score_matrix;
 use rspoa::sequences;
 use rspoa::utils;
 fn main() {

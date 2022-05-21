@@ -5,82 +5,9 @@ use std::arch::x86_64::*;
 use std::cmp;
 use std::collections::HashMap;
 
-pub fn exec(
-    sequence: &[char],
-    seq_name: (&str, usize),
-    graph: &LnzGraph,
-    scores_matrix: &HashMap<(char, char), i32>,
-    amb_mode: bool,
-    hofp: &HashMap<usize, String>,
-) -> i32 {
-    let lnz = &graph.lnz;
-    let nodes_with_pred = &graph.nwp;
-    let pred_hash = &graph.pred_hash;
-
-    let mut m = vec![vec![0; sequence.len()]; lnz.len()];
-    let mut path = vec![vec![bitvec![u16, Msb0; 0; 32]; sequence.len()]; lnz.len()];
-    let (mut best_row, mut best_col) = (0, 0);
-
-    for i in 0..lnz.len() - 1 {
-        for j in 0..sequence.len() {
-            match (i, j) {
-                (0, _) | (_, 0) => path[i][j] = bf::set_path_cell(0, 'O'),
-                _ => {
-                    let l = m[i][j - 1] + scores_matrix.get(&(sequence[j], '-')).unwrap();
-                    let l_idx = i;
-
-                    let mut d;
-                    let d_idx;
-
-                    let mut u;
-                    let u_idx;
-                    if !nodes_with_pred[i] {
-                        d = m[i - 1][j - 1] + scores_matrix.get(&(sequence[j], lnz[i])).unwrap();
-                        d_idx = i - 1;
-
-                        u = m[i - 1][j] + scores_matrix.get(&('-', lnz[i])).unwrap();
-                        u_idx = i - 1;
-                    } else {
-                        (d, d_idx) = get_best_d(&m, pred_hash.get(&i).unwrap(), j);
-                        (u, u_idx) = get_best_u(&m, pred_hash.get(&i).unwrap(), j);
-                        d += scores_matrix.get(&(sequence[j], lnz[i])).unwrap();
-                        u += scores_matrix.get(&('-', lnz[i])).unwrap();
-                    }
-                    if d < 0 && l < 0 && u < 0 {
-                        m[i][j] = 0;
-                        path[i][j] = bf::set_path_cell(0, 'O');
-                    } else {
-                        let (best_val, mut dir) = utils::get_max_d_u_l(d, u, l);
-                        if dir == 'D' && lnz[i] != sequence[j] {
-                            dir = 'd'
-                        }
-                        m[i][j] = best_val;
-                        path[i][j] = match dir {
-                            'D' | 'd' => bf::set_path_cell(d_idx, dir),
-                            'U' => bf::set_path_cell(u_idx, dir),
-                            _ => bf::set_path_cell(l_idx, dir),
-                        }
-                    }
-                }
-            }
-
-            if m[i][j] > m[best_row][best_col] {
-                best_row = i;
-                best_col = j;
-            }
-        }
-    }
-
-    if seq_name.1 != 0 {
-        gaf_output::gaf_of_local_poa(
-            &path, sequence, seq_name, best_row, best_col, amb_mode, hofp,
-        );
-    }
-    m[best_row][best_col]
-}
-
 #[target_feature(enable = "avx2")]
 pub unsafe fn exec_simd(
+    // comments on simd instructions are in global_abpoa::exec_simd()
     read: &[char],
     seq_name: (&str, usize),
     graph: &LnzGraph,
@@ -245,6 +172,80 @@ pub unsafe fn exec_simd(
         );
     }
 
+    m[best_row][best_col]
+}
+
+pub fn exec(
+    sequence: &[char],
+    seq_name: (&str, usize),
+    graph: &LnzGraph,
+    scores_matrix: &HashMap<(char, char), i32>,
+    amb_mode: bool,
+    hofp: &HashMap<usize, String>,
+) -> i32 {
+    let lnz = &graph.lnz;
+    let nodes_with_pred = &graph.nwp;
+    let pred_hash = &graph.pred_hash;
+
+    let mut m = vec![vec![0; sequence.len()]; lnz.len()];
+    let mut path = vec![vec![bitvec![u16, Msb0; 0; 32]; sequence.len()]; lnz.len()];
+    let (mut best_row, mut best_col) = (0, 0);
+
+    for i in 0..lnz.len() - 1 {
+        for j in 0..sequence.len() {
+            match (i, j) {
+                (0, _) | (_, 0) => path[i][j] = bf::set_path_cell(0, 'O'),
+                _ => {
+                    let l = m[i][j - 1] + scores_matrix.get(&(sequence[j], '-')).unwrap();
+                    let l_idx = i;
+
+                    let mut d;
+                    let d_idx;
+
+                    let mut u;
+                    let u_idx;
+                    if !nodes_with_pred[i] {
+                        d = m[i - 1][j - 1] + scores_matrix.get(&(sequence[j], lnz[i])).unwrap();
+                        d_idx = i - 1;
+
+                        u = m[i - 1][j] + scores_matrix.get(&('-', lnz[i])).unwrap();
+                        u_idx = i - 1;
+                    } else {
+                        (d, d_idx) = get_best_d(&m, pred_hash.get(&i).unwrap(), j);
+                        (u, u_idx) = get_best_u(&m, pred_hash.get(&i).unwrap(), j);
+                        d += scores_matrix.get(&(sequence[j], lnz[i])).unwrap();
+                        u += scores_matrix.get(&('-', lnz[i])).unwrap();
+                    }
+                    if d < 0 && l < 0 && u < 0 {
+                        m[i][j] = 0;
+                        path[i][j] = bf::set_path_cell(0, 'O');
+                    } else {
+                        let (best_val, mut dir) = utils::get_max_d_u_l(d, u, l);
+                        if dir == 'D' && lnz[i] != sequence[j] {
+                            dir = 'd'
+                        }
+                        m[i][j] = best_val;
+                        path[i][j] = match dir {
+                            'D' | 'd' => bf::set_path_cell(d_idx, dir),
+                            'U' => bf::set_path_cell(u_idx, dir),
+                            _ => bf::set_path_cell(l_idx, dir),
+                        }
+                    }
+                }
+            }
+
+            if m[i][j] > m[best_row][best_col] {
+                best_row = i;
+                best_col = j;
+            }
+        }
+    }
+
+    if seq_name.1 != 0 {
+        gaf_output::gaf_of_local_poa(
+            &path, sequence, seq_name, best_row, best_col, amb_mode, hofp,
+        );
+    }
     m[best_row][best_col]
 }
 
