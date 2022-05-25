@@ -88,14 +88,15 @@ fn main() {
             for (i, seq) in sequences.iter().enumerate() {
                 let align_score = if is_x86_feature_detected!("avx2") {
                     unsafe {
-                        local_poa::exec_simd(
+                        let temp_score = local_poa::exec_simd(
                             seq,
                             (&seq_names[i], i + 1),
                             &graph_struct,
                             &scores_f32,
                             false,
                             &hofp_forward,
-                        ) as i32
+                        );
+                        (temp_score.0 as i32, temp_score.1)
                     }
                 } else {
                     local_poa::exec(
@@ -107,7 +108,8 @@ fn main() {
                         &hofp_forward,
                     )
                 };
-                if align_score < 0 && amb_strand {
+                //FIXME: write output for rev and compl
+                if align_score.0 < 0 && amb_strand {
                     if hofp_reverse.is_empty() {
                         hofp_reverse =
                             utils::create_handle_pos_in_lnz(&graph_struct.nwp, &graph_path, true);
@@ -134,6 +136,8 @@ fn main() {
                             );
                         }
                     }
+                } else {
+                    utils::write_gaf(&align_score.1.unwrap().to_string(), i + 1)
                 }
             }
         }

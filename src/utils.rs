@@ -1,12 +1,17 @@
 use std::{
     cmp::{self, Ordering},
     collections::HashMap,
+    fs::{File, OpenOptions},
 };
 
 use bit_vec::BitVec;
 use handlegraph::{handle::Handle, handlegraph::HandleGraph, hashgraph::HashGraph};
-#[inline]
 
+use crate::args_parser;
+use std::io::{prelude::*, BufWriter};
+use std::path::Path;
+
+#[inline]
 /// Needed for adaptive band settings, set the leftmost and rightmost position for each row of the dp matrix   
 /// The algorithm used is the same as abPOA
 pub fn set_ampl_for_row(
@@ -190,4 +195,25 @@ pub fn handle_pos_in_lnz_from_hashgraph(
     }
     handle_of_lnz_pos.insert(0, String::from("-1"));
     handle_of_lnz_pos
+}
+
+pub fn write_gaf(gaf_out: &str, number: usize) {
+    let out_file = args_parser::get_out_file();
+    if out_file == "standard output" {
+        println!("{}", gaf_out)
+    } else {
+        let file_name = Path::new(&out_file);
+        let file = if file_name.exists() && number != 1 {
+            OpenOptions::new()
+                .write(true)
+                .append(true)
+                .open(file_name)
+                .unwrap()
+        } else {
+            File::create(file_name).expect("unable to create file")
+        };
+
+        let f = &mut BufWriter::new(&file);
+        writeln!(f, "{}", gaf_out).expect("error in writing");
+    }
 }

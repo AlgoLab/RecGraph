@@ -1,10 +1,7 @@
-use crate::args_parser;
 use crate::bitfield_path as bf;
+use crate::utils;
 use bitvec::prelude::*;
-use std::fs::OpenOptions;
-use std::io::{prelude::*, BufWriter};
-use std::path::Path;
-use std::{collections::HashMap, fs::File};
+use std::collections::HashMap;
 // TODO: gaf_out diventa struct GAFStruct, con metodo to_string che ritorna una stringa = a gaf_out originale per write_output
 // mettere flag per stabilire se scrivere output oppure ritornare GAFStruct, per farlo il tipo di ritorno deve essere
 // Option(GafStruct), None se voglio scrivere output, Some se voglio struct.
@@ -24,7 +21,24 @@ pub struct GAFStruct {
     comments: String,
 }
 impl GAFStruct {
-    pub fn new(
+    pub fn new() {
+        GAFStruct {
+            query_name: String::from(""),
+            query_length: 0,
+            query_start: 0,
+            query_end: 0,
+            strand: ' ',
+            path: String::from(""),
+            path_length: 0,
+            path_start: 0,
+            path_end: 0,
+            residue_matches_number: 0,
+            alignment_block_length: String::from(""),
+            mapping_quality: String::from(""),
+            comments: String::from(""),
+        };
+    }
+    pub fn build_gaf_struct(
         query_name: String,
         query_length: usize,
         query_start: usize,
@@ -216,7 +230,7 @@ pub fn gaf_of_gap_abpoa(
     let mapping_quality = "*"; // to set
     let comments = cigars[..cigars.len() - 1].join(",");
 
-    let gaf_struct = GAFStruct::new(
+    let gaf_struct = GAFStruct::build_gaf_struct(
         String::from(seq_name.0),
         seq_length,
         query_start,
@@ -233,7 +247,7 @@ pub fn gaf_of_gap_abpoa(
     );
 
     let gaf_out = gaf_struct.to_string();
-    write_gaf(&gaf_out, seq_name.1);
+    utils::write_gaf(&gaf_out, seq_name.1);
 }
 pub fn gaf_of_global_abpoa(
     path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
@@ -348,7 +362,7 @@ pub fn gaf_of_global_abpoa(
     let align_block_length = "*"; // to set
     let mapping_quality = "*"; // to set
     let comments = cigars[..cigars.len() - 1].join(",");
-    let gaf_struct = GAFStruct::new(
+    let gaf_struct = GAFStruct::build_gaf_struct(
         String::from(seq_name.0),
         seq_length,
         query_start,
@@ -365,7 +379,7 @@ pub fn gaf_of_global_abpoa(
     );
 
     let gaf_out = gaf_struct.to_string();
-    write_gaf(&gaf_out, seq_name.1);
+    utils::write_gaf(&gaf_out, seq_name.1);
 }
 pub fn gaf_of_local_poa(
     path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
@@ -375,7 +389,7 @@ pub fn gaf_of_local_poa(
     last_col: usize,
     amb_mode: bool,
     hofp: &HashMap<usize, String>,
-) {
+) -> GAFStruct {
     let mut col = last_col;
     let mut row = last_row;
 
@@ -469,7 +483,7 @@ pub fn gaf_of_local_poa(
     let align_block_length = "*"; // to set
     let mapping_quality = "*"; // to set
     let comments = cigars[..cigars.len() - 1].join(",");
-    let gaf_struct = GAFStruct::new(
+    let gaf_struct = GAFStruct::build_gaf_struct(
         String::from(seq_name.0),
         seq_length,
         query_start,
@@ -484,9 +498,7 @@ pub fn gaf_of_local_poa(
         String::from(mapping_quality),
         comments,
     );
-
-    let gaf_out = gaf_struct.to_string();
-    write_gaf(&gaf_out, seq_name.1);
+    gaf_struct
 }
 
 pub fn gaf_of_gap_local_poa(
@@ -609,7 +621,7 @@ pub fn gaf_of_gap_local_poa(
     let align_block_length = "*"; // to set
     let mapping_quality = "*"; // to set
     let comments = cigars[..cigars.len() - 1].join(",");
-    let gaf_struct = GAFStruct::new(
+    let gaf_struct = GAFStruct::build_gaf_struct(
         String::from(seq_name.0),
         seq_length,
         query_start,
@@ -626,7 +638,7 @@ pub fn gaf_of_gap_local_poa(
     );
 
     let gaf_out = gaf_struct.to_string();
-    write_gaf(&gaf_out, seq_name.1);
+    utils::write_gaf(&gaf_out, seq_name.1);
 }
 
 pub fn gaf_of_local_poa_simd(
@@ -637,7 +649,7 @@ pub fn gaf_of_local_poa_simd(
     last_col: usize,
     amb_mode: bool,
     hofp: &HashMap<usize, String>,
-) {
+) -> GAFStruct {
     let mut col = last_col;
     let mut row = last_row;
 
@@ -714,7 +726,7 @@ pub fn gaf_of_local_poa_simd(
     let seq_length = sequence.len() - 1; // $ doesn't count
     let query_start = col;
     let query_end = last_col;
-    let strand = if amb_mode { "-" } else { "+" };
+    let strand = if amb_mode { '-' } else { '+' };
     let path_matching: String = handle_id_alignment
         .iter()
         .map(|line| line.chars().collect::<Vec<char>>().into_iter().collect())
@@ -727,9 +739,8 @@ pub fn gaf_of_local_poa_simd(
     let align_block_length = "*"; // to set
     let mapping_quality = "*"; // to set
     let comments = cigars[..cigars.len() - 1].join(",");
-    let gaf_out = format!(
-        "{}\t{}\t{}\t{}\t{}\t>{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
-        seq_name.0,
+    let gaf_struct = GAFStruct::build_gaf_struct(
+        String::from(seq_name.0),
         seq_length,
         query_start,
         query_end,
@@ -739,11 +750,11 @@ pub fn gaf_of_local_poa_simd(
         path_start,
         path_end,
         number_residue_matching,
-        align_block_length,
-        mapping_quality,
-        comments
+        String::from(align_block_length),
+        String::from(mapping_quality),
+        comments,
     );
-    write_gaf(&gaf_out, seq_name.1);
+    gaf_struct
 }
 
 pub fn gaf_of_global_abpoa_simd(
@@ -865,7 +876,7 @@ pub fn gaf_of_global_abpoa_simd(
             mapping_quality,
             comments
         );
-        write_gaf(&gaf_out, seq_name.1);
+        utils::write_gaf(&gaf_out, seq_name.1);
     } else {
         println!("band not enough for correct output");
     }
@@ -878,27 +889,6 @@ fn node_start(hofp: &HashMap<usize, String>, row: usize) -> usize {
         i -= 1;
     }
     row - i
-}
-
-fn write_gaf(gaf_out: &str, number: usize) {
-    let out_file = args_parser::get_out_file();
-    if out_file == "standard output" {
-        println!("{}", gaf_out)
-    } else {
-        let file_name = Path::new(&out_file);
-        let file = if file_name.exists() && number != 1 {
-            OpenOptions::new()
-                .write(true)
-                .append(true)
-                .open(file_name)
-                .unwrap()
-        } else {
-            File::create(file_name).expect("unable to create file")
-        };
-
-        let f = &mut BufWriter::new(&file);
-        writeln!(f, "{}", gaf_out).expect("error in writing");
-    }
 }
 
 fn set_cigar_substring(count_m: i32, count_i: i32, count_d: i32, cs: String) -> String {

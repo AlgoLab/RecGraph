@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
 use crate::{
-    gap_global_abpoa, gap_local_poa, global_abpoa, graph, local_poa, score_matrix, sequences, utils,
+    gaf_output::GAFStruct, gap_global_abpoa, gap_local_poa, global_abpoa, graph, local_poa,
+    score_matrix, sequences, utils,
 };
 use handlegraph::hashgraph::HashGraph;
 
@@ -69,12 +70,13 @@ pub fn align_global_gap(
 }
 /// Local alignment with simd instruction, score matrix can be set with create_score_matrix_f32.
 /// Only required parameters are a read as a &String and a graph as a &HandleGraph.
+/// Returns a GAFStruct
 pub fn align_local_no_gap(
     read: &String,
     graph: &HashGraph,
     sequence_name: Option<(&str, usize)>,
     score_matrix: Option<HashMap<(char, char), f32>>,
-) {
+) -> GAFStruct {
     let read_for_alignment = sequences::build_align_string(read);
     let lnz_graph = graph::create_graph_struct(graph, false);
     let score_matrix_f32 =
@@ -82,7 +84,7 @@ pub fn align_local_no_gap(
     let hofp = utils::handle_pos_in_lnz_from_hashgraph(&lnz_graph.nwp, &graph, false);
 
     unsafe {
-        local_poa::exec_simd(
+        let alignment = local_poa::exec_simd(
             &read_for_alignment,
             sequence_name.unwrap_or(("no_name", 1)),
             &lnz_graph,
@@ -90,6 +92,7 @@ pub fn align_local_no_gap(
             false,
             &hofp,
         );
+        alignment.1.unwrap()
     }
 }
 /// Local gap alignment with adaptive band, score matrix can be set with create_score_matrix_i32.
