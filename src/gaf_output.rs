@@ -5,7 +5,76 @@ use std::fs::OpenOptions;
 use std::io::{prelude::*, BufWriter};
 use std::path::Path;
 use std::{collections::HashMap, fs::File};
-
+// TODO: gaf_out diventa struct GAFStruct, con metodo to_string che ritorna una stringa = a gaf_out originale per write_output
+// mettere flag per stabilire se scrivere output oppure ritornare GAFStruct, per farlo il tipo di ritorno deve essere
+// Option(GafStruct), None se voglio scrivere output, Some se voglio struct.
+pub struct GAFStruct {
+    query_name: String,
+    query_length: usize,
+    query_start: usize,
+    query_end: usize,
+    strand: char,
+    path: String,
+    path_length: usize,
+    path_start: usize,
+    path_end: usize,
+    residue_matches_number: usize,
+    alignment_block_length: String,
+    mapping_quality: String,
+    comments: String,
+}
+impl GAFStruct {
+    pub fn new(
+        query_name: String,
+        query_length: usize,
+        query_start: usize,
+        query_end: usize,
+        strand: char,
+        path: String,
+        path_length: usize,
+        path_start: usize,
+        path_end: usize,
+        residue_matches_number: usize,
+        alignment_block_length: String,
+        mapping_quality: String,
+        comments: String,
+    ) -> GAFStruct {
+        GAFStruct {
+            query_name,
+            query_length,
+            query_start,
+            query_end,
+            strand,
+            path,
+            path_length,
+            path_start,
+            path_end,
+            residue_matches_number,
+            alignment_block_length,
+            mapping_quality,
+            comments,
+        }
+    }
+    pub fn to_string(self) -> String {
+        let gaf_struct_to_string = format!(
+            "{}\t{}\t{}\t{}\t{}\t>{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+            self.query_name,
+            self.query_length,
+            self.query_start,
+            self.query_end,
+            self.strand,
+            self.path,
+            self.path_length,
+            self.path_start,
+            self.path_end,
+            self.residue_matches_number,
+            self.alignment_block_length,
+            self.mapping_quality,
+            self.comments
+        );
+        gaf_struct_to_string
+    }
+}
 pub fn gaf_of_gap_abpoa(
     path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
     path_x: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
@@ -133,7 +202,7 @@ pub fn gaf_of_gap_abpoa(
     let seq_length = sequence.len() - 1; // $ doesn't count
     let query_start = col;
     let query_end = last_col + ampl_for_row.get(last_row).unwrap().0;
-    let strand = if amb_mode { "-" } else { "+" };
+    let strand = if amb_mode { '-' } else { '+' };
     let path_matching: String = handle_id_alignment
         .iter()
         .map(|line| line.chars().collect::<Vec<char>>().into_iter().collect())
@@ -146,9 +215,9 @@ pub fn gaf_of_gap_abpoa(
     let align_block_length = "*"; // to set
     let mapping_quality = "*"; // to set
     let comments = cigars[..cigars.len() - 1].join(",");
-    let gaf_out = format!(
-        "{}\t{}\t{}\t{}\t{}\t>{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
-        seq_name.0,
+
+    let gaf_struct = GAFStruct::new(
+        String::from(seq_name.0),
         seq_length,
         query_start,
         query_end,
@@ -158,10 +227,12 @@ pub fn gaf_of_gap_abpoa(
         path_start,
         path_end,
         number_residue,
-        align_block_length,
-        mapping_quality,
-        comments
+        String::from(align_block_length),
+        String::from(mapping_quality),
+        comments,
     );
+
+    let gaf_out = gaf_struct.to_string();
     write_gaf(&gaf_out, seq_name.1);
 }
 pub fn gaf_of_global_abpoa(
@@ -264,7 +335,7 @@ pub fn gaf_of_global_abpoa(
     let seq_length = sequence.len() - 1; // $ doesn't count
     let query_start = col;
     let query_end = last_col + ampl_for_row.get(last_row).unwrap().0;
-    let strand = if amb_mode { "-" } else { "+" };
+    let strand = if amb_mode { '-' } else { '+' };
     let path_matching: String = handle_id_alignment
         .iter()
         .map(|line| line.chars().collect::<Vec<char>>().into_iter().collect())
@@ -277,9 +348,8 @@ pub fn gaf_of_global_abpoa(
     let align_block_length = "*"; // to set
     let mapping_quality = "*"; // to set
     let comments = cigars[..cigars.len() - 1].join(",");
-    let gaf_out = format!(
-        "{}\t{}\t{}\t{}\t{}\t>{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
-        seq_name.0,
+    let gaf_struct = GAFStruct::new(
+        String::from(seq_name.0),
         seq_length,
         query_start,
         query_end,
@@ -289,10 +359,12 @@ pub fn gaf_of_global_abpoa(
         path_start,
         path_end,
         number_residue,
-        align_block_length,
-        mapping_quality,
-        comments
+        String::from(align_block_length),
+        String::from(mapping_quality),
+        comments,
     );
+
+    let gaf_out = gaf_struct.to_string();
     write_gaf(&gaf_out, seq_name.1);
 }
 pub fn gaf_of_local_poa(
@@ -384,7 +456,7 @@ pub fn gaf_of_local_poa(
     let seq_length = sequence.len() - 1; // $ doesn't count
     let query_start = col;
     let query_end = last_col;
-    let strand = if amb_mode { "-" } else { "+" };
+    let strand = if amb_mode { '-' } else { '+' };
     let path_matching: String = handle_id_alignment
         .iter()
         .map(|line| line.chars().collect::<Vec<char>>().into_iter().collect())
@@ -397,9 +469,8 @@ pub fn gaf_of_local_poa(
     let align_block_length = "*"; // to set
     let mapping_quality = "*"; // to set
     let comments = cigars[..cigars.len() - 1].join(",");
-    let gaf_out = format!(
-        "{}\t{}\t{}\t{}\t{}\t>{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
-        seq_name.0,
+    let gaf_struct = GAFStruct::new(
+        String::from(seq_name.0),
         seq_length,
         query_start,
         query_end,
@@ -409,10 +480,12 @@ pub fn gaf_of_local_poa(
         path_start,
         path_end,
         number_residue_matching,
-        align_block_length,
-        mapping_quality,
-        comments
+        String::from(align_block_length),
+        String::from(mapping_quality),
+        comments,
     );
+
+    let gaf_out = gaf_struct.to_string();
     write_gaf(&gaf_out, seq_name.1);
 }
 
@@ -523,7 +596,7 @@ pub fn gaf_of_gap_local_poa(
     let seq_length = sequence.len() - 1; // $ doesn't count
     let query_start = col;
     let query_end = last_col;
-    let strand = if amb_mode { "-" } else { "+" };
+    let strand = if amb_mode { '-' } else { '+' };
     let path_matching: String = handle_id_alignment
         .iter()
         .map(|line| line.chars().collect::<Vec<char>>().into_iter().collect())
@@ -536,9 +609,8 @@ pub fn gaf_of_gap_local_poa(
     let align_block_length = "*"; // to set
     let mapping_quality = "*"; // to set
     let comments = cigars[..cigars.len() - 1].join(",");
-    let gaf_out = format!(
-        "{}\t{}\t{}\t{}\t{}\t>{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
-        seq_name.0,
+    let gaf_struct = GAFStruct::new(
+        String::from(seq_name.0),
         seq_length,
         query_start,
         query_end,
@@ -548,10 +620,12 @@ pub fn gaf_of_gap_local_poa(
         path_start,
         path_end,
         number_residue_matching,
-        align_block_length,
-        mapping_quality,
-        comments
+        String::from(align_block_length),
+        String::from(mapping_quality),
+        comments,
     );
+
+    let gaf_out = gaf_struct.to_string();
     write_gaf(&gaf_out, seq_name.1);
 }
 
