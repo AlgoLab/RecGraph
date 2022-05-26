@@ -1,3 +1,4 @@
+use crate::gaf_output::GAFStruct;
 use crate::graph::LnzGraph;
 use crate::{bitfield_path as bf, gaf_output, utils};
 use bitvec::prelude::*;
@@ -15,7 +16,7 @@ pub unsafe fn exec_simd(
     amb_mode: bool,
     hofp: &HashMap<usize, String>,
     r_values: &Vec<usize>,
-) -> f32 {
+) -> (i32, Option<GAFStruct>) {
     let min_score = 2.0 * read.len() as f32 * score_matrix.get(&(read[1], '-')).unwrap();
     let mut m: Vec<Vec<f32>> = vec![vec![min_score; read.len()]; graph.lnz.len()];
     let mut path: Vec<Vec<f32>> = vec![vec![-1f32; read.len()]; graph.lnz.len()];
@@ -238,7 +239,7 @@ pub unsafe fn exec_simd(
     }
 
     if seq_name.1 != 0 {
-        gaf_output::gaf_of_global_abpoa_simd(
+        let gaf_struct = gaf_output::gaf_of_global_abpoa_simd(
             &path,
             &read,
             seq_name,
@@ -247,8 +248,10 @@ pub unsafe fn exec_simd(
             amb_mode,
             hofp,
         );
+        (best_result as i32, Some(gaf_struct))
+    } else {
+        (best_result as i32, None)
     }
-    best_result
 }
 
 /// adaptive banded POA without SIMD instructions
@@ -261,7 +264,7 @@ pub fn exec(
     bta: usize,
     amb_mode: bool,
     hofp: &HashMap<usize, String>,
-) -> i32 {
+) -> (i32, Option<GAFStruct>) {
     let lnz = &graph_struct.lnz;
     let nodes_w_pred = &graph_struct.nwp;
     let pred_hash = &graph_struct.pred_hash;
@@ -404,7 +407,7 @@ pub fn exec(
     }
 
     if seq_name.1 != 0 {
-        gaf_output::gaf_of_global_abpoa(
+        let gaf_struct = gaf_output::gaf_of_global_abpoa(
             &path,
             sequence,
             seq_name,
@@ -415,9 +418,10 @@ pub fn exec(
             amb_mode,
             hofp,
         );
+        (m[last_row][last_col], Some(gaf_struct))
+    } else {
+        (m[last_row][last_col], None)
     }
-
-    m[last_row][last_col]
 }
 fn band_ampl_enough(
     path: &[Vec<bitvec::prelude::BitVec<u16, Msb0>>],
@@ -600,7 +604,7 @@ mod tests {
             &HashMap::new(),
         );
 
-        assert_eq!(align, 4);
+        assert_eq!(align.0, 4);
     }
     #[test]
     fn test2() {
@@ -645,7 +649,7 @@ mod tests {
             &HashMap::new(),
         );
 
-        assert_eq!(align, 5);
+        assert_eq!(align.0, 5);
     }
     #[test]
     fn multiple_starts() {
@@ -692,7 +696,7 @@ mod tests {
             &HashMap::new(),
         );
 
-        assert_eq!(align, 5);
+        assert_eq!(align.0, 5);
     }
 
     #[test]
@@ -744,6 +748,6 @@ mod tests {
             &HashMap::new(),
         );
 
-        assert_eq!(align, 5);
+        assert_eq!(align.0, 5);
     }
 }

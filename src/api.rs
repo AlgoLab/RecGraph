@@ -14,7 +14,7 @@ pub fn align_global_no_gap(
     sequence_name: Option<(&str, usize)>,
     score_matrix: Option<HashMap<(char, char), f32>>,
     bases_to_add: Option<usize>,
-) {
+) -> GAFStruct {
     let read_for_alignment = sequences::build_align_string(read);
     let lnz_graph = graph::create_graph_struct(graph, false);
     let score_matrix_f32 =
@@ -25,7 +25,7 @@ pub fn align_global_no_gap(
     let hofp = utils::handle_pos_in_lnz_from_hashgraph(&lnz_graph.nwp, &graph, false);
 
     unsafe {
-        global_abpoa::exec_simd(
+        let alignment = global_abpoa::exec_simd(
             &read_for_alignment,
             sequence_name.unwrap_or(("no_name", 1)),
             &lnz_graph,
@@ -35,6 +35,7 @@ pub fn align_global_no_gap(
             &hofp,
             &r_values,
         );
+        alignment.1.unwrap()
     }
 }
 /// Global alignment with adaptive band,score matrix can be set with create_score_matrix_i32.
@@ -47,7 +48,7 @@ pub fn align_global_gap(
     bases_to_add: Option<usize>,
     o: Option<i32>,
     e: Option<i32>,
-) {
+) -> GAFStruct {
     let read_for_alignment = sequences::build_align_string(read);
     let lnz_graph = graph::create_graph_struct(graph, false);
     let score_matrix_i32 =
@@ -56,7 +57,7 @@ pub fn align_global_gap(
 
     let hofp = utils::handle_pos_in_lnz_from_hashgraph(&lnz_graph.nwp, &graph, false);
 
-    gap_global_abpoa::exec(
+    let alignment = gap_global_abpoa::exec(
         &read_for_alignment,
         sequence_name.unwrap_or(("no_name", 1)),
         &lnz_graph,
@@ -67,6 +68,7 @@ pub fn align_global_gap(
         false,
         &hofp,
     );
+    alignment.1.unwrap()
 }
 /// Local alignment with simd instruction, score matrix can be set with create_score_matrix_f32.
 /// Only required parameters are a read as a &String and a graph as a &HandleGraph.
@@ -104,7 +106,7 @@ pub fn align_local_gap(
     score_matrix: Option<HashMap<(char, char), i32>>,
     o: Option<i32>,
     e: Option<i32>,
-) {
+) -> GAFStruct {
     let read_for_alignment = sequences::build_align_string(read);
     let lnz_graph = graph::create_graph_struct(graph, false);
     let score_matrix_i32 =
@@ -112,7 +114,7 @@ pub fn align_local_gap(
 
     let hofp = utils::handle_pos_in_lnz_from_hashgraph(&lnz_graph.nwp, &graph, false);
 
-    gap_local_poa::exec(
+    let alignment = gap_local_poa::exec(
         &read_for_alignment,
         sequence_name.unwrap_or(("no_name", 1)),
         &lnz_graph,
@@ -122,6 +124,7 @@ pub fn align_local_gap(
         false,
         &hofp,
     );
+    alignment.1.unwrap()
 }
 /// Returns a score matrix for gap alignments, can be set with match/mismatch score
 /// or by parsing a .mtx file

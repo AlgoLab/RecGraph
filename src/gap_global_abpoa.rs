@@ -1,4 +1,9 @@
-use crate::{bitfield_path as bf, gaf_output, graph::LnzGraph, utils};
+use crate::{
+    bitfield_path as bf,
+    gaf_output::{self, GAFStruct},
+    graph::LnzGraph,
+    utils,
+};
 use bitvec::prelude::*;
 use std::{cmp::Ordering, collections::HashMap, vec};
 
@@ -13,7 +18,7 @@ pub fn exec(
     bta: usize,
     amb_mode: bool,
     hofp: &HashMap<usize, String>,
-) -> i32 {
+) -> (i32, Option<GAFStruct>) {
     let lnz = &graph_struct.lnz; // label of each node
     let nodes_w_pred = &graph_struct.nwp; // true if node has more than one pred
     let pred_hash = &graph_struct.pred_hash; // predecessors of nodes with multiple preds
@@ -226,7 +231,7 @@ pub fn exec(
 
     if seq_name.1 != 0 {
         // set to 0 during testing/benchmarking
-        gaf_output::gaf_of_gap_abpoa(
+        let gaf_struct = gaf_output::gaf_of_gap_abpoa(
             &path,
             &path_x,
             &path_y,
@@ -238,9 +243,10 @@ pub fn exec(
             amb_mode,
             hofp,
         );
+        (best_value, Some(gaf_struct))
+    } else {
+        (best_value, None)
     }
-
-    best_value
 }
 
 // get best diagonal value considering every predecessor of current node
@@ -488,7 +494,7 @@ mod tests {
             &HashMap::new(),
         );
 
-        assert_eq!(align, 4);
+        assert_eq!(align.0, 4);
     }
 
     #[test]
@@ -533,7 +539,7 @@ mod tests {
             &HashMap::new(),
         );
 
-        assert_eq!(align, 0);
+        assert_eq!(align.0, 0);
     }
 
     #[test]
@@ -579,7 +585,7 @@ mod tests {
             &HashMap::new(),
         );
 
-        assert_eq!(align, 5);
+        assert_eq!(align.0, 5);
     }
 
     #[test]
@@ -629,7 +635,7 @@ mod tests {
             &HashMap::new(),
         );
 
-        assert_eq!(align, 5);
+        assert_eq!(align.0, 5);
     }
 
     #[test]
@@ -673,7 +679,7 @@ mod tests {
             &HashMap::new(),
         );
 
-        assert_eq!(align, 4);
+        assert_eq!(align.0, 4);
     }
     #[test]
     fn gap_open_only_once_if_penalty_high() {
@@ -710,7 +716,7 @@ mod tests {
             &HashMap::new(),
         );
 
-        assert_eq!(align, -101);
+        assert_eq!(align.0, -101);
     }
     #[test]
     fn sequence_longer_than_graph() {
@@ -746,6 +752,6 @@ mod tests {
             &HashMap::new(),
         );
 
-        assert_eq!(align, -3);
+        assert_eq!(align.0, -3);
     }
 }

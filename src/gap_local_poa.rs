@@ -1,5 +1,6 @@
 use std::{cmp::Ordering, collections::HashMap};
 
+use crate::gaf_output::GAFStruct;
 use crate::{bitfield_path as bf, utils};
 use crate::{gaf_output, graph::LnzGraph};
 use bitvec::prelude::*;
@@ -13,7 +14,7 @@ pub fn exec(
     e: i32,
     amb_mode: bool,
     hofp: &HashMap<usize, String>,
-) -> i32 {
+) -> (i32, Option<GAFStruct>) {
     let lnz = &graph.lnz;
     let nodes_with_pred = &graph.nwp;
     let pred_hash = &graph.pred_hash;
@@ -118,12 +119,13 @@ pub fn exec(
     }
 
     if seq_name.1 != 0 {
-        gaf_output::gaf_of_gap_local_poa(
+        let gaf_struct = gaf_output::gaf_of_gap_local_poa(
             &path, &path_x, &path_y, sequence, seq_name, best_row, best_col, amb_mode, hofp,
         );
+        (m[best_row][best_col], Some(gaf_struct))
+    } else {
+        (m[best_row][best_col], None)
     }
-
-    m[best_row][best_col]
 }
 
 fn get_best_d(m: &[Vec<i32>], p_arr: &[usize], j: usize) -> (i32, usize) {
@@ -229,7 +231,7 @@ mod tests {
             false,
             &HashMap::new(),
         );
-        assert_eq!(align_score, 3);
+        assert_eq!(align_score.0, 3);
     }
 
     #[test]
@@ -271,6 +273,6 @@ mod tests {
             false,
             &HashMap::new(),
         );
-        assert_eq!(align_score, 2);
+        assert_eq!(align_score.0, 2);
     }
 }

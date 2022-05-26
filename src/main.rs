@@ -41,7 +41,7 @@ fn main() {
             );
             for (i, seq) in sequences.iter().enumerate() {
                 let bases_to_add = (b + f * seq.len() as f32) as usize;
-                let align_score = if is_x86_feature_detected!("avx2") {
+                let alignment = if is_x86_feature_detected!("avx2") {
                     unsafe {
                         global_abpoa::exec_simd(
                             seq,
@@ -52,7 +52,7 @@ fn main() {
                             false,
                             &hofp_forward,
                             &r_values,
-                        ) as i32
+                        )
                     }
                 } else {
                     global_abpoa::exec(
@@ -65,13 +65,13 @@ fn main() {
                         &hofp_forward,
                     )
                 };
-                if amb_strand && align_score < 0 {
+                if amb_strand && alignment.0 < 0 {
                     if hofp_reverse.is_empty() {
                         hofp_reverse =
                             utils::create_handle_pos_in_lnz(&graph_struct.nwp, &graph_path, true);
                     }
                     let rev_seq = sequences::rev_and_compl(seq);
-                    global_abpoa::exec(
+                    let rev_alignment = global_abpoa::exec(
                         &rev_seq,
                         (&seq_names[i], i + 1),
                         &graph_struct,
@@ -80,13 +80,20 @@ fn main() {
                         true,
                         &hofp_reverse,
                     );
+                    if rev_alignment.0 > alignment.0 {
+                        utils::write_gaf(&rev_alignment.1.unwrap().to_string(), i + 1);
+                    } else {
+                        utils::write_gaf(&alignment.1.unwrap().to_string(), i + 1);
+                    }
+                } else {
+                    utils::write_gaf(&alignment.1.unwrap().to_string(), i + 1);
                 }
             }
         }
         //local alignment
         1 => {
             for (i, seq) in sequences.iter().enumerate() {
-                let align_score = if is_x86_feature_detected!("avx2") {
+                let alignment = if is_x86_feature_detected!("avx2") {
                     unsafe {
                         let temp_score = local_poa::exec_simd(
                             seq,
@@ -108,16 +115,15 @@ fn main() {
                         &hofp_forward,
                     )
                 };
-                //FIXME: write output for rev and compl
-                if align_score.0 < 0 && amb_strand {
+                if amb_strand {
                     if hofp_reverse.is_empty() {
                         hofp_reverse =
                             utils::create_handle_pos_in_lnz(&graph_struct.nwp, &graph_path, true);
                     }
                     let rev_seq = sequences::rev_and_compl(seq);
-                    unsafe {
-                        if is_x86_feature_detected!("avx2") {
-                            local_poa::exec_simd(
+                    let alignment_rev = if is_x86_feature_detected!("avx2") {
+                        unsafe {
+                            let temp_alignment = local_poa::exec_simd(
                                 &rev_seq,
                                 (&seq_names[i], i + 1),
                                 &graph_struct,
@@ -125,19 +131,25 @@ fn main() {
                                 true,
                                 &hofp_reverse,
                             );
-                        } else {
-                            local_poa::exec(
-                                &rev_seq,
-                                (&seq_names[i], i + 1),
-                                &graph_struct,
-                                &score_matrix,
-                                true,
-                                &hofp_reverse,
-                            );
+                            (temp_alignment.0 as i32, temp_alignment.1)
                         }
+                    } else {
+                        local_poa::exec(
+                            &rev_seq,
+                            (&seq_names[i], i + 1),
+                            &graph_struct,
+                            &score_matrix,
+                            true,
+                            &hofp_reverse,
+                        )
+                    };
+                    if alignment.0 < alignment_rev.0 {
+                        utils::write_gaf(&alignment.1.unwrap().to_string(), i + 1);
+                    } else {
+                        utils::write_gaf(&alignment_rev.1.unwrap().to_string(), i + 1);
                     }
                 } else {
-                    utils::write_gaf(&align_score.1.unwrap().to_string(), i + 1)
+                    utils::write_gaf(&alignment.1.unwrap().to_string(), i + 1)
                 }
             }
         }
@@ -147,7 +159,7 @@ fn main() {
 
             for (i, seq) in sequences.iter().enumerate() {
                 let bases_to_add = (b + f * seq.len() as f32) as usize;
-                let align_score = gap_global_abpoa::exec(
+                let alignment = gap_global_abpoa::exec(
                     seq,
                     (&seq_names[i], i + 1),
                     &graph_struct,
@@ -159,13 +171,13 @@ fn main() {
                     &hofp_forward,
                 );
 
-                if amb_strand && align_score < 0 {
+                if amb_strand && alignment.0 < 0 {
                     if hofp_reverse.is_empty() {
                         hofp_reverse =
                             utils::create_handle_pos_in_lnz(&graph_struct.nwp, &graph_path, true);
                     }
                     let rev_seq = sequences::rev_and_compl(seq);
-                    gap_global_abpoa::exec(
+                    let rev_alignment = gap_global_abpoa::exec(
                         &rev_seq,
                         (&seq_names[i], i + 1),
                         &graph_struct,
@@ -176,6 +188,13 @@ fn main() {
                         true,
                         &hofp_reverse,
                     );
+                    if rev_alignment.0 > alignment.0 {
+                        utils::write_gaf(&rev_alignment.1.unwrap().to_string(), i + 1);
+                    } else {
+                        utils::write_gaf(&alignment.1.unwrap().to_string(), i + 1);
+                    }
+                } else {
+                    utils::write_gaf(&alignment.1.unwrap().to_string(), i + 1);
                 }
             }
         }
@@ -183,7 +202,7 @@ fn main() {
         3 => {
             let (g_open, g_ext) = args_parser::get_gap_open_gap_ext();
             for (i, seq) in sequences.iter().enumerate() {
-                let align_score = gap_local_poa::exec(
+                let alignment = gap_local_poa::exec(
                     seq,
                     (&seq_names[i], i + 1),
                     &graph_struct,
@@ -193,13 +212,13 @@ fn main() {
                     false,
                     &hofp_forward,
                 );
-                if amb_strand && align_score < 0 {
+                if amb_strand {
                     if hofp_reverse.is_empty() {
                         hofp_reverse =
                             utils::create_handle_pos_in_lnz(&graph_struct.nwp, &graph_path, true);
                     }
                     let rev_seq = sequences::rev_and_compl(seq);
-                    gap_local_poa::exec(
+                    let rev_alignment = gap_local_poa::exec(
                         &rev_seq,
                         (&seq_names[i], i + 1),
                         &graph_struct,
@@ -209,6 +228,13 @@ fn main() {
                         false,
                         &hofp_reverse,
                     );
+                    if rev_alignment.0 > alignment.0 {
+                        utils::write_gaf(&rev_alignment.1.unwrap().to_string(), i + 1);
+                    } else {
+                        utils::write_gaf(&alignment.1.unwrap().to_string(), i + 1);
+                    }
+                } else {
+                    utils::write_gaf(&alignment.1.unwrap().to_string(), i + 1);
                 }
             }
         }
