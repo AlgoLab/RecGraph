@@ -13,13 +13,13 @@ pub fn align_global_no_gap(
     graph: &HashGraph,
     sequence_name: Option<(&str, usize)>,
     score_matrix: Option<HashMap<(char, char), f32>>,
-    bases_to_add: Option<usize>,
+    bases_to_add: Option<f32>,
 ) -> GAFStruct {
     let read_for_alignment = sequences::build_align_string(read);
     let lnz_graph = graph::create_graph_struct(graph, false);
     let score_matrix_f32 =
         score_matrix.unwrap_or(score_matrix::create_score_matrix_match_mis_f32(2f32, -4f32));
-    let bases_to_add = bases_to_add.unwrap_or(read_for_alignment.len() * 0.1 as usize);
+    let bases_to_add = (read.len() as f32 * bases_to_add.unwrap_or(0.1)) as usize;
 
     let r_values = utils::set_r_values(&lnz_graph.nwp, &lnz_graph.pred_hash, lnz_graph.lnz.len());
     let hofp = utils::handle_pos_in_lnz_from_hashgraph(&lnz_graph.nwp, &graph, false);
@@ -45,7 +45,7 @@ pub fn align_global_gap(
     graph: &HashGraph,
     sequence_name: Option<(&str, usize)>,
     score_matrix: Option<HashMap<(char, char), i32>>,
-    bases_to_add: Option<usize>,
+    bases_to_add: Option<f32>,
     o: Option<i32>,
     e: Option<i32>,
 ) -> GAFStruct {
@@ -53,7 +53,7 @@ pub fn align_global_gap(
     let lnz_graph = graph::create_graph_struct(graph, false);
     let score_matrix_i32 =
         score_matrix.unwrap_or(score_matrix::create_score_matrix_match_mis(2, -4));
-    let bases_to_add = bases_to_add.unwrap_or(read_for_alignment.len() * 0.1 as usize);
+    let bases_to_add = (read.len() as f32 * bases_to_add.unwrap_or(0.1)) as usize;
 
     let hofp = utils::handle_pos_in_lnz_from_hashgraph(&lnz_graph.nwp, &graph, false);
 
