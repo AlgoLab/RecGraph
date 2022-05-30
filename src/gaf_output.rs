@@ -4,19 +4,19 @@ use std::collections::HashMap;
 
 /// GAFStruct represents a gaf alignment, with each field ordered as normal gaf field
 pub struct GAFStruct {
-    query_name: String,
-    query_length: usize,
-    query_start: usize,
-    query_end: usize,
-    strand: char,
-    path: String,
-    path_length: usize,
-    path_start: usize,
-    path_end: usize,
-    residue_matches_number: usize,
-    alignment_block_length: String,
-    mapping_quality: String,
-    comments: String,
+    pub query_name: String,
+    pub query_length: usize,
+    pub query_start: usize,
+    pub query_end: usize,
+    pub strand: char,
+    pub path: Vec<usize>,
+    pub path_length: usize,
+    pub path_start: usize,
+    pub path_end: usize,
+    pub residue_matches_number: usize,
+    pub alignment_block_length: String,
+    pub mapping_quality: String,
+    pub comments: String,
 }
 impl GAFStruct {
     pub fn new() -> GAFStruct {
@@ -26,7 +26,7 @@ impl GAFStruct {
             query_start: 0,
             query_end: 0,
             strand: ' ',
-            path: String::from(""),
+            path: vec![0usize],
             path_length: 0,
             path_start: 0,
             path_end: 0,
@@ -42,7 +42,7 @@ impl GAFStruct {
         query_start: usize,
         query_end: usize,
         strand: char,
-        path: String,
+        path: Vec<usize>,
         path_length: usize,
         path_start: usize,
         path_end: usize,
@@ -68,6 +68,12 @@ impl GAFStruct {
         }
     }
     pub fn to_string(self) -> String {
+        let path_matching: String = self
+            .path
+            .iter()
+            .map(|id| id.to_string())
+            .collect::<Vec<String>>()
+            .join(">");
         let gaf_struct_to_string = format!(
             "{}\t{}\t{}\t{}\t{}\t>{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
             self.query_name,
@@ -75,7 +81,7 @@ impl GAFStruct {
             self.query_start,
             self.query_end,
             self.strand,
-            self.path,
+            path_matching,
             self.path_length,
             self.path_start,
             self.path_end,
@@ -215,11 +221,10 @@ pub fn gaf_of_gap_abpoa(
     let query_start = col;
     let query_end = last_col + ampl_for_row.get(last_row).unwrap().0;
     let strand = if amb_mode { '-' } else { '+' };
-    let path_matching: String = handle_id_alignment
+    let path: Vec<usize> = handle_id_alignment
         .iter()
-        .map(|line| line.chars().collect::<Vec<char>>().into_iter().collect())
-        .collect::<Vec<String>>()
-        .join(">");
+        .map(|id| id.parse::<usize>().unwrap())
+        .collect();
     //path_length obtained from iterating in path matrix
     let path_start = node_start(hofp, row); // first letter used in first node of alignment
     let path_end = node_start(hofp, last_row); // last letter used in last node of alignment
@@ -234,7 +239,7 @@ pub fn gaf_of_gap_abpoa(
         query_start,
         query_end,
         strand,
-        path_matching,
+        path,
         path_length,
         path_start,
         path_end,
@@ -347,11 +352,10 @@ pub fn gaf_of_global_abpoa(
     let query_start = col;
     let query_end = last_col + ampl_for_row.get(last_row).unwrap().0;
     let strand = if amb_mode { '-' } else { '+' };
-    let path_matching: String = handle_id_alignment
+    let path: Vec<usize> = handle_id_alignment
         .iter()
-        .map(|line| line.chars().collect::<Vec<char>>().into_iter().collect())
-        .collect::<Vec<String>>()
-        .join(">");
+        .map(|id| id.parse::<usize>().unwrap())
+        .collect();
     //path_length obtained from iterating in path matrix
     let path_start = node_start(hofp, row); // first letter used in first node of alignment
     let path_end = node_start(hofp, last_row); // last letter used in last node of alignment
@@ -365,7 +369,7 @@ pub fn gaf_of_global_abpoa(
         query_start,
         query_end,
         strand,
-        path_matching,
+        path,
         path_length,
         path_start,
         path_end,
@@ -466,11 +470,10 @@ pub fn gaf_of_local_poa(
     let query_start = col;
     let query_end = last_col;
     let strand = if amb_mode { '-' } else { '+' };
-    let path_matching: String = handle_id_alignment
+    let path: Vec<usize> = handle_id_alignment
         .iter()
-        .map(|line| line.chars().collect::<Vec<char>>().into_iter().collect())
-        .collect::<Vec<String>>()
-        .join(">");
+        .map(|id| id.parse::<usize>().unwrap())
+        .collect();
     //path_length obtained from iterating in path matrix
     let path_start = node_start(hofp, row); // first letter used in first node of alignment
     let path_end = node_start(hofp, last_row); // last letter used in last node of alignment
@@ -484,7 +487,7 @@ pub fn gaf_of_local_poa(
         query_start,
         query_end,
         strand,
-        path_matching,
+        path,
         path_length,
         path_start,
         path_end,
@@ -604,11 +607,10 @@ pub fn gaf_of_gap_local_poa(
     let query_start = col;
     let query_end = last_col;
     let strand = if amb_mode { '-' } else { '+' };
-    let path_matching: String = handle_id_alignment
+    let path: Vec<usize> = handle_id_alignment
         .iter()
-        .map(|line| line.chars().collect::<Vec<char>>().into_iter().collect())
-        .collect::<Vec<String>>()
-        .join(">");
+        .map(|id| id.parse::<usize>().unwrap())
+        .collect();
     //path_length obtained from iterating in path matrix
     let path_start = node_start(hofp, row); // first letter used in first node of alignment
     let path_end = node_start(hofp, last_row); // last letter used in last node of alignment
@@ -622,7 +624,7 @@ pub fn gaf_of_gap_local_poa(
         query_start,
         query_end,
         strand,
-        path_matching,
+        path,
         path_length,
         path_start,
         path_end,
@@ -721,11 +723,10 @@ pub fn gaf_of_local_poa_simd(
     let query_start = col;
     let query_end = last_col;
     let strand = if amb_mode { '-' } else { '+' };
-    let path_matching: String = handle_id_alignment
+    let path: Vec<usize> = handle_id_alignment
         .iter()
-        .map(|line| line.chars().collect::<Vec<char>>().into_iter().collect())
-        .collect::<Vec<String>>()
-        .join(">");
+        .map(|id| id.parse::<usize>().unwrap())
+        .collect();
     //path_length obtained from iterating in path matrix
     let path_start = node_start(hofp, row); // first letter used in first node of alignment
     let path_end = node_start(hofp, last_row); // last letter used in last node of alignment
@@ -739,7 +740,7 @@ pub fn gaf_of_local_poa_simd(
         query_start,
         query_end,
         strand,
-        path_matching,
+        path,
         path_length,
         path_start,
         path_end,
@@ -842,11 +843,10 @@ pub fn gaf_of_global_abpoa_simd(
         let query_start = col;
         let query_end = last_col;
         let strand = if amb_mode { '-' } else { '+' };
-        let path_matching: String = handle_id_alignment
+        let path: Vec<usize> = handle_id_alignment
             .iter()
-            .map(|line| line.chars().collect::<Vec<char>>().into_iter().collect())
-            .collect::<Vec<String>>()
-            .join(">");
+            .map(|id| id.parse::<usize>().unwrap())
+            .collect();
         //path_length obtained from iterating in path matrix
         let path_start = node_start(hofp, row); // first letter used in first node of alignment
         let path_end = node_start(hofp, last_row); // last letter used in last node of alignment
@@ -860,7 +860,7 @@ pub fn gaf_of_global_abpoa_simd(
             query_start,
             query_end,
             strand,
-            path_matching,
+            path,
             path_length,
             path_start,
             path_end,

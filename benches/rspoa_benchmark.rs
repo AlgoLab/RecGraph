@@ -82,7 +82,7 @@ fn bench_global_simd_no_simd(c: &mut Criterion) {
                         black_box(("name", 0)),
                         black_box(&graph_struct),
                         black_box(&scores_f32),
-                        100,
+                        300,
                         false,
                         &hofp,
                         &r_values,
@@ -97,7 +97,7 @@ fn bench_global_simd_no_simd(c: &mut Criterion) {
                         black_box(("name", 0)),
                         black_box(&graph_struct),
                         black_box(&score_matrix),
-                        100,
+                        300,
                         false,
                         &hofp,
                     )
