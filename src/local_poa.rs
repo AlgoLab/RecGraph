@@ -167,6 +167,7 @@ pub unsafe fn exec_simd(
             }
         }
     }
+
     if seq_name.1 != 0 {
         let gaf_struct = gaf_output::gaf_of_local_poa_simd(
             &path, read, seq_name, best_row, best_col, amb_mode, hofp,

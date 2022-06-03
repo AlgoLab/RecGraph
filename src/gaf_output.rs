@@ -599,7 +599,6 @@ pub fn gaf_of_gap_local_poa(
     }
     cigar = set_cigar_substring(count_m, count_i, count_d, cigar);
     cigars.insert(0, cigar);
-
     handle_id_alignment.dedup();
     handle_id_alignment.reverse();
 
@@ -664,7 +663,6 @@ pub fn gaf_of_local_poa_simd(
     let mut residue_matching = 0;
     while path[row][col] != 0.0 {
         let val = path[row][col];
-
         let val_str = val.to_string();
         let pred_dir = val_str.split('.').collect::<Vec<&str>>();
         let pred = pred_dir[0].parse::<usize>().unwrap();
