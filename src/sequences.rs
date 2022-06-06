@@ -46,8 +46,7 @@ pub fn get_sequences(file_path: String) -> (Vec<Vec<char>>, Vec<String>) {
 
 /// Prepare a string for the alignment algorithms
 pub fn build_align_string(line: &String) -> Vec<char> {
-    let mut sequence = Vec::new();
-    let mut line: Vec<char> = line
+    let mut seq: Vec<char> = line
         .chars()
         .map(|c| {
             if c == '-' {
@@ -57,8 +56,8 @@ pub fn build_align_string(line: &String) -> Vec<char> {
             }
         })
         .collect::<Vec<char>>();
-    sequence.append(&mut line);
-    sequence
+    seq.insert(0, '$');
+    seq
 }
 
 /// If ambigous strand is set to true the alignment is done also on the reverse anc complement
