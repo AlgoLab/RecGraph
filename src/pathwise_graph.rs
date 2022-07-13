@@ -1,12 +1,12 @@
 use bit_vec::BitVec;
 use gfa::{gfa::*, parser::GFAParser};
 use handlegraph::{
-    handle::{Direction, Handle, NodeId},
+    handle::{Handle, NodeId},
     handlegraph::HandleGraph,
     hashgraph::HashGraph,
 };
 use std::collections::HashMap;
-
+//TODO: check paath versus, only working with +
 pub struct PathGraph {
     pub lnz: Vec<char>,
     pub nwp: BitVec,
@@ -62,18 +62,25 @@ impl PathGraph {
         println!("Number of paths: {}", self.paths_number);
     }
 }
-pub fn read_graph_w_path(file_path: &str) -> PathGraph {
+pub fn read_graph_w_path(file_path: &str, is_reversed: bool) -> PathGraph {
     let parser = GFAParser::new();
     let gfa: GFA<usize, ()> = parser.parse_file(file_path).unwrap();
 
     let graph: HashGraph = HashGraph::from_gfa(&gfa);
-    create_path_graph(&graph)
+    create_path_graph(&graph, is_reversed)
 }
 
-pub fn create_path_graph(graph: &HashGraph) -> PathGraph {
+pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
     let mut sorted_handles = graph.handles_iter().collect::<Vec<Handle>>();
     sorted_handles.sort();
-
+    
+    if is_reversed {
+        sorted_handles.reverse();
+        sorted_handles = sorted_handles
+            .iter()
+            .map(|h| h.flip())
+            .collect::<Vec<Handle>>();
+    }
     //create graph linearization
     let mut last_index = 1;
     let mut visited_node: HashMap<NodeId, i32> = HashMap::new();
@@ -104,7 +111,12 @@ pub fn create_path_graph(graph: &HashGraph) -> PathGraph {
 
     paths_nodes[0] = BitVec::from_elem(paths_number, true);
     for (path_id, path) in paths.iter() {
-        for (pos, handle) in path.nodes.iter().enumerate() {
+        let path_nodes = if is_reversed {
+            path.nodes.iter().rev().collect::<Vec<&Handle>>()
+        } else {
+            path.nodes.iter().collect::<Vec<&Handle>>()
+        };
+        for (pos, handle) in path_nodes.iter().enumerate() {
             let (handle_start, handle_end) = handles_id_position.get(&handle.id()).unwrap();
             for idx in *handle_start..=*handle_end {
                 paths_nodes[idx as usize].set(*path_id as usize, true);
@@ -153,10 +165,9 @@ fn update_hash(hashmap: &mut HashMap<usize, Vec<usize>>, k: usize, val: usize) {
 #[cfg(test)]
 mod tests {
     use handlegraph::{
-        handle::Edge, hashgraph::HashGraph, hashgraph::Path,
+        handle::Edge, hashgraph::HashGraph,
         mutablehandlegraph::MutableHandleGraph, pathgraph::PathHandleGraph,
     };
-    use std::collections::HashMap;
 
     #[test]
     fn pathwise_graph_correctly_created() {
@@ -181,7 +192,7 @@ mod tests {
         graph.append_step(&p2, h3);
         graph.append_step(&p2, h4);
 
-        let graph_struct = super::create_path_graph(&graph);
+        let graph_struct = super::create_path_graph(&graph, false);
 
         assert_eq!(graph_struct.paths_number, 2);
         assert_eq!(graph_struct.pred_hash.get(&1).unwrap()[0], 0);
@@ -231,7 +242,7 @@ mod tests {
         graph.append_step(&p3, h1_bis);
         graph.append_step(&p3, h4_bis);
 
-        let graph_struct = super::create_path_graph(&graph);
+        let graph_struct = super::create_path_graph(&graph, false);
 
         assert_eq!(graph_struct.paths_number, 3);
         assert_eq!(graph_struct.pred_hash.get(&1).unwrap()[0], 0);
@@ -250,4 +261,6 @@ mod tests {
         assert!(paths_end[0]);
         assert!(paths_end[1]);
     }
+
+    //TODO: check if rev graph correctly created
 }
