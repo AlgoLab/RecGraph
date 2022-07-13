@@ -1,12 +1,12 @@
 use bit_vec::BitVec;
+use gfa::{gfa::*, parser::GFAParser};
 use handlegraph::{
     handle::{Direction, Handle, NodeId},
     handlegraph::HandleGraph,
     hashgraph::HashGraph,
 };
 use std::collections::HashMap;
-use gfa::{gfa::*, parser::GFAParser};
- 
+
 pub struct PathGraph {
     pub lnz: Vec<char>,
     pub nwp: BitVec,
@@ -60,7 +60,7 @@ impl PathGraph {
         println!();
 
         println!("Number of paths: {}", self.paths_number);
-    } 
+    }
 }
 pub fn read_graph_w_path(file_path: &str) -> PathGraph {
     let parser = GFAParser::new();
@@ -119,6 +119,10 @@ pub fn create_path_graph(graph: &HashGraph) -> PathGraph {
             update_hash(&mut pred_hash, handle_start_pos, pred_last_idx as usize);
         }
     }
+    nodes_with_pred.set(linearization.len() - 1, true);
+    for (_, idx) in last_nodes.iter() {
+        update_hash(&mut pred_hash, linearization.len() - 1, *idx as usize);
+    }
 
     // create nodes_paths
     let paths = &graph.paths;
@@ -129,7 +133,7 @@ pub fn create_path_graph(graph: &HashGraph) -> PathGraph {
     for (path_id, path) in paths.iter() {
         for handle in path.nodes.iter() {
             let (handle_start, handle_end) = handles_id_position.get(&handle.id()).unwrap();
-            for idx in *handle_start..*handle_end {
+            for idx in *handle_start..=*handle_end {
                 paths_nodes[idx as usize].set(*path_id as usize, true);
             }
         }
