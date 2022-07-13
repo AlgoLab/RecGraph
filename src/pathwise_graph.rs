@@ -94,50 +94,41 @@ pub fn create_path_graph(graph: &HashGraph) -> PathGraph {
     }
     linearization.push('F');
 
-    //create nwp and pred_hash
+    //create nwp, pred_hash and nodes paths
     let mut nodes_with_pred = BitVec::from_elem(linearization.len(), false);
     let mut pred_hash: HashMap<usize, Vec<usize>> = HashMap::new();
 
-    for handle in sorted_handles.iter() {
-        if graph
-            .handle_edges_iter(*handle, Direction::Left)
-            .into_iter()
-            .count()
-            == 0
-        {
-            let h_last_idx = get_idx(&visited_node, handle.id());
-            let handle_start_pos = h_last_idx as usize - graph.sequence(*handle).len() + 1;
-            nodes_with_pred.set(handle_start_pos, true);
-            update_hash(&mut pred_hash, handle_start_pos, 0);
-        }
-        for predecessor in graph.handle_edges_iter(*handle, Direction::Left) {
-            let pred_last_idx = get_idx(&visited_node, predecessor.id());
-            let h_last_idx = get_idx(&visited_node, handle.id());
-            let handle_start_pos = h_last_idx as usize - graph.sequence(*handle).len() + 1;
-            last_nodes.remove(&predecessor.id());
-            nodes_with_pred.set(handle_start_pos, true);
-            update_hash(&mut pred_hash, handle_start_pos, pred_last_idx as usize);
-        }
-    }
-    nodes_with_pred.set(linearization.len() - 1, true);
-    for (_, idx) in last_nodes.iter() {
-        update_hash(&mut pred_hash, linearization.len() - 1, *idx as usize);
-    }
-
-    // create nodes_paths
     let paths = &graph.paths;
     let paths_number = paths.keys().len();
     let mut paths_nodes = vec![BitVec::from_elem(paths_number, false); linearization.len()];
 
     paths_nodes[0] = BitVec::from_elem(paths_number, true);
     for (path_id, path) in paths.iter() {
-        for handle in path.nodes.iter() {
+        for (pos, handle) in path.nodes.iter().enumerate() {
             let (handle_start, handle_end) = handles_id_position.get(&handle.id()).unwrap();
             for idx in *handle_start..=*handle_end {
                 paths_nodes[idx as usize].set(*path_id as usize, true);
             }
+            if !nodes_with_pred[*handle_start as usize] {
+                nodes_with_pred.set(*handle_start as usize, true);
+            }
+            if pos == 0 {
+                update_hash(&mut pred_hash, *handle_start as usize, 0);
+            } else if pos == path.nodes.iter().len() - 1 {
+                update_hash(
+                    &mut pred_hash,
+                    linearization.len() - 1,
+                    *handle_end as usize,
+                );
+            } else {
+                //ricava handle id pos prima, ricava suo handle end e aggiorna hash
+                let pred = path.nodes[pos - 1];
+                let pred_end = handles_id_position.get(&pred.id()).unwrap().1;
+                update_hash(&mut pred_hash, *handle_start as usize, pred_end as usize)
+            }
         }
     }
+    nodes_with_pred.set(linearization.len() - 1, true);
     paths_nodes[linearization.len() - 1] = BitVec::from_elem(paths_number, true);
 
     PathGraph::build(
@@ -151,7 +142,9 @@ pub fn create_path_graph(graph: &HashGraph) -> PathGraph {
 
 fn update_hash(hashmap: &mut HashMap<usize, Vec<usize>>, k: usize, val: usize) {
     if let Some(arr) = hashmap.get_mut(&k) {
-        arr.push(val);
+        if !arr.contains(&val) {
+            arr.push(val);
+        }
     } else {
         hashmap.insert(k, vec![val]);
     }
