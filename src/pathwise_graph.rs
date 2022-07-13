@@ -150,6 +150,104 @@ fn update_hash(hashmap: &mut HashMap<usize, Vec<usize>>, k: usize, val: usize) {
     }
 }
 
-fn get_idx(visited_node: &HashMap<NodeId, i32>, pred_id: NodeId) -> i32 {
-    *visited_node.get(&pred_id).unwrap()
+#[cfg(test)]
+mod tests {
+    use handlegraph::{
+        handle::Edge, hashgraph::HashGraph, hashgraph::Path,
+        mutablehandlegraph::MutableHandleGraph, pathgraph::PathHandleGraph,
+    };
+    use std::collections::HashMap;
+
+    #[test]
+    fn pathwise_graph_correctly_created() {
+        let mut graph: HashGraph = HashGraph::new();
+        let h1 = graph.append_handle("A".as_bytes());
+        let h2 = graph.append_handle("T".as_bytes());
+        let h3 = graph.append_handle("C".as_bytes());
+        let h4 = graph.append_handle("G".as_bytes());
+
+        graph.create_edge(&Edge(h1, h2));
+        graph.create_edge(&Edge(h1, h3));
+        graph.create_edge(&Edge(h2, h4));
+        graph.create_edge(&Edge(h3, h4));
+
+        let p1 = graph.create_path_handle(&['1' as u8], false);
+        let p2 = graph.create_path_handle(&['2' as u8], false);
+
+        graph.append_step(&p1, h1);
+        graph.append_step(&p1, h2);
+        graph.append_step(&p1, h4);
+        graph.append_step(&p2, h1);
+        graph.append_step(&p2, h3);
+        graph.append_step(&p2, h4);
+
+        let graph_struct = super::create_path_graph(&graph);
+
+        assert_eq!(graph_struct.paths_number, 2);
+        assert_eq!(graph_struct.pred_hash.get(&1).unwrap()[0], 0);
+        assert_eq!(graph_struct.pred_hash.get(&5).unwrap()[0], 4);
+        assert_eq!(graph_struct.lnz, ['$', 'A', 'T', 'C', 'G', 'F']);
+        assert_eq!(graph_struct.nwp[2], true);
+
+        let paths_h2 = &graph_struct.paths_nodes[2];
+        assert_eq!(paths_h2[0], true);
+        assert_eq!(paths_h2[1], false);
+
+        let paths_start = &graph_struct.paths_nodes[0];
+        let paths_end = &graph_struct.paths_nodes[5];
+
+        assert!(paths_start[0]);
+        assert!(paths_start[1]);
+        assert!(paths_end[0]);
+        assert!(paths_end[1]);
+    }
+    #[test]
+    pub fn multiple_starts_and_ends_pathwise() {
+        let mut graph: HashGraph = HashGraph::new();
+        let h1 = graph.append_handle("A".as_bytes());
+        let h1_bis = graph.append_handle("B".as_bytes());
+
+        let h2 = graph.append_handle("T".as_bytes());
+        let h3 = graph.append_handle("C".as_bytes());
+        let h4 = graph.append_handle("G".as_bytes());
+        let h4_bis = graph.append_handle("H".as_bytes());
+
+        graph.create_edge(&Edge(h1, h2));
+        graph.create_edge(&Edge(h1, h3));
+        graph.create_edge(&Edge(h2, h4));
+        graph.create_edge(&Edge(h3, h4));
+        graph.create_edge(&Edge(h1_bis, h4_bis));
+
+        let p1 = graph.create_path_handle(&['1' as u8], false);
+        let p2 = graph.create_path_handle(&['2' as u8], false);
+        let p3 = graph.create_path_handle(&['3' as u8], false);
+
+        graph.append_step(&p1, h1);
+        graph.append_step(&p1, h2);
+        graph.append_step(&p1, h4);
+        graph.append_step(&p2, h1);
+        graph.append_step(&p2, h3);
+        graph.append_step(&p2, h4);
+        graph.append_step(&p3, h1_bis);
+        graph.append_step(&p3, h4_bis);
+
+        let graph_struct = super::create_path_graph(&graph);
+
+        assert_eq!(graph_struct.paths_number, 3);
+        assert_eq!(graph_struct.pred_hash.get(&1).unwrap()[0], 0);
+        assert!(graph_struct.pred_hash.get(&7).unwrap().contains(&6));
+        assert!(graph_struct.pred_hash.get(&7).unwrap().contains(&5));
+
+        let paths_h2 = &graph_struct.paths_nodes[3];
+        assert_eq!(paths_h2[0], true);
+        assert_eq!(paths_h2[1], false);
+
+        let paths_start = &graph_struct.paths_nodes[0];
+        let paths_end = &graph_struct.paths_nodes[7];
+
+        assert!(paths_start[0]);
+        assert!(paths_start[1]);
+        assert!(paths_end[0]);
+        assert!(paths_end[1]);
+    }
 }
