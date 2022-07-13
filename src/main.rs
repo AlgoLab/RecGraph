@@ -7,6 +7,7 @@ use rspoa::global_abpoa;
 use rspoa::graph;
 use rspoa::local_poa;
 use rspoa::pathwise_alignment;
+use rspoa::pathwise_graph;
 use rspoa::score_matrix;
 use rspoa::sequences;
 use rspoa::utils;
@@ -240,8 +241,8 @@ fn main() {
         }
         4 => {
             println!("DEMO VERSION");
-            let path_node = graph::create_nodes_paths(&graph_path);
-            pathwise_alignment::exec(&sequences[4], &graph_struct, &path_node, &score_matrix, 3);
+            let graph = pathwise_graph::read_graph_w_path(&graph_path);
+            graph.to_string();
         }
         _ => {
             panic!("alignment mode must be 0, 1, 2 or 3");
