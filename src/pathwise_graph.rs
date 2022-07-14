@@ -63,6 +63,10 @@ impl PathGraph {
         println!("{:?}", self.paths_nodes);
         println!();
 
+        println!("Alphas:");
+        println!("{:?}", self.alphas);
+        println!();
+
         println!("Number of paths: {}", self.paths_number);
     }
 }
@@ -114,7 +118,6 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
 
     paths_nodes[0] = BitVec::from_elem(paths_number, true);
     alphas[0] = 0;
-
     for (path_id, path) in paths.iter() {
         let path_nodes = if is_reversed {
             path.nodes.iter().rev().collect::<Vec<&Handle>>()
@@ -139,17 +142,20 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
 
             if pos == 0 {
                 update_hash(&mut pred_hash, *handle_start as usize, 0);
-            } else if pos == path_nodes.iter().len() - 1 {
-                update_hash(
-                    &mut pred_hash,
-                    linearization.len() - 1,
-                    *handle_end as usize,
-                );
             } else {
                 //ricava handle id pos prima, ricava suo handle end e aggiorna hash
                 let pred = path_nodes[pos - 1];
                 let pred_end = handles_id_position.get(&pred.id()).unwrap().1;
-                update_hash(&mut pred_hash, *handle_start as usize, pred_end as usize)
+                update_hash(&mut pred_hash, *handle_start as usize, pred_end as usize);
+
+                // se ultimo nodo path aggiorna anche F
+                if pos == path_nodes.iter().len() - 1 {
+                    update_hash(
+                        &mut pred_hash,
+                        linearization.len() - 1,
+                        *handle_end as usize,
+                    );
+                }
             }
         }
     }

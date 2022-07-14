@@ -6,6 +6,7 @@ use rspoa::gap_local_poa;
 use rspoa::global_abpoa;
 use rspoa::graph;
 use rspoa::local_poa;
+use rspoa::pathwise_alignment_v2;
 //use rspoa::pathwise_alignment;
 use rspoa::pathwise_graph;
 use rspoa::score_matrix;
@@ -245,9 +246,14 @@ fn main() {
             let graph = pathwise_graph::read_graph_w_path(&graph_path, false);
             graph.to_string();
             println!();
+            /*
             println!("REVERSE");
             let graph = pathwise_graph::read_graph_w_path(&graph_path, true);
             graph.to_string();
+            */
+            let graph = pathwise_graph::read_graph_w_path(&graph_path, false);
+
+            pathwise_alignment_v2::exec(&sequences[0], &graph, &score_matrix)
         }
         _ => {
             panic!("alignment mode must be 0, 1, 2 or 3");

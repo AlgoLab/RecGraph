@@ -1,4 +1,4 @@
-use std::{collections::HashMap, hash::Hash};
+use std::collections::HashMap;
 
 use crate::pathwise_graph::PathGraph;
 
@@ -55,9 +55,9 @@ pub fn exec(sequence: &[char], graph: &PathGraph, score_matrix: &HashMap<(char, 
                         if is_in {
                             if path == alphas[i] {
                                 dpm[i][0][path] =
-                                    dpm[i - 1][0][path] + score_matrix.get(&(lnz[i], '-')).unwrap();
+                                    dpm[*pred][0][path] + score_matrix.get(&(lnz[i], '-')).unwrap();
                             } else {
-                                dpm[i][0][path] = dpm[i - 1][0][path];
+                                dpm[i][0][path] = dpm[*pred][0][path];
                             }
                         }
                     });
@@ -74,43 +74,93 @@ pub fn exec(sequence: &[char], graph: &PathGraph, score_matrix: &HashMap<(char, 
                             }
                         }
                     })
+                } else if common_paths[alphas[*pred]] {
+                    // as if normal alpha but update temp alphas for later
+                    let deltas = common_paths
+                        .iter()
+                        .enumerate()
+                        .filter_map(|(path_id, is_in)| match is_in && path_id != alphas[*pred] {
+                            true => Some(path_id),
+                            false => None,
+                        })
+                        .collect::<Vec<usize>>();
+                    temp_alphas.insert(alphas[*pred], deltas);
+                    common_paths.iter().enumerate().for_each(|(path, is_in)| {
+                        if is_in {
+                            if path == alphas[*pred] {
+                                dpm[i][0][path] = dpm[*pred][0][alphas[*pred]]
+                                    + score_matrix.get(&(lnz[i], '-')).unwrap();
+                            } else {
+                                dpm[i][0][path] = dpm[*pred][0][path];
+                            }
+                        }
+                    })
                 } else {
-                    //TODO: restart here
                     //temp_alpha needed, restore before leaving the node
                     let mut first = true;
+                    let mut temp_alpha = 0;
                     for path in 0..paths_number {
                         if common_paths[path] {
                             if first {
                                 first = false;
+                                temp_alpha = path;
                                 let deltas = common_paths
                                     .iter()
                                     .enumerate()
-                                    .filter_map(|(path_id, is_in)| match is_in && path_id != path {
-                                        true => Some(path_id),
-                                        false => None,
+                                    .filter_map(|(path_id, is_in)| {
+                                        match is_in && path_id != temp_alpha {
+                                            true => Some(path_id),
+                                            false => None,
+                                        }
                                     })
                                     .collect::<Vec<usize>>();
-                                temp_alphas.insert(path, deltas);
+                                temp_alphas.insert(temp_alpha, deltas);
+                                //update temp alpha score
+                                dpm[i][0][temp_alpha] = dpm[*pred][0][alphas[*pred]]
+                                    + dpm[*pred][0][temp_alpha]
+                                    + score_matrix.get(&(lnz[i], '-')).unwrap();
+                            } else {
+                                dpm[i][0][path] = dpm[*pred][0][path] - dpm[*pred][0][temp_alpha];
                             }
                         }
                     }
                 }
             }
             // remove temp alpha if needed
-            if temp_alphas.keys().len() > 1 {}
+
+            if temp_alphas.keys().len() > 0 {
+                for (alpha, deltas) in temp_alphas.iter() {
+                    dpm[i][0][*alpha] -= dpm[i][0][alphas[i]];
+                    for path in deltas.iter() {
+                        dpm[i][0][*path] += dpm[i][0][*alpha];
+                    }
+                }
+            }
         }
     }
 
     for j in 1..sequence.len() {
-        //FIXME:
         dpm[0][j][alphas[0]] =
             dpm[0][j - 1][alphas[0]] + score_matrix.get(&(sequence[j], '-')).unwrap();
-        for k in alphas[0] + 1..paths_number {
-            dpm[0][j][k] = dpm[0][j - 1][k];
+        for k in 0..paths_number {
+            if k != alphas[0] {
+                dpm[0][j][k] = dpm[0][j - 1][k];
+            }
         }
     }
 
     for i in 1..lnz.len() - 1 {
         for j in 1..sequence.len() {}
+    }
+    dpm.iter().for_each(|line| println!("{:?}", line[0]));
+    println!("SCORE");
+    println!("{}", dpm[lnz.len() - 2][0][alphas[lnz.len() - 2]]);
+    for path in 0..paths_number {
+        if path != alphas[lnz.len() - 2] {
+            println!(
+                "{}",
+                dpm[lnz.len() - 2][0][alphas[lnz.len() - 2]] + dpm[lnz.len() - 2][0][alphas[path]]
+            );
+        }
     }
 }
