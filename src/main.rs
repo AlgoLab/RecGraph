@@ -248,7 +248,6 @@ fn main() {
             println!("REVERSE");
             let graph = pathwise_graph::read_graph_w_path(&graph_path, true);
             graph.to_string();
-
         }
         _ => {
             panic!("alignment mode must be 0, 1, 2 or 3");

@@ -73,7 +73,7 @@ pub fn read_graph_w_path(file_path: &str, is_reversed: bool) -> PathGraph {
 pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
     let mut sorted_handles = graph.handles_iter().collect::<Vec<Handle>>();
     sorted_handles.sort();
-    
+
     if is_reversed {
         sorted_handles.reverse();
         sorted_handles = sorted_handles
@@ -84,7 +84,6 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
     //create graph linearization
     let mut last_index = 1;
     let mut visited_node: HashMap<NodeId, i32> = HashMap::new();
-    let mut last_nodes: HashMap<NodeId, i32> = HashMap::new();
     let mut linearization: Vec<char> = vec!['$'];
     let mut handles_id_position = HashMap::new();
 
@@ -96,7 +95,6 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
         }
         let end_position = last_index - 1;
         visited_node.insert(handle.id(), end_position);
-        last_nodes.insert(handle.id(), end_position);
         handles_id_position.insert(handle.id(), (start_position, end_position));
     }
     linearization.push('F');
@@ -116,6 +114,7 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
         } else {
             path.nodes.iter().collect::<Vec<&Handle>>()
         };
+
         for (pos, handle) in path_nodes.iter().enumerate() {
             let (handle_start, handle_end) = handles_id_position.get(&handle.id()).unwrap();
             for idx in *handle_start..=*handle_end {
@@ -126,7 +125,7 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
             }
             if pos == 0 {
                 update_hash(&mut pred_hash, *handle_start as usize, 0);
-            } else if pos == path.nodes.iter().len() - 1 {
+            } else if pos == path_nodes.iter().len() - 1 {
                 update_hash(
                     &mut pred_hash,
                     linearization.len() - 1,
@@ -134,7 +133,7 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
                 );
             } else {
                 //ricava handle id pos prima, ricava suo handle end e aggiorna hash
-                let pred = path.nodes[pos - 1];
+                let pred = path_nodes[pos - 1];
                 let pred_end = handles_id_position.get(&pred.id()).unwrap().1;
                 update_hash(&mut pred_hash, *handle_start as usize, pred_end as usize)
             }
@@ -165,8 +164,8 @@ fn update_hash(hashmap: &mut HashMap<usize, Vec<usize>>, k: usize, val: usize) {
 #[cfg(test)]
 mod tests {
     use handlegraph::{
-        handle::Edge, hashgraph::HashGraph,
-        mutablehandlegraph::MutableHandleGraph, pathgraph::PathHandleGraph,
+        handle::Edge, hashgraph::HashGraph, mutablehandlegraph::MutableHandleGraph,
+        pathgraph::PathHandleGraph,
     };
 
     #[test]
@@ -262,5 +261,50 @@ mod tests {
         assert!(paths_end[1]);
     }
 
-    //TODO: check if rev graph correctly created
+    #[test]
+    fn reverse_pathwise_graph_correctly_created() {
+        let mut graph: HashGraph = HashGraph::new();
+        let h1 = graph.append_handle("A".as_bytes());
+        let h2 = graph.append_handle("T".as_bytes());
+        let h3 = graph.append_handle("C".as_bytes());
+        let h4 = graph.append_handle("G".as_bytes());
+
+        graph.create_edge(&Edge(h1, h2));
+        graph.create_edge(&Edge(h1, h3));
+        graph.create_edge(&Edge(h2, h4));
+        graph.create_edge(&Edge(h3, h4));
+
+        let p1 = graph.create_path_handle(&['1' as u8], false);
+        let p2 = graph.create_path_handle(&['2' as u8], false);
+
+        graph.append_step(&p1, h1);
+        graph.append_step(&p1, h2);
+        graph.append_step(&p1, h4);
+        graph.append_step(&p2, h1);
+        graph.append_step(&p2, h3);
+        graph.append_step(&p2, h4);
+
+        let graph_struct = super::create_path_graph(&graph, true);
+
+        assert_eq!(graph_struct.paths_number, 2);
+        assert_eq!(graph_struct.pred_hash.get(&1).unwrap()[0], 0);
+        assert_eq!(graph_struct.pred_hash.get(&5).unwrap()[0], 4);
+        assert_eq!(graph_struct.lnz, ['$', 'C', 'G', 'A', 'T', 'F']);
+        assert_eq!(graph_struct.nwp[2], true);
+
+        let paths_h2 = &graph_struct.paths_nodes[2];
+        assert_eq!(paths_h2[0], false);
+        assert_eq!(paths_h2[1], true);
+        let paths_h3 = &graph_struct.paths_nodes[3];
+        assert_eq!(paths_h3[0], true);
+        assert_eq!(paths_h3[1], false);
+
+        let paths_start = &graph_struct.paths_nodes[0];
+        let paths_end = &graph_struct.paths_nodes[5];
+
+        assert!(paths_start[0]);
+        assert!(paths_start[1]);
+        assert!(paths_end[0]);
+        assert!(paths_end[1]);
+    }
 }
