@@ -6,7 +6,7 @@ use handlegraph::{
     hashgraph::HashGraph,
 };
 use std::collections::HashMap;
-//TODO: check paath versus, only working with +
+//TODO: check path versus, only working with every path on + or -
 pub struct PathGraph {
     pub lnz: Vec<char>,
     pub nwp: BitVec,

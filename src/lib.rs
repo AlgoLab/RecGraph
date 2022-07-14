@@ -21,6 +21,8 @@ pub mod graph;
 pub mod local_poa;
 /// DEMO
 pub mod pathwise_alignment;
+/// DEMO V2
+pub mod pathwise_alignment_v2;
 /// Pathwise graph creation
 pub mod pathwise_graph;
 /// Score matrix for each alignment type
