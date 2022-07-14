@@ -182,6 +182,7 @@ pub fn create_nodes_paths(file_path: &str) -> Vec<Vec<usize>> {
     }
     paths_node
 }
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
