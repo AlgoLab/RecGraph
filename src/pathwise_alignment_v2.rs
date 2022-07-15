@@ -17,7 +17,7 @@ pub fn exec(sequence: &[char], graph: &PathGraph, score_matrix: &HashMap<(char, 
             let mut common_paths = paths_nodes[i].clone();
             common_paths.and(&paths_nodes[i - 1]);
 
-            if common_paths[alphas[i - 1]] {
+            if common_paths[alphas[i]] {
                 // same alpha as predecessor
                 common_paths.iter().enumerate().for_each(|(path, is_in)| {
                     if is_in {
@@ -49,6 +49,7 @@ pub fn exec(sequence: &[char], graph: &PathGraph, score_matrix: &HashMap<(char, 
             for pred in pred_hash.get(&i).unwrap() {
                 let mut common_paths = paths_nodes[i].clone();
                 common_paths.and(&paths_nodes[*pred]);
+                
                 if alphas[*pred] == alphas[i] {
                     // same alpha, alpha in common paths
                     common_paths.iter().enumerate().for_each(|(path, is_in)| {
@@ -99,8 +100,8 @@ pub fn exec(sequence: &[char], graph: &PathGraph, score_matrix: &HashMap<(char, 
                     //temp_alpha needed, restore before leaving the node
                     let mut first = true;
                     let mut temp_alpha = 0;
-                    for path in 0..paths_number {
-                        if common_paths[path] {
+                    common_paths.iter().enumerate().for_each(|(path, is_in)| {
+                        if is_in {
                             if first {
                                 first = false;
                                 temp_alpha = path;
@@ -123,7 +124,7 @@ pub fn exec(sequence: &[char], graph: &PathGraph, score_matrix: &HashMap<(char, 
                                 dpm[i][0][path] = dpm[*pred][0][path] - dpm[*pred][0][temp_alpha];
                             }
                         }
-                    }
+                    });
                 }
             }
             // remove temp alpha if needed
@@ -148,18 +149,20 @@ pub fn exec(sequence: &[char], graph: &PathGraph, score_matrix: &HashMap<(char, 
             }
         }
     }
-
+    //TODO: restart here
     for i in 1..lnz.len() - 1 {
-        for j in 1..sequence.len() {}
+        for j in 1..sequence.len() {
+            
+        }
     }
-    dpm.iter().for_each(|line| println!("{:?}", line[0]));
+    dpm.iter().for_each(|line| {println!("{:?}", line[0])});
     println!("SCORE");
     println!("{}", dpm[lnz.len() - 2][0][alphas[lnz.len() - 2]]);
     for path in 0..paths_number {
         if path != alphas[lnz.len() - 2] {
             println!(
                 "{}",
-                dpm[lnz.len() - 2][0][alphas[lnz.len() - 2]] + dpm[lnz.len() - 2][0][alphas[path]]
+                dpm[lnz.len() - 2][0][alphas[lnz.len() - 2]] + dpm[lnz.len() - 2][0][path]
             );
         }
     }
