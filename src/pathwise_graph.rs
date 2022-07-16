@@ -12,6 +12,7 @@ pub struct PathGraph {
     pub nwp: BitVec,
     pub pred_hash: HashMap<usize, Vec<usize>>,
     pub paths_nodes: Vec<BitVec>,
+    pub alphas: Vec<usize>,
     pub paths_number: usize,
 }
 
@@ -22,6 +23,7 @@ impl PathGraph {
             nwp: BitVec::new(),
             pred_hash: HashMap::new(),
             paths_nodes: vec![],
+            alphas: vec![],
             paths_number: 0,
         }
     }
@@ -31,6 +33,7 @@ impl PathGraph {
         nwp: BitVec,
         pred_hash: HashMap<usize, Vec<usize>>,
         paths_nodes: Vec<BitVec>,
+        alphas: Vec<usize>,
         paths_number: usize,
     ) -> PathGraph {
         PathGraph {
@@ -38,6 +41,7 @@ impl PathGraph {
             nwp,
             pred_hash,
             paths_nodes,
+            alphas,
             paths_number,
         }
     }
@@ -99,17 +103,28 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
     }
     linearization.push('F');
 
-    //create nwp, pred_hash,nodes paths
+    //create nwp, pred_hash,nodes paths and
     let mut nodes_with_pred = BitVec::from_elem(linearization.len(), false);
     let mut pred_hash: HashMap<usize, Vec<usize>> = HashMap::new();
 
-    let paths = &graph.paths;
-    let paths_number = paths.keys().len();
+    let paths_set = &graph.paths;
+    let mut paths = Vec::new();
+    for (_id, path) in paths_set.iter() {
+        paths.push(path)
+    }
+    for (id, path) in paths_set.iter() {
+        paths[*id as usize] = path
+    }
+
+    //let paths = &graph.paths;
+    let paths_number = paths_set.keys().len();
+    let mut alphas = vec![paths_number + 1; linearization.len()];
     let mut paths_nodes = vec![BitVec::from_elem(paths_number, false); linearization.len()];
 
     paths_nodes[0] = BitVec::from_elem(paths_number, true);
-
-    for (counter, (path_id, path)) in paths.iter().enumerate() {
+    alphas[0] = 0;
+    alphas[linearization.len() - 1] = 0;
+    for (path_id, path) in paths.iter().enumerate() {
         let path_nodes = if is_reversed {
             path.nodes.iter().rev().collect::<Vec<&Handle>>()
         } else {
@@ -120,8 +135,12 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
             let (handle_start, handle_end) = handles_id_position.get(&handle.id()).unwrap();
 
             for idx in *handle_start..=*handle_end {
-                paths_nodes[idx as usize].set(*path_id as usize, true);
+                paths_nodes[idx as usize].set(path_id as usize, true);
+                if alphas[idx as usize] == paths_number + 1 {
+                    alphas[idx as usize] = path_id;
+                }
             }
+
             if !nodes_with_pred[*handle_start as usize] {
                 nodes_with_pred.set(*handle_start as usize, true);
             }
@@ -153,6 +172,7 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
         nodes_with_pred,
         pred_hash,
         paths_nodes,
+        alphas,
         paths_number,
     )
 }

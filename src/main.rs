@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use rspoa::args_parser;
 use rspoa::gap_global_abpoa;
 use rspoa::gap_local_poa;
@@ -8,6 +6,7 @@ use rspoa::graph;
 use rspoa::local_poa;
 use rspoa::pathwise_alignment;
 use rspoa::pathwise_alignment_v2;
+use std::collections::HashMap;
 //use rspoa::pathwise_alignment;
 use rspoa::pathwise_graph;
 use rspoa::score_matrix;
@@ -252,14 +251,17 @@ fn main() {
             println!("REVERSE");
             let graph = pathwise_graph::read_graph_w_path(&graph_path, true);
             graph.to_string();
+            */
 
             let graph = pathwise_graph::read_graph_w_path(&graph_path, false);
 
             pathwise_alignment_v2::exec(&sequences[0], &graph, &score_matrix);
-            */
+            /*
             let graph = graph::read_graph(&graph_path, false);
             let node_paths = graph::create_nodes_paths(&graph_path);
-            pathwise_alignment::exec(&sequences[0], &graph, &node_paths, &score_matrix, 3)
+            let path_number = &node_paths[0].len();
+            pathwise_alignment::exec(&sequences[0], &graph, &node_paths, &score_matrix, *path_number)
+            */
         }
         _ => {
             panic!("alignment mode must be 0, 1, 2 or 3");

@@ -322,10 +322,12 @@ pub fn exec(
         }
     }
 
-    println!("{:?}", dpm[dpm.len() - 2][dpm[0].len() - 1]);
-    println!("{}", alphas[alphas.len() - 2]);
     dpm[..dpm.len() - 1]
         .iter()
         .enumerate()
         .for_each(|(_i, line)| println!("{:?}", line[0]));
+
+    println!("SCORE:");
+    println!("{:?}", dpm[dpm.len() - 2][0]);
+    println!("{}", alphas[alphas.len() - 2]);
 }
