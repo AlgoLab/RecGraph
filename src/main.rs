@@ -4,14 +4,12 @@ use rspoa::gap_local_poa;
 use rspoa::global_abpoa;
 use rspoa::graph;
 use rspoa::local_poa;
-use rspoa::pathwise_alignment;
 use rspoa::pathwise_alignment_v2;
-use std::collections::HashMap;
-//use rspoa::pathwise_alignment;
 use rspoa::pathwise_graph;
 use rspoa::score_matrix;
 use rspoa::sequences;
 use rspoa::utils;
+use std::collections::HashMap;
 fn main() {
     // get sequence
     let (sequences, seq_names) = sequences::get_sequences(args_parser::get_sequence_path());
