@@ -1,6 +1,10 @@
 use crate::pathwise_graph::PathGraph;
 use std::collections::HashMap;
-pub fn exec(sequence: &[char], graph: &PathGraph, score_matrix: &HashMap<(char, char), i32>) {
+pub fn exec(
+    sequence: &[char],
+    graph: &PathGraph,
+    score_matrix: &HashMap<(char, char), i32>,
+) -> usize {
     let lnz = &graph.lnz;
     let nodes_with_pred = &graph.nwp;
     let pred_hash = &graph.pred_hash;
@@ -256,8 +260,8 @@ pub fn exec(sequence: &[char], graph: &PathGraph, score_matrix: &HashMap<(char, 
                                     if path != temp_alpha {
                                         if is_in {
                                             if dpm[i][j][temp_alpha] == d {
-                                                dpm[i][j][path] = dpm[p][j - 1][path]
-                                                    - dpm[p][j - 1][temp_alpha];
+                                                dpm[i][j][path] =
+                                                    dpm[p][j - 1][path] - dpm[p][j - 1][temp_alpha];
                                             } else if dpm[i][j][temp_alpha] == u {
                                                 dpm[i][j][path] =
                                                     dpm[p][j][path] - dpm[p][j][temp_alpha];
@@ -293,8 +297,26 @@ pub fn exec(sequence: &[char], graph: &PathGraph, score_matrix: &HashMap<(char, 
             }
         }
     }
-
-    println!("SCORE:");
-    println!("{:?}", dpm[dpm.len() - 2][dpm[0].len() - 1]);
-    println!("{}", alphas[alphas.len() - 2]);
+    let mut results = vec![0; path_number];
+    for (pred, paths) in pred_hash.get_preds_and_paths(lnz.len() - 1) {
+        for (path, is_in) in paths.iter().enumerate() {
+            if is_in {
+                if path == alphas[pred] {
+                    results[path] = dpm[pred][dpm[pred].len() - 1][path]
+                } else {
+                    results[path] = dpm[pred][dpm[pred].len() - 1][path]
+                        + dpm[pred][dpm[pred].len() - 1][alphas[pred]]
+                }
+            }
+        }
+    }
+    let best_path = results
+        .iter()
+        .enumerate()
+        .map(|(path, score)| (score, path))
+        .max();
+    best_path.unwrap().1
 }
+
+#[cfg(test)]
+mod tests {}

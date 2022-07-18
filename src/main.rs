@@ -253,7 +253,8 @@ fn main() {
 
             let graph = pathwise_graph::read_graph_w_path(&graph_path, false);
 
-            pathwise_alignment::exec(&sequences[0], &graph, &score_matrix);
+            let best_path = pathwise_alignment::exec(&sequences[0], &graph, &score_matrix);
+            println!("Best path: {best_path}");
             /*
             let graph = graph::read_graph(&graph_path, false);
             let node_paths = graph::create_nodes_paths(&graph_path);

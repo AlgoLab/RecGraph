@@ -228,7 +228,7 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
     }
     nodes_with_pred.set(linearization.len() - 1, true);
     paths_nodes[linearization.len() - 1] = BitVec::from_elem(paths_number, true);
-    
+
     PathGraph::build(
         linearization,
         nodes_with_pred,
@@ -238,7 +238,6 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
         paths_number,
     )
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -273,7 +272,7 @@ mod tests {
         let graph_struct = super::create_path_graph(&graph, false);
 
         assert_eq!(graph_struct.paths_number, 2);
-        
+
         assert_eq!(graph_struct.lnz, ['$', 'A', 'T', 'C', 'G', 'F']);
         assert_eq!(graph_struct.nwp[2], true);
 
@@ -361,7 +360,7 @@ mod tests {
         let graph_struct = super::create_path_graph(&graph, true);
 
         assert_eq!(graph_struct.paths_number, 2);
-        
+
         assert_eq!(graph_struct.lnz, ['$', 'C', 'G', 'A', 'T', 'F']);
         assert_eq!(graph_struct.nwp[2], true);
 
@@ -379,5 +378,54 @@ mod tests {
         assert!(paths_start[1]);
         assert!(paths_end[0]);
         assert!(paths_end[1]);
+    }
+
+    #[test]
+    fn test_pred_hash_struct() {
+        let mut graph: HashGraph = HashGraph::new();
+        let h1 = graph.append_handle("A".as_bytes());
+        let h1_bis = graph.append_handle("B".as_bytes());
+
+        let h2 = graph.append_handle("T".as_bytes());
+        let h3 = graph.append_handle("C".as_bytes());
+        let h4 = graph.append_handle("G".as_bytes());
+        let h4_bis = graph.append_handle("H".as_bytes());
+
+        graph.create_edge(&Edge(h1, h2));
+        graph.create_edge(&Edge(h1, h3));
+        graph.create_edge(&Edge(h2, h4));
+        graph.create_edge(&Edge(h3, h4));
+        graph.create_edge(&Edge(h1_bis, h4_bis));
+
+        let p1 = graph.create_path_handle(&['1' as u8], false);
+        let p2 = graph.create_path_handle(&['2' as u8], false);
+        let p3 = graph.create_path_handle(&['3' as u8], false);
+
+        graph.append_step(&p1, h1);
+        graph.append_step(&p1, h2);
+        graph.append_step(&p1, h4);
+        graph.append_step(&p2, h1);
+        graph.append_step(&p2, h3);
+        graph.append_step(&p2, h4);
+        graph.append_step(&p3, h1_bis);
+        graph.append_step(&p3, h4_bis);
+
+        let graph_struct = super::create_path_graph(&graph, false);
+
+        let pred_h4 = &graph_struct.pred_hash.get_preds_and_paths(5);
+        assert_eq!(pred_h4.len(), 2);
+        for pred in pred_h4 {
+            if pred.0 == 3usize {
+                assert!(pred.1[0]);
+                assert!(!pred.1[1]);
+                assert!(!pred.1[2]);
+            } else if pred.0 == 4usize {
+                assert!(!pred.1[0]);
+                assert!(pred.1[1]);
+                assert!(!pred.1[2]);
+            } else {
+                panic!("{}", pred.0)
+            }
+        }
     }
 }
