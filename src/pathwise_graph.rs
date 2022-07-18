@@ -187,6 +187,58 @@ fn update_hash(hashmap: &mut HashMap<usize, Vec<usize>>, k: usize, val: usize) {
     }
 }
 
+pub struct PredHash {
+    predecessor: HashMap<usize, HashMap<usize, BitVec>>,
+}
+
+impl PredHash {
+    pub fn new() -> PredHash {
+        PredHash {
+            predecessor: HashMap::new(),
+        }
+    }
+
+    pub fn get_preds_and_paths(self, curr_node: usize) -> Vec<(usize, BitVec)> {
+        let preds = self.predecessor.get(&curr_node).unwrap();
+        let mut preds_paths = Vec::new();
+        for (pred_pos, pred_paths) in preds.iter() {
+            preds_paths.push((*pred_pos, pred_paths.clone()));
+        }
+        preds_paths
+    }
+
+    pub fn set_preds_and_paths(
+        mut self,
+        curr_node: usize,
+        pred_pos: usize,
+        path_id: usize,
+        paths_number: usize,
+    ) {
+        if self.predecessor.get(&curr_node).is_none() {
+            self.predecessor.insert(curr_node, HashMap::new());
+        }
+
+        if self
+            .predecessor
+            .get(&curr_node)
+            .unwrap()
+            .get(&pred_pos)
+            .is_none()
+        {
+            self.predecessor
+                .get_mut(&curr_node)
+                .unwrap()
+                .insert(pred_pos, BitVec::from_elem(paths_number, false));
+        }
+        self.predecessor
+            .get_mut(&curr_node)
+            .unwrap()
+            .get_mut(&pred_pos)
+            .unwrap()
+            .set(path_id, true);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use handlegraph::{

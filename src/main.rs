@@ -4,7 +4,7 @@ use rspoa::gap_local_poa;
 use rspoa::global_abpoa;
 use rspoa::graph;
 use rspoa::local_poa;
-use rspoa::pathwise_alignment_v2;
+use rspoa::pathwise_alignment;
 use rspoa::pathwise_graph;
 use rspoa::score_matrix;
 use rspoa::sequences;
@@ -253,7 +253,7 @@ fn main() {
 
             let graph = pathwise_graph::read_graph_w_path(&graph_path, false);
 
-            pathwise_alignment_v2::exec(&sequences[0], &graph, &score_matrix);
+            pathwise_alignment::exec(&sequences[0], &graph, &score_matrix);
             /*
             let graph = graph::read_graph(&graph_path, false);
             let node_paths = graph::create_nodes_paths(&graph_path);
