@@ -44,11 +44,11 @@ pub fn exec(sequence: &[char], graph: &PathGraph, score_matrix: &HashMap<(char, 
                         }
                     } else {
                         let mut alphas_deltas = HashMap::new();
-                        for p in pred_hash.get(&i).unwrap() {
+                        for (p, p_paths) in pred_hash.get_preds_and_paths(i) {
                             let mut common_paths = path_node[i].clone();
-                            common_paths.and(&path_node[*p]);
+                            common_paths.and(&p_paths);
 
-                            if common_paths[alphas[*p]] {
+                            if common_paths[alphas[p]] {
                                 let paths = common_paths
                                     .iter()
                                     .enumerate()
@@ -57,13 +57,13 @@ pub fn exec(sequence: &[char], graph: &PathGraph, score_matrix: &HashMap<(char, 
                                         false => None,
                                     })
                                     .collect::<Vec<usize>>();
-                                alphas_deltas.insert(alphas[*p], paths);
+                                alphas_deltas.insert(alphas[p], paths);
 
-                                dpm[i][j][alphas[*p]] = dpm[*p][j][alphas[*p]]
+                                dpm[i][j][alphas[p]] = dpm[p][j][alphas[p]]
                                     + score_matrix.get(&(lnz[i], '-')).unwrap();
                                 for (path, is_in) in common_paths.iter().enumerate() {
-                                    if is_in && path != alphas[*p] {
-                                        dpm[i][j][path] = dpm[*p][j][path];
+                                    if is_in && path != alphas[p] {
+                                        dpm[i][j][path] = dpm[p][j][path];
                                     }
                                 }
                             } else {
@@ -83,15 +83,15 @@ pub fn exec(sequence: &[char], graph: &PathGraph, score_matrix: &HashMap<(char, 
                                     .collect::<Vec<usize>>();
                                 alphas_deltas.insert(temp_alpha, paths);
 
-                                dpm[i][j][temp_alpha] = dpm[*p][j][alphas[*p]]
-                                    + dpm[*p][j][temp_alpha]
+                                dpm[i][j][temp_alpha] = dpm[p][j][alphas[p]]
+                                    + dpm[p][j][temp_alpha]
                                     + score_matrix.get(&(lnz[i], '-')).unwrap();
 
                                 for (path, is_in) in common_paths.iter().enumerate() {
                                     if is_in {
                                         if path != temp_alpha {
                                             dpm[i][j][path] =
-                                                dpm[*p][j][path] - dpm[*p][j][temp_alpha];
+                                                dpm[p][j][path] - dpm[p][j][temp_alpha];
                                         }
                                     }
                                 }
@@ -177,11 +177,11 @@ pub fn exec(sequence: &[char], graph: &PathGraph, score_matrix: &HashMap<(char, 
                     } else {
                         // multiple alphas possible
                         let mut alphas_deltas = HashMap::new();
-                        for p in pred_hash.get(&i).unwrap() {
+                        for (p, p_paths) in pred_hash.get_preds_and_paths(i) {
                             let mut common_paths = path_node[i].clone();
-                            common_paths.and(&path_node[*p]);
+                            common_paths.and(&p_paths);
 
-                            if common_paths[alphas[*p]] {
+                            if common_paths[alphas[p]] {
                                 let paths = common_paths
                                     .iter()
                                     .enumerate()
@@ -190,29 +190,29 @@ pub fn exec(sequence: &[char], graph: &PathGraph, score_matrix: &HashMap<(char, 
                                         false => None,
                                     })
                                     .collect::<Vec<usize>>();
-                                alphas_deltas.insert(alphas[*p], paths);
+                                alphas_deltas.insert(alphas[p], paths);
 
-                                let u = dpm[*p][j][alphas[*p]]
+                                let u = dpm[p][j][alphas[p]]
                                     + score_matrix.get(&(lnz[i], '-')).unwrap();
-                                let d = dpm[*p][j - 1][alphas[*p]]
+                                let d = dpm[p][j - 1][alphas[p]]
                                     + score_matrix.get(&(lnz[i], sequence[j])).unwrap();
-                                let l = if alphas[i] == alphas[*p] {
-                                    dpm[i][j - 1][alphas[*p]]
+                                let l = if alphas[i] == alphas[p] {
+                                    dpm[i][j - 1][alphas[p]]
                                         + score_matrix.get(&(sequence[j], '-')).unwrap()
                                 } else {
-                                    dpm[i][j - 1][alphas[*p]]
+                                    dpm[i][j - 1][alphas[p]]
                                         + dpm[i][j - 1][alphas[i]]
                                         + score_matrix.get(&(sequence[j], '-')).unwrap()
                                 };
-                                dpm[i][j][alphas[*p]] = *[d, u, l].iter().max().unwrap();
+                                dpm[i][j][alphas[p]] = *[d, u, l].iter().max().unwrap();
 
                                 for (path, is_in) in common_paths.iter().enumerate() {
                                     if is_in {
-                                        if path != alphas[*p] {
-                                            if dpm[i][j][alphas[*p]] == d {
-                                                dpm[i][j][path] = dpm[*p][j - 1][path];
-                                            } else if dpm[i][j][alphas[*p]] == u {
-                                                dpm[i][j][path] = dpm[*p][j][path];
+                                        if path != alphas[p] {
+                                            if dpm[i][j][alphas[p]] == d {
+                                                dpm[i][j][path] = dpm[p][j - 1][path];
+                                            } else if dpm[i][j][alphas[p]] == u {
+                                                dpm[i][j][path] = dpm[p][j][path];
                                             } else {
                                                 dpm[i][j][path] = dpm[i][j - 1][path];
                                             }
@@ -236,11 +236,11 @@ pub fn exec(sequence: &[char], graph: &PathGraph, score_matrix: &HashMap<(char, 
                                     .collect::<Vec<usize>>();
                                 alphas_deltas.insert(temp_alpha, paths);
 
-                                let u = dpm[*p][j][alphas[*p]]
-                                    + dpm[*p][j][temp_alpha]
+                                let u = dpm[p][j][alphas[p]]
+                                    + dpm[p][j][temp_alpha]
                                     + score_matrix.get(&(lnz[i], '-')).unwrap();
-                                let d = dpm[*p][j - 1][alphas[*p]]
-                                    + dpm[*p][j - 1][temp_alpha]
+                                let d = dpm[p][j - 1][alphas[p]]
+                                    + dpm[p][j - 1][temp_alpha]
                                     + score_matrix.get(&(lnz[i], sequence[j])).unwrap();
                                 let l = if alphas[i] == temp_alpha {
                                     dpm[i][j - 1][temp_alpha]
@@ -256,11 +256,11 @@ pub fn exec(sequence: &[char], graph: &PathGraph, score_matrix: &HashMap<(char, 
                                     if path != temp_alpha {
                                         if is_in {
                                             if dpm[i][j][temp_alpha] == d {
-                                                dpm[i][j][path] = dpm[*p][j - 1][path]
-                                                    - dpm[*p][j - 1][temp_alpha];
+                                                dpm[i][j][path] = dpm[p][j - 1][path]
+                                                    - dpm[p][j - 1][temp_alpha];
                                             } else if dpm[i][j][temp_alpha] == u {
                                                 dpm[i][j][path] =
-                                                    dpm[*p][j][path] - dpm[*p][j][temp_alpha];
+                                                    dpm[p][j][path] - dpm[p][j][temp_alpha];
                                             } else {
                                                 dpm[i][j][path] = dpm[i][j - 1][path];
                                             }

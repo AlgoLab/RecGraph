@@ -10,7 +10,7 @@ use std::collections::HashMap;
 pub struct PathGraph {
     pub lnz: Vec<char>,
     pub nwp: BitVec,
-    pub pred_hash: HashMap<usize, Vec<usize>>,
+    pub pred_hash: PredHash,
     pub paths_nodes: Vec<BitVec>,
     pub alphas: Vec<usize>,
     pub paths_number: usize,
@@ -21,7 +21,7 @@ impl PathGraph {
         PathGraph {
             lnz: vec![],
             nwp: BitVec::new(),
-            pred_hash: HashMap::new(),
+            pred_hash: PredHash::new(),
             paths_nodes: vec![],
             alphas: vec![],
             paths_number: 0,
@@ -31,7 +31,7 @@ impl PathGraph {
     pub fn build(
         lnz: Vec<char>,
         nwp: BitVec,
-        pred_hash: HashMap<usize, Vec<usize>>,
+        pred_hash: PredHash,
         paths_nodes: Vec<BitVec>,
         alphas: Vec<usize>,
         paths_number: usize,
@@ -66,6 +66,60 @@ impl PathGraph {
         println!("Number of paths: {}", self.paths_number);
     }
 }
+
+#[derive(Debug)]
+pub struct PredHash {
+    predecessor: HashMap<usize, HashMap<usize, BitVec>>,
+}
+
+impl PredHash {
+    pub fn new() -> PredHash {
+        PredHash {
+            predecessor: HashMap::new(),
+        }
+    }
+
+    pub fn get_preds_and_paths(&self, curr_node: usize) -> Vec<(usize, BitVec)> {
+        let preds = self.predecessor.get(&curr_node).unwrap();
+        let mut preds_paths = Vec::new();
+        for (pred_pos, pred_paths) in preds.iter() {
+            preds_paths.push((*pred_pos, pred_paths.clone()));
+        }
+        preds_paths
+    }
+
+    pub fn set_preds_and_paths(
+        &mut self,
+        curr_node: usize,
+        pred_pos: usize,
+        path_id: usize,
+        paths_number: usize,
+    ) {
+        if self.predecessor.get(&curr_node).is_none() {
+            self.predecessor.insert(curr_node, HashMap::new());
+        }
+
+        if self
+            .predecessor
+            .get(&curr_node)
+            .unwrap()
+            .get(&pred_pos)
+            .is_none()
+        {
+            self.predecessor
+                .get_mut(&curr_node)
+                .unwrap()
+                .insert(pred_pos, BitVec::from_elem(paths_number, false));
+        }
+        self.predecessor
+            .get_mut(&curr_node)
+            .unwrap()
+            .get_mut(&pred_pos)
+            .unwrap()
+            .set(path_id, true);
+    }
+}
+
 pub fn read_graph_w_path(file_path: &str, is_reversed: bool) -> PathGraph {
     let parser = GFAParser::new();
     let gfa: GFA<usize, ()> = parser.parse_file(file_path).unwrap();
@@ -105,7 +159,7 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
 
     //create nwp, pred_hash,nodes paths and
     let mut nodes_with_pred = BitVec::from_elem(linearization.len(), false);
-    let mut pred_hash: HashMap<usize, Vec<usize>> = HashMap::new();
+    let mut pred_hash_struct = PredHash::new();
 
     let paths_set = &graph.paths;
     let mut paths = Vec::new();
@@ -133,32 +187,40 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
 
         for (pos, handle) in path_nodes.iter().enumerate() {
             let (handle_start, handle_end) = handles_id_position.get(&handle.id()).unwrap();
+            let handle_start = *handle_start as usize;
+            let handle_end = *handle_end as usize;
 
-            for idx in *handle_start..=*handle_end {
-                paths_nodes[idx as usize].set(path_id as usize, true);
-                if alphas[idx as usize] == paths_number + 1 {
-                    alphas[idx as usize] = path_id;
+            for idx in handle_start..=handle_end {
+                paths_nodes[idx].set(path_id as usize, true);
+                if alphas[idx] == paths_number + 1 {
+                    alphas[idx] = path_id;
                 }
             }
 
-            if !nodes_with_pred[*handle_start as usize] {
-                nodes_with_pred.set(*handle_start as usize, true);
+            if !nodes_with_pred[handle_start] {
+                nodes_with_pred.set(handle_start, true);
             }
 
             if pos == 0 {
-                update_hash(&mut pred_hash, *handle_start as usize, 0);
+                pred_hash_struct.set_preds_and_paths(handle_start, 0, path_id, paths_number)
             } else {
                 //ricava handle id pos prima, ricava suo handle end e aggiorna hash
                 let pred = path_nodes[pos - 1];
                 let pred_end = handles_id_position.get(&pred.id()).unwrap().1;
-                update_hash(&mut pred_hash, *handle_start as usize, pred_end as usize);
+                pred_hash_struct.set_preds_and_paths(
+                    handle_start,
+                    pred_end as usize,
+                    path_id,
+                    paths_number,
+                );
 
                 // se ultimo nodo path aggiorna anche F
                 if pos == path_nodes.iter().len() - 1 {
-                    update_hash(
-                        &mut pred_hash,
+                    pred_hash_struct.set_preds_and_paths(
                         linearization.len() - 1,
-                        *handle_end as usize,
+                        handle_end,
+                        path_id,
+                        paths_number,
                     );
                 }
             }
@@ -166,78 +228,17 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
     }
     nodes_with_pred.set(linearization.len() - 1, true);
     paths_nodes[linearization.len() - 1] = BitVec::from_elem(paths_number, true);
-
+    
     PathGraph::build(
         linearization,
         nodes_with_pred,
-        pred_hash,
+        pred_hash_struct,
         paths_nodes,
         alphas,
         paths_number,
     )
 }
 
-fn update_hash(hashmap: &mut HashMap<usize, Vec<usize>>, k: usize, val: usize) {
-    if let Some(arr) = hashmap.get_mut(&k) {
-        if !arr.contains(&val) {
-            arr.push(val);
-        }
-    } else {
-        hashmap.insert(k, vec![val]);
-    }
-}
-
-pub struct PredHash {
-    predecessor: HashMap<usize, HashMap<usize, BitVec>>,
-}
-
-impl PredHash {
-    pub fn new() -> PredHash {
-        PredHash {
-            predecessor: HashMap::new(),
-        }
-    }
-
-    pub fn get_preds_and_paths(self, curr_node: usize) -> Vec<(usize, BitVec)> {
-        let preds = self.predecessor.get(&curr_node).unwrap();
-        let mut preds_paths = Vec::new();
-        for (pred_pos, pred_paths) in preds.iter() {
-            preds_paths.push((*pred_pos, pred_paths.clone()));
-        }
-        preds_paths
-    }
-
-    pub fn set_preds_and_paths(
-        mut self,
-        curr_node: usize,
-        pred_pos: usize,
-        path_id: usize,
-        paths_number: usize,
-    ) {
-        if self.predecessor.get(&curr_node).is_none() {
-            self.predecessor.insert(curr_node, HashMap::new());
-        }
-
-        if self
-            .predecessor
-            .get(&curr_node)
-            .unwrap()
-            .get(&pred_pos)
-            .is_none()
-        {
-            self.predecessor
-                .get_mut(&curr_node)
-                .unwrap()
-                .insert(pred_pos, BitVec::from_elem(paths_number, false));
-        }
-        self.predecessor
-            .get_mut(&curr_node)
-            .unwrap()
-            .get_mut(&pred_pos)
-            .unwrap()
-            .set(path_id, true);
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -272,8 +273,7 @@ mod tests {
         let graph_struct = super::create_path_graph(&graph, false);
 
         assert_eq!(graph_struct.paths_number, 2);
-        assert_eq!(graph_struct.pred_hash.get(&1).unwrap()[0], 0);
-        assert_eq!(graph_struct.pred_hash.get(&5).unwrap()[0], 4);
+        
         assert_eq!(graph_struct.lnz, ['$', 'A', 'T', 'C', 'G', 'F']);
         assert_eq!(graph_struct.nwp[2], true);
 
@@ -322,10 +322,6 @@ mod tests {
         let graph_struct = super::create_path_graph(&graph, false);
 
         assert_eq!(graph_struct.paths_number, 3);
-        assert_eq!(graph_struct.pred_hash.get(&1).unwrap()[0], 0);
-        assert!(graph_struct.pred_hash.get(&7).unwrap().contains(&6));
-        assert!(graph_struct.pred_hash.get(&7).unwrap().contains(&5));
-
         let paths_h2 = &graph_struct.paths_nodes[3];
         assert_eq!(paths_h2[0], true);
         assert_eq!(paths_h2[1], false);
@@ -365,8 +361,7 @@ mod tests {
         let graph_struct = super::create_path_graph(&graph, true);
 
         assert_eq!(graph_struct.paths_number, 2);
-        assert_eq!(graph_struct.pred_hash.get(&1).unwrap()[0], 0);
-        assert_eq!(graph_struct.pred_hash.get(&5).unwrap()[0], 4);
+        
         assert_eq!(graph_struct.lnz, ['$', 'C', 'G', 'A', 'T', 'F']);
         assert_eq!(graph_struct.nwp[2], true);
 
