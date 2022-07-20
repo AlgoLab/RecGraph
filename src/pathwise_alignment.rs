@@ -1,4 +1,6 @@
-use crate::pathwise_graph::PathGraph;
+use bit_vec::BitVec;
+
+use crate::pathwise_graph::{PathGraph, PredHash};
 use std::collections::HashMap;
 pub fn exec(
     sequence: &[char],
@@ -318,6 +320,45 @@ pub fn exec(
     best_path.unwrap().1
 }
 
+fn build_alignment(
+    dpm: &Vec<Vec<Vec<i32>>>,
+    alphas: &Vec<usize>,
+    best_path: usize,
+    pred_hash: &PredHash,
+    nwp: &BitVec,
+) {
+    let mut i = dpm.len() - 1;
+    let mut j = dpm[i].len() - 1;
+    while i != 0 && j != 0 {
+        let (d, u, l) = if !nwp[i] {
+            (
+                dpm[i - 1][j - 1][best_path],
+                dpm[i - 1][j][best_path],
+                dpm[i][j - 1][best_path],
+            )
+        } else {
+            let preds = pred_hash.get_preds_and_paths(i);
+            let (mut d, mut u, mut l) = (0, 0, 0);
+            for (pred, paths) in preds.iter() {
+                if paths[best_path] {
+                    d = dpm[*pred][j - 1][best_path];
+                    u = dpm[*pred][j][best_path];
+                    d = dpm[i][j - 1][best_path];
+                }
+            }
+            (d, u, l)
+        };
+        let max = *[d, u, l].iter().max().unwrap();
+        if max == d {
+            i -= 1;
+            j -= 1;
+        } else if max == u {
+            i -= 1;
+        } else {
+            j -= 1;
+        }
+    }
+}
 #[cfg(test)]
 mod tests {
     use crate::{pathwise_graph, score_matrix::create_score_matrix_match_mis, sequences};
