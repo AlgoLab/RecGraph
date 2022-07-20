@@ -319,4 +319,48 @@ pub fn exec(
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use crate::{
+        api::create_score_matrix_i32,
+        pathwise_graph::create_path_graph,
+        score_matrix::{self, create_score_matrix_match_mis},
+    };
+    use handlegraph::{
+        handle::Edge, hashgraph::HashGraph, mutablehandlegraph::MutableHandleGraph,
+        pathgraph::PathHandleGraph,
+    };
+
+    #[test]
+    fn correct_score_simple_graph() {
+        let mut graph: HashGraph = HashGraph::new();
+        let h1 = graph.append_handle("A".as_bytes());
+        let h2 = graph.append_handle("T".as_bytes());
+        let h3 = graph.append_handle("C".as_bytes());
+        let h4 = graph.append_handle("G".as_bytes());
+
+        graph.create_edge(&Edge(h1, h2));
+        graph.create_edge(&Edge(h1, h3));
+        graph.create_edge(&Edge(h2, h4));
+        graph.create_edge(&Edge(h3, h4));
+
+        let p1 = graph.create_path_handle(&['1' as u8], false);
+        let p2 = graph.create_path_handle(&['2' as u8], false);
+
+        graph.append_step(&p1, h1);
+        graph.append_step(&p1, h2);
+        graph.append_step(&p1, h4);
+        graph.append_step(&p2, h1);
+        graph.append_step(&p2, h3);
+        graph.append_step(&p2, h4);
+
+        let graph_struct = crate::pathwise_graph::create_path_graph(&graph, false);
+
+        let sequence = ['$', 'A', 'T', 'G'];
+
+        let score_matrix = create_score_matrix_match_mis(2, -4);
+
+        let best_path = super::exec(&sequence, &graph_struct, &score_matrix);
+
+        assert_eq!(best_path, 0);
+    }
+}
