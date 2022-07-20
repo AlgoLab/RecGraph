@@ -320,11 +320,7 @@ pub fn exec(
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        api::create_score_matrix_i32,
-        pathwise_graph::create_path_graph,
-        score_matrix::{self, create_score_matrix_match_mis},
-    };
+    use crate::{pathwise_graph, score_matrix::create_score_matrix_match_mis, sequences};
     use handlegraph::{
         handle::Edge, hashgraph::HashGraph, mutablehandlegraph::MutableHandleGraph,
         pathgraph::PathHandleGraph,
@@ -360,6 +356,19 @@ mod tests {
         let score_matrix = create_score_matrix_match_mis(2, -4);
 
         let best_path = super::exec(&sequence, &graph_struct, &score_matrix);
+
+        assert_eq!(best_path, 0);
+    }
+
+    #[test]
+    fn correct_score_normal_graph() {
+        let graph = pathwise_graph::read_graph_w_path(&"./prova.gfa", false);
+
+        let sequences = sequences::get_sequences(String::from("./sequences.fa"));
+
+        let score_matrix = create_score_matrix_match_mis(2, -4);
+
+        let best_path = super::exec(&sequences.0[0], &graph, &score_matrix);
 
         assert_eq!(best_path, 0);
     }
