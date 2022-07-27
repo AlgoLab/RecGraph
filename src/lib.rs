@@ -21,6 +21,7 @@ pub mod graph;
 pub mod local_poa;
 /// DEMO
 pub mod pathwise_alignment;
+pub mod pathwise_alignment_gap;
 pub mod pathwise_alignment_output;
 /// Pathwise graph creation
 pub mod pathwise_graph;

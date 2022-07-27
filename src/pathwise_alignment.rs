@@ -274,9 +274,7 @@ pub fn exec(
                                 }
                             }
                         }
-                        let mut found = true;
-                        if alphas_deltas.keys().len() > 1 {
-                            found = false;
+                        if alphas_deltas.keys().len() > 0 {
                             for (a, delta) in alphas_deltas.iter() {
                                 if *a != alphas[i] {
                                     dpm[i][j][*a] -= dpm[i][j][alphas[i]];
@@ -285,13 +283,8 @@ pub fn exec(
                                             dpm[i][j][*path] += dpm[i][j][*a];
                                         }
                                     }
-                                } else {
-                                    found = true
                                 }
                             }
-                        }
-                        if !found {
-                            panic!("{i} {j}")
                         }
                     }
                 }
