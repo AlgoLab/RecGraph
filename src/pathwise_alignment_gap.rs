@@ -1,5 +1,5 @@
 use crate::pathwise_graph::PathGraph;
-use std::collections::HashMap;
+use std::{cmp::Ordering, collections::HashMap};
 pub fn exec(
     sequence: &[char],
     graph: &PathGraph,
@@ -59,7 +59,68 @@ pub fn exec(
                             }
                         }
                     } else {
-                        //TODO: restart here
+                        let mut alphas_deltas = HashMap::new();
+                        for (p, p_paths) in pred_hash.get_preds_and_paths(i) {
+                            let mut common_paths = path_node[i].clone();
+                            common_paths.and(&p_paths);
+
+                            if common_paths[alphas[p]] {
+                                let paths = common_paths
+                                    .iter()
+                                    .enumerate()
+                                    .filter_map(|(path_id, is_in)| match is_in {
+                                        true => Some(path_id),
+                                        false => None,
+                                    })
+                                    .collect::<Vec<usize>>();
+                                alphas_deltas.insert(alphas[p], paths);
+
+                                x[i][j][alphas[p]] = if i == 1 {
+                                    o + e
+                                } else {
+                                    x[p][j][alphas[p]] + e
+                                };
+                                dpm[i][j][alphas[p]] = x[i][j][alphas[p]];
+                                for (path, is_in) in common_paths.iter().enumerate() {
+                                    if is_in && path != alphas[p] {
+                                        x[i][j][path] = x[p][j][path];
+                                        dpm[i][j][path] = x[p][j][path];
+                                    }
+                                }
+                            } else {
+                                //set new alpha
+                                let temp_alpha = if common_paths[alphas[i]] {
+                                    alphas[i]
+                                } else {
+                                    common_paths.iter().position(|is_in| is_in).unwrap()
+                                };
+                                let paths = common_paths
+                                    .iter()
+                                    .enumerate()
+                                    .filter_map(|(path_id, is_in)| match is_in {
+                                        true => Some(path_id),
+                                        false => None,
+                                    })
+                                    .collect::<Vec<usize>>();
+                                alphas_deltas.insert(temp_alpha, paths);
+
+                                x[i][j][temp_alpha] = if i == 1 {
+                                    o + e
+                                } else {
+                                    x[p][j][alphas[p]] + x[p][j][temp_alpha] + e
+                                };
+                                dpm[i][j][temp_alpha] = x[i][j][temp_alpha];
+
+                                for (path, is_in) in common_paths.iter().enumerate() {
+                                    if is_in {
+                                        if path != temp_alpha {
+                                            x[i][j][path] = x[p][j][path] - x[p][j][temp_alpha];
+                                            dpm[i][j][path] = x[i][j][path];
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
                 (0, _) => {
@@ -75,7 +136,53 @@ pub fn exec(
                         dpm[i][j][k] = y[i][j][k];
                     }
                 }
-                _ => {}
+                _ => {
+                    if !nodes_with_pred[i] {
+                        let mut common_paths = path_node[i].clone();
+                        common_paths.and(&path_node[i - 1]);
+
+                        if common_paths[alphas[i - 1]] {
+                            //set x
+                            x[i][j][alphas[i]] = match (x[i][j - 1][alphas[i]] + e)
+                                .cmp(&(dpm[i][j - 1][alphas[i]] + o + e))
+                            {
+                                Ordering::Greater => x[i][j - 1][alphas[i]] + e,
+                                _ => dpm[i][j - 1][alphas[i]] + o + e,
+                            };
+                            let l = x[i][j][alphas[i]];
+
+                            //set y
+                            y[i][j][alphas[i]] = match (y[i - 1][j][alphas[i - 1]] + e)
+                                .cmp(&(dpm[i - 1][j][alphas[i - 1]] + o + e))
+                            {
+                                Ordering::Greater => y[i - 1][j][alphas[i - 1]] + e,
+                                _ => dpm[i - 1][j][alphas[i - 1]] + o + e,
+                            };
+                            let u = y[i][j][alphas[i]];
+
+                            let d = dpm[i - 1][j - 1][alphas[i - 1]]
+                                + score_matrix.get(&(lnz[i], sequence[j])).unwrap();
+                            dpm[i][j][alphas[i]] = *[d, u, l].iter().max().unwrap();
+
+                            for (path, is_in) in common_paths.iter().enumerate() {
+                                if is_in {
+                                    if path != alphas[i] {
+                                        if dpm[i][j][alphas[i]] == d {
+                                            dpm[i][j][path] = dpm[i - 1][j - 1][path];
+                                        } else if dpm[i][j][alphas[i]] == u {
+                                            dpm[i][j][path] = dpm[i - 1][j][path];
+                                        } else {
+                                            dpm[i][j][path] = dpm[i][j - 1][path];
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            //TODO: restart here, alphas i-1 != alphas i
+                        }
+                    } else { //multiple alphas
+                    }
+                }
             }
         }
     }
