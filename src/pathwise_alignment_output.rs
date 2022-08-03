@@ -13,6 +13,7 @@ pub fn build_alignment(
     let mut i = dpm.len() - 1;
     let mut j = dpm[i].len() - 1;
     while i != 0 && j != 0 {
+        let mut predecessor = None;
         let (d, u, l) = if !nwp[i] {
             (
                 if alphas[i - 1] == best_path {
@@ -36,6 +37,7 @@ pub fn build_alignment(
             let (mut d, mut u, mut l) = (0, 0, 0);
             for (pred, paths) in preds.iter() {
                 if paths[best_path] {
+                    predecessor = Some(*pred);
                     if alphas[*pred] == best_path {
                         d = dpm[*pred][j - 1][best_path];
                         u = dpm[*pred][j][best_path];
@@ -55,17 +57,27 @@ pub fn build_alignment(
         let max = *[d, u, l].iter().max().unwrap();
         if max == d {
             cigar.push('D');
-            i -= 1;
+            i = if predecessor.is_none() {i-1} else {predecessor.unwrap()};
             j -= 1;
         } else if max == u {
             cigar.push('U');
-            i -= 1;
+            i = if predecessor.is_none() {i-1} else {predecessor.unwrap()};
+
         } else {
             cigar.push('L');
             j -= 1;
         }
     }
+    while j > 0 {
+        cigar.push('L');
+        j -= 1;
+    } 
+    while i > 0 {
+        cigar.push('U');
+        i -= 1;
+    }
     cigar.reverse();
+    cigar.pop();
     build_cigar(&cigar)
 }
 
