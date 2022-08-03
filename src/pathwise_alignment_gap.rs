@@ -178,9 +178,140 @@ pub fn exec(
                                 }
                             }
                         } else {
-                            //TODO: restart here, alphas i-1 != alphas i
+                            //TODO: restart here, alphas i-1 != alphas
+                            //set x
+                            x[i][j][alphas[i]] = match (x[i][j - 1][alphas[i]] + e)
+                                .cmp(&(dpm[i][j - 1][alphas[i]] + o + e))
+                            {
+                                Ordering::Greater => x[i][j - 1][alphas[i]] + e,
+                                _ => dpm[i][j - 1][alphas[i]] + o + e,
+                            };
+                            let l = x[i][j][alphas[i]];
+
+                            //set y
+                            y[i][j][alphas[i]] =
+                                match (y[i - 1][j][alphas[i - 1]] + y[i - 1][j][alphas[i]] + e)
+                                    .cmp(&(y[i - 1][j][alphas[i - 1]] + y[i - 1][j][alphas[i]] + e))
+                                {
+                                    Ordering::Greater => {
+                                        y[i - 1][j][alphas[i - 1]] + y[i - 1][j][alphas[i]] + e
+                                    }
+                                    _ => y[i - 1][j][alphas[i - 1]] + y[i - 1][j][alphas[i]] + e,
+                                };
+                            let u = y[i][j][alphas[i]];
+
+                            let d = dpm[i - 1][j - 1][alphas[i - 1]]
+                                + dpm[i - 1][j - 1][alphas[i]]
+                                + score_matrix.get(&(lnz[i], sequence[j])).unwrap();
+                            dpm[i][j][alphas[i]] = *[d, u, l].iter().max().unwrap();
                         }
-                    } else { //multiple alphas
+                    } else {
+                        //multiple alphas
+                        let mut alphas_deltas = HashMap::new();
+                        for (p, p_paths) in pred_hash.get_preds_and_paths(i) {
+                            let mut common_paths = path_node[i].clone();
+                            common_paths.and(&p_paths);
+
+                            if common_paths[alphas[p]] {
+                                let paths = common_paths
+                                    .iter()
+                                    .enumerate()
+                                    .filter_map(|(path_id, is_in)| match is_in {
+                                        true => Some(path_id),
+                                        false => None,
+                                    })
+                                    .collect::<Vec<usize>>();
+                                alphas_deltas.insert(alphas[p], paths);
+
+                                let u = dpm[p][j][alphas[p]]
+                                    + score_matrix.get(&(lnz[i], '-')).unwrap();
+                                let d = dpm[p][j - 1][alphas[p]]
+                                    + score_matrix.get(&(lnz[i], sequence[j])).unwrap();
+                                let l = if alphas[i] == alphas[p] {
+                                    dpm[i][j - 1][alphas[p]]
+                                        + score_matrix.get(&(sequence[j], '-')).unwrap()
+                                } else {
+                                    dpm[i][j - 1][alphas[p]]
+                                        + dpm[i][j - 1][alphas[i]]
+                                        + score_matrix.get(&(sequence[j], '-')).unwrap()
+                                };
+                                dpm[i][j][alphas[p]] = *[d, u, l].iter().max().unwrap();
+
+                                for (path, is_in) in common_paths.iter().enumerate() {
+                                    if is_in {
+                                        if path != alphas[p] {
+                                            if dpm[i][j][alphas[p]] == d {
+                                                dpm[i][j][path] = dpm[p][j - 1][path];
+                                            } else if dpm[i][j][alphas[p]] == u {
+                                                dpm[i][j][path] = dpm[p][j][path];
+                                            } else {
+                                                dpm[i][j][path] = dpm[i][j - 1][path];
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                //set new alpha
+                                let temp_alpha = if common_paths[alphas[i]] {
+                                    alphas[i]
+                                } else {
+                                    common_paths.iter().position(|is_in| is_in).unwrap()
+                                };
+                                let paths = common_paths
+                                    .iter()
+                                    .enumerate()
+                                    .filter_map(|(path_id, is_in)| match is_in {
+                                        true => Some(path_id),
+                                        false => None,
+                                    })
+                                    .collect::<Vec<usize>>();
+                                alphas_deltas.insert(temp_alpha, paths);
+
+                                let u = dpm[p][j][alphas[p]]
+                                    + dpm[p][j][temp_alpha]
+                                    + score_matrix.get(&(lnz[i], '-')).unwrap();
+                                let d = dpm[p][j - 1][alphas[p]]
+                                    + dpm[p][j - 1][temp_alpha]
+                                    + score_matrix.get(&(lnz[i], sequence[j])).unwrap();
+                                let l = if alphas[i] == temp_alpha {
+                                    dpm[i][j - 1][temp_alpha]
+                                        + score_matrix.get(&(sequence[j], '-')).unwrap()
+                                } else {
+                                    dpm[i][j - 1][temp_alpha]
+                                        + dpm[i][j - 1][alphas[i]]
+                                        + score_matrix.get(&(sequence[j], '-')).unwrap()
+                                };
+                                dpm[i][j][temp_alpha] = *[d, u, l].iter().max().unwrap();
+
+                                for (path, is_in) in common_paths.iter().enumerate() {
+                                    if path != temp_alpha {
+                                        if is_in {
+                                            if dpm[i][j][temp_alpha] == d {
+                                                dpm[i][j][path] =
+                                                    dpm[p][j - 1][path] - dpm[p][j - 1][temp_alpha];
+                                            } else if dpm[i][j][temp_alpha] == u {
+                                                dpm[i][j][path] =
+                                                    dpm[p][j][path] - dpm[p][j][temp_alpha];
+                                            } else {
+                                                dpm[i][j][path] = dpm[i][j - 1][path];
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if alphas_deltas.keys().len() > 0 {
+                            for (a, delta) in alphas_deltas.iter() {
+                                if *a != alphas[i] {
+                                    dpm[i][j][*a] -= dpm[i][j][alphas[i]];
+                                    for path in delta.iter() {
+                                        if path != a {
+                                            dpm[i][j][*path] += dpm[i][j][*a];
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
