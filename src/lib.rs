@@ -23,6 +23,7 @@ pub mod local_poa;
 pub mod pathwise_alignment;
 pub mod pathwise_alignment_gap;
 pub mod pathwise_alignment_output;
+pub mod pathwise_alignment_semiglobal;
 /// Pathwise graph creation
 pub mod pathwise_graph;
 /// Score matrix for each alignment type

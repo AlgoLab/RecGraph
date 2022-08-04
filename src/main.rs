@@ -5,6 +5,7 @@ use rspoa::global_abpoa;
 use rspoa::graph;
 use rspoa::local_poa;
 use rspoa::pathwise_alignment;
+use rspoa::pathwise_alignment_semiglobal;
 use rspoa::pathwise_graph;
 use rspoa::score_matrix;
 use rspoa::sequences;
@@ -239,29 +240,18 @@ fn main() {
             }
         }
         4 => {
-            /*
-            println!("DEMO VERSION");
-            println!("NORMAL");
-            let graph = pathwise_graph::read_graph_w_path(&graph_path, false);
-            graph.to_string();
-            println!();
-
-            println!("REVERSE");
-            let graph = pathwise_graph::read_graph_w_path(&graph_path, true);
-            graph.to_string();
-            */
-
             let graph = pathwise_graph::read_graph_w_path(&graph_path, false);
             for (i, seq) in sequences.iter().enumerate() {
                 let best_path = pathwise_alignment::exec(seq, &graph, &score_matrix);
                 println!("Best path sequence {i}: {best_path}");
             }
-            /*
-            let graph = graph::read_graph(&graph_path, false);
-            let node_paths = graph::create_nodes_paths(&graph_path);
-            let path_number = &node_paths[0].len();
-            pathwise_alignment::exec(&sequences[0], &graph, &node_paths, &score_matrix, *path_number)
-            */
+        }
+        5 => {
+            let graph = pathwise_graph::read_graph_w_path(&graph_path, false);
+            for (i, seq) in sequences.iter().enumerate() {
+                let best_path = pathwise_alignment_semiglobal::exec(seq, &graph, &score_matrix);
+                println!("Best path sequence {i}: {best_path}");
+            }
         }
         _ => {
             panic!("alignment mode must be 0, 1, 2 or 3");
