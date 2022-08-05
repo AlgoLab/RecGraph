@@ -5,6 +5,7 @@ use rspoa::global_abpoa;
 use rspoa::graph;
 use rspoa::local_poa;
 use rspoa::pathwise_alignment;
+use rspoa::pathwise_alignment_gap;
 use rspoa::pathwise_alignment_semiglobal;
 use rspoa::pathwise_graph;
 use rspoa::score_matrix;
@@ -251,6 +252,12 @@ fn main() {
             for (i, seq) in sequences.iter().enumerate() {
                 let best_path = pathwise_alignment_semiglobal::exec(seq, &graph, &score_matrix);
                 println!("Best path sequence {i}: {best_path}");
+            }
+        }
+        6 => {
+            let graph = pathwise_graph::read_graph_w_path(&graph_path, false);
+            for (i, seq) in sequences.iter().enumerate() {
+                pathwise_alignment_gap::exec(seq, &graph, &score_matrix, -4, -2);
             }
         }
         _ => {

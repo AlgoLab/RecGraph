@@ -1,5 +1,6 @@
 use crate::pathwise_graph::PathGraph;
-use std::{cmp::Ordering, collections::HashMap};
+use std::collections::HashMap;
+
 pub fn exec(
     sequence: &[char],
     graph: &PathGraph,
@@ -291,7 +292,6 @@ pub fn exec(
                             }
                         }
                     } else {
-                        //TODO: restart here
                         // multiple alphas possible
                         let mut alphas_deltas = HashMap::new();
                         for (p, p_paths) in pred_hash.get_preds_and_paths(i) {
@@ -389,6 +389,7 @@ pub fn exec(
                                     }
                                 }
                             } else {
+                                //TODO: restart here
                                 //set new alpha
                                 let temp_alpha = if common_paths[alphas[i]] {
                                     alphas[i]
@@ -405,20 +406,74 @@ pub fn exec(
                                     .collect::<Vec<usize>>();
                                 alphas_deltas.insert(temp_alpha, paths);
 
-                                let u = dpm[p][j][alphas[p]]
-                                    + dpm[p][j][temp_alpha]
-                                    + score_matrix.get(&(lnz[i], '-')).unwrap();
+                                //set y
+                                let u_y = y[p][j][alphas[p]] + y[p][j][temp_alpha] + e;
+                                let u_dpm = dpm[p][j][alphas[p]] + dpm[p][j][temp_alpha] + o + e;
+
+                                y[i][j][temp_alpha] = if u_dpm >= u_y {
+                                    for (path, is_in) in common_paths.iter().enumerate() {
+                                        if is_in {
+                                            if path != temp_alpha {
+                                                y[i][j][path] =
+                                                    dpm[p][j][path] - dpm[p][j - 1][temp_alpha];
+                                            }
+                                        }
+                                    }
+                                    u_dpm
+                                } else {
+                                    for (path, is_in) in common_paths.iter().enumerate() {
+                                        if is_in {
+                                            if path != temp_alpha {
+                                                y[i][j][path] =
+                                                    y[p][j][path] - y[p][j - 1][temp_alpha];
+                                            }
+                                        }
+                                    }
+                                    u_y
+                                };
+
+                                let u = y[i][j][temp_alpha];
+
+                                //set x
+                                let l_x = if alphas[i] == temp_alpha {
+                                    x[i][j - 1][alphas[i]] + e
+                                } else {
+                                    x[i][j - 1][alphas[i]] + x[i][j - 1][temp_alpha] + e
+                                };
+                                let l_dpm = if alphas[i] == temp_alpha {
+                                    dpm[i][j - 1][alphas[i]] + o + e
+                                } else {
+                                    dpm[i][j - 1][alphas[i]] + dpm[i][j - 1][temp_alpha] + o + e
+                                };
+
+                                x[i][j][temp_alpha] = if l_dpm >= l_x {
+                                    for (path, is_in) in common_paths.iter().enumerate() {
+                                        if is_in {
+                                            if path != temp_alpha {
+                                                x[i][j][path] =
+                                                    dpm[i][j - 1][path] - dpm[i][j - 1][temp_alpha];
+                                            }
+                                        }
+                                    }
+                                    l_dpm
+                                } else {
+                                    for (path, is_in) in common_paths.iter().enumerate() {
+                                        if is_in {
+                                            if path != alphas[i] {
+                                                x[i][j][path] =
+                                                    x[i][j - 1][path] - x[i][j - 1][temp_alpha];
+                                            }
+                                        }
+                                    }
+                                    l_x
+                                };
+
+                                let l = x[i][j][temp_alpha];
+
                                 let d = dpm[p][j - 1][alphas[p]]
                                     + dpm[p][j - 1][temp_alpha]
                                     + score_matrix.get(&(lnz[i], sequence[j])).unwrap();
-                                let l = if alphas[i] == temp_alpha {
-                                    dpm[i][j - 1][temp_alpha]
-                                        + score_matrix.get(&(sequence[j], '-')).unwrap()
-                                } else {
-                                    dpm[i][j - 1][temp_alpha]
-                                        + dpm[i][j - 1][alphas[i]]
-                                        + score_matrix.get(&(sequence[j], '-')).unwrap()
-                                };
+
                                 dpm[i][j][temp_alpha] = *[d, u, l].iter().max().unwrap();
 
                                 for (path, is_in) in common_paths.iter().enumerate() {
@@ -428,10 +483,9 @@ pub fn exec(
                                                 dpm[i][j][path] =
                                                     dpm[p][j - 1][path] - dpm[p][j - 1][temp_alpha];
                                             } else if dpm[i][j][temp_alpha] == u {
-                                                dpm[i][j][path] =
-                                                    dpm[p][j][path] - dpm[p][j][temp_alpha];
+                                                dpm[i][j][path] = y[i][j][path];
                                             } else {
-                                                dpm[i][j][path] = dpm[i][j - 1][path];
+                                                dpm[i][j][path] = x[i][j][path];
                                             }
                                         }
                                     }
@@ -442,9 +496,14 @@ pub fn exec(
                             for (a, delta) in alphas_deltas.iter() {
                                 if *a != alphas[i] {
                                     dpm[i][j][*a] -= dpm[i][j][alphas[i]];
+                                    x[i][j][*a] -= x[i][j][alphas[i]];
+                                    y[i][j][*a] -= y[i][j][alphas[i]];
+
                                     for path in delta.iter() {
                                         if path != a {
                                             dpm[i][j][*path] += dpm[i][j][*a];
+                                            x[i][j][*path] += x[i][j][*a];
+                                            y[i][j][*path] += y[i][j][*a];
                                         }
                                     }
                                 }
@@ -455,4 +514,9 @@ pub fn exec(
             }
         }
     }
+    println!(
+        "alpha: {}\t{:?}",
+        alphas[dpm.len() - 2],
+        dpm[dpm.len() - 2][dpm[0].len() - 1]
+    );
 }
