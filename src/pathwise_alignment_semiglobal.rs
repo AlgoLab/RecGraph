@@ -1,4 +1,4 @@
-use crate::pathwise_alignment_output::{build_alignment, build_alignment_semiglobal};
+use crate::pathwise_alignment_output::build_alignment_semiglobal;
 use crate::pathwise_graph::PathGraph;
 use std::collections::HashMap;
 

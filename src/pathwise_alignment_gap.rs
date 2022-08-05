@@ -143,25 +143,61 @@ pub fn exec(
 
                         if common_paths[alphas[i - 1]] {
                             //set x
-                            x[i][j][alphas[i]] = match (x[i][j - 1][alphas[i]] + e)
-                                .cmp(&(dpm[i][j - 1][alphas[i]] + o + e))
-                            {
-                                Ordering::Greater => x[i][j - 1][alphas[i]] + e,
-                                _ => dpm[i][j - 1][alphas[i]] + o + e,
-                            };
-                            let l = x[i][j][alphas[i]];
+                            let u_y = y[i - 1][j][alphas[i - 1]] + e;
+                            let u_dpm = dpm[i - 1][j][alphas[i - 1]] + o + e;
 
-                            //set y
-                            y[i][j][alphas[i]] = match (y[i - 1][j][alphas[i - 1]] + e)
-                                .cmp(&(dpm[i - 1][j][alphas[i - 1]] + o + e))
-                            {
-                                Ordering::Greater => y[i - 1][j][alphas[i - 1]] + e,
-                                _ => dpm[i - 1][j][alphas[i - 1]] + o + e,
+                            x[i][j][alphas[i]] = if u_dpm >= u_y {
+                                for (path, is_in) in common_paths.iter().enumerate() {
+                                    if is_in {
+                                        if path != alphas[i] {
+                                            y[i][j][path] = dpm[i - 1][j][path];
+                                        }
+                                    }
+                                }
+                                u_dpm
+                            } else {
+                                for (path, is_in) in common_paths.iter().enumerate() {
+                                    if is_in {
+                                        if path != alphas[i] {
+                                            y[i][j][path] = y[i - 1][j][path];
+                                        }
+                                    }
+                                }
+                                u_y
                             };
+
                             let u = y[i][j][alphas[i]];
 
+                            //set y
+                            let l_x = x[i][j - 1][alphas[i]] + e;
+                            let l_dpm = dpm[i][j - 1][alphas[i]] + o + e;
+
+                            x[i][j][alphas[i]] = if l_dpm >= l_x {
+                                for (path, is_in) in common_paths.iter().enumerate() {
+                                    if is_in {
+                                        if path != alphas[i] {
+                                            x[i][j][path] = dpm[i][j - 1][path];
+                                        }
+                                    }
+                                }
+                                l_dpm
+                            } else {
+                                for (path, is_in) in common_paths.iter().enumerate() {
+                                    if is_in {
+                                        if path != alphas[i] {
+                                            x[i][j][path] = x[i][j - 1][path];
+                                        }
+                                    }
+                                }
+                                l_x
+                            };
+
+                            let l = x[i][j][alphas[i]];
+
+                            //set dpm
                             let d = dpm[i - 1][j - 1][alphas[i - 1]]
                                 + score_matrix.get(&(lnz[i], sequence[j])).unwrap();
+
                             dpm[i][j][alphas[i]] = *[d, u, l].iter().max().unwrap();
 
                             for (path, is_in) in common_paths.iter().enumerate() {
@@ -170,42 +206,93 @@ pub fn exec(
                                         if dpm[i][j][alphas[i]] == d {
                                             dpm[i][j][path] = dpm[i - 1][j - 1][path];
                                         } else if dpm[i][j][alphas[i]] == u {
-                                            dpm[i][j][path] = dpm[i - 1][j][path];
+                                            dpm[i][j][path] = y[i][j][path];
                                         } else {
-                                            dpm[i][j][path] = dpm[i][j - 1][path];
+                                            dpm[i][j][path] = x[i][j][path];
                                         }
                                     }
                                 }
                             }
                         } else {
                             //set x
-                            x[i][j][alphas[i]] = match (x[i][j - 1][alphas[i]] + e)
-                                .cmp(&(dpm[i][j - 1][alphas[i]] + o + e))
-                            {
-                                Ordering::Greater => x[i][j - 1][alphas[i]] + e,
-                                _ => dpm[i][j - 1][alphas[i]] + o + e,
+                            let u_y = y[i - 1][j][alphas[i - 1]] + y[i - 1][j][alphas[i]] + e;
+                            let u_dpm =
+                                dpm[i - 1][j][alphas[i - 1]] + dpm[i - 1][j][alphas[i]] + o + e;
+
+                            x[i][j][alphas[i]] = if u_dpm >= u_y {
+                                for (path, is_in) in common_paths.iter().enumerate() {
+                                    if is_in {
+                                        if path != alphas[i] {
+                                            y[i][j][path] =
+                                                dpm[i - 1][j][path] - dpm[i - 1][j][alphas[i]];
+                                        }
+                                    }
+                                }
+                                u_dpm
+                            } else {
+                                for (path, is_in) in common_paths.iter().enumerate() {
+                                    if is_in {
+                                        if path != alphas[i] {
+                                            y[i][j][path] =
+                                                y[i - 1][j][path] - y[i - 1][j][alphas[i]];
+                                        }
+                                    }
+                                }
+                                u_y
                             };
-                            let l = x[i][j][alphas[i]];
+
+                            let u = y[i][j][alphas[i]];
 
                             //set y
-                            y[i][j][alphas[i]] =
-                                match (y[i - 1][j][alphas[i - 1]] + y[i - 1][j][alphas[i]] + e)
-                                    .cmp(&(y[i - 1][j][alphas[i - 1]] + y[i - 1][j][alphas[i]] + e))
-                                {
-                                    Ordering::Greater => {
-                                        y[i - 1][j][alphas[i - 1]] + y[i - 1][j][alphas[i]] + e
+                            let l_x = x[i][j - 1][alphas[i]] + e;
+                            let l_dpm = dpm[i][j - 1][alphas[i]] + o + e;
+
+                            x[i][j][alphas[i]] = if l_dpm >= l_x {
+                                for (path, is_in) in common_paths.iter().enumerate() {
+                                    if is_in {
+                                        if path != alphas[i] {
+                                            x[i][j][path] = dpm[i][j - 1][path];
+                                        }
                                     }
-                                    _ => y[i - 1][j][alphas[i - 1]] + y[i - 1][j][alphas[i]] + e,
-                                };
-                            let u = y[i][j][alphas[i]];
+                                }
+                                l_dpm
+                            } else {
+                                for (path, is_in) in common_paths.iter().enumerate() {
+                                    if is_in {
+                                        if path != alphas[i] {
+                                            x[i][j][path] = x[i][j - 1][path];
+                                        }
+                                    }
+                                }
+                                l_x
+                            };
+
+                            let l = x[i][j][alphas[i]];
 
                             let d = dpm[i - 1][j - 1][alphas[i - 1]]
                                 + dpm[i - 1][j - 1][alphas[i]]
                                 + score_matrix.get(&(lnz[i], sequence[j])).unwrap();
+
                             dpm[i][j][alphas[i]] = *[d, u, l].iter().max().unwrap();
+
+                            for (path, is_in) in common_paths.iter().enumerate() {
+                                if is_in {
+                                    if path != alphas[i] {
+                                        if dpm[i][j][alphas[i]] == d {
+                                            dpm[i][j][path] = dpm[i - 1][j - 1][path]
+                                                - dpm[i - 1][j - 1][alphas[i]];
+                                        } else if dpm[i][j][alphas[i]] == u {
+                                            dpm[i][j][path] = y[i][j][path]
+                                        } else {
+                                            dpm[i][j][path] = x[i][j][path];
+                                        }
+                                    }
+                                }
+                            }
                         }
                     } else {
-                        //multiple alphas
+                        //TODO: restart here
+                        // multiple alphas possible
                         let mut alphas_deltas = HashMap::new();
                         for (p, p_paths) in pred_hash.get_preds_and_paths(i) {
                             let mut common_paths = path_node[i].clone();
@@ -222,46 +309,18 @@ pub fn exec(
                                     .collect::<Vec<usize>>();
                                 alphas_deltas.insert(alphas[p], paths);
 
-                                // set y
-                                y[i][j][alphas[p]] = match (y[p][j][alphas[p]] + e)
-                                    .cmp(&(dpm[p][j][alphas[p]] + o + e))
-                                {
-                                    Ordering::Greater => y[p][j][alphas[p]] + e,
-                                    _ => dpm[p][j][alphas[p]] + o + e,
-                                };
-                                let u = y[i][j][alphas[p]];
-
-                                // set x
-                                x[i][j][alphas[p]] = if alphas[i] == alphas[p] {
-                                    match (x[i][j - 1][alphas[p]] + e)
-                                        .cmp(&(dpm[i][j - 1][alphas[p]] + o + e))
-                                    {
-                                        Ordering::Greater => x[i][j - 1][alphas[p]] + e,
-                                        _ => dpm[i][j - 1][alphas[p]] + o + e,
-                                    }
-                                } else {
-                                    match (x[i][j - 1][alphas[p]] + x[i][j - 1][alphas[i]] + e).cmp(
-                                        &(dpm[i][j - 1][alphas[p]]
-                                            + dpm[i][j - 1][alphas[i]]
-                                            + o
-                                            + e),
-                                    ) {
-                                        Ordering::Greater => {
-                                            x[i][j - 1][alphas[p]] + x[i][j - 1][alphas[i]] + e
-                                        }
-                                        _ => {
-                                            dpm[i][j - 1][alphas[p]]
-                                                + dpm[i][j - 1][alphas[i]]
-                                                + o
-                                                + e
-                                        }
-                                    }
-                                };
-                                let l = x[i][j][alphas[p]];
-
+                                let u = dpm[p][j][alphas[p]]
+                                    + score_matrix.get(&(lnz[i], '-')).unwrap();
                                 let d = dpm[p][j - 1][alphas[p]]
                                     + score_matrix.get(&(lnz[i], sequence[j])).unwrap();
-
+                                let l = if alphas[i] == alphas[p] {
+                                    dpm[i][j - 1][alphas[p]]
+                                        + score_matrix.get(&(sequence[j], '-')).unwrap()
+                                } else {
+                                    dpm[i][j - 1][alphas[p]]
+                                        + dpm[i][j - 1][alphas[i]]
+                                        + score_matrix.get(&(sequence[j], '-')).unwrap()
+                                };
                                 dpm[i][j][alphas[p]] = *[d, u, l].iter().max().unwrap();
 
                                 for (path, is_in) in common_paths.iter().enumerate() {
@@ -278,7 +337,6 @@ pub fn exec(
                                     }
                                 }
                             } else {
-                                //TODO: update from here
                                 //set new alpha
                                 let temp_alpha = if common_paths[alphas[i]] {
                                     alphas[i]
