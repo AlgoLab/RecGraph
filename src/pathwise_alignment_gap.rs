@@ -142,11 +142,11 @@ pub fn exec(
                         common_paths.and(&path_node[i - 1]);
 
                         if common_paths[alphas[i - 1]] {
-                            //set x
+                            //set y
                             let u_y = y[i - 1][j][alphas[i - 1]] + e;
                             let u_dpm = dpm[i - 1][j][alphas[i - 1]] + o + e;
 
-                            x[i][j][alphas[i]] = if u_dpm >= u_y {
+                            y[i][j][alphas[i]] = if u_dpm >= u_y {
                                 for (path, is_in) in common_paths.iter().enumerate() {
                                     if is_in {
                                         if path != alphas[i] {
@@ -168,7 +168,7 @@ pub fn exec(
 
                             let u = y[i][j][alphas[i]];
 
-                            //set y
+                            //set x
                             let l_x = x[i][j - 1][alphas[i]] + e;
                             let l_dpm = dpm[i][j - 1][alphas[i]] + o + e;
 
@@ -214,12 +214,12 @@ pub fn exec(
                                 }
                             }
                         } else {
-                            //set x
+                            //set y
                             let u_y = y[i - 1][j][alphas[i - 1]] + y[i - 1][j][alphas[i]] + e;
                             let u_dpm =
                                 dpm[i - 1][j][alphas[i - 1]] + dpm[i - 1][j][alphas[i]] + o + e;
 
-                            x[i][j][alphas[i]] = if u_dpm >= u_y {
+                            y[i][j][alphas[i]] = if u_dpm >= u_y {
                                 for (path, is_in) in common_paths.iter().enumerate() {
                                     if is_in {
                                         if path != alphas[i] {
@@ -243,7 +243,7 @@ pub fn exec(
 
                             let u = y[i][j][alphas[i]];
 
-                            //set y
+                            //set x
                             let l_x = x[i][j - 1][alphas[i]] + e;
                             let l_dpm = dpm[i][j - 1][alphas[i]] + o + e;
 
@@ -309,18 +309,70 @@ pub fn exec(
                                     .collect::<Vec<usize>>();
                                 alphas_deltas.insert(alphas[p], paths);
 
-                                let u = dpm[p][j][alphas[p]]
-                                    + score_matrix.get(&(lnz[i], '-')).unwrap();
+                                //set y
+                                let u_y = y[p][j][alphas[p]] + e;
+                                let u_dpm = dpm[p][j][alphas[p]] + o + e;
+
+                                y[i][j][alphas[p]] = if u_dpm >= u_y {
+                                    for (path, is_in) in common_paths.iter().enumerate() {
+                                        if is_in {
+                                            if path != alphas[i] {
+                                                y[i][j][path] = dpm[p][j][path];
+                                            }
+                                        }
+                                    }
+                                    u_dpm
+                                } else {
+                                    for (path, is_in) in common_paths.iter().enumerate() {
+                                        if is_in {
+                                            if path != alphas[i] {
+                                                y[i][j][path] = y[p][j][path];
+                                            }
+                                        }
+                                    }
+                                    u_y
+                                };
+
+                                let u = y[i][j][alphas[p]];
+
+                                //set x
+                                let l_x = if alphas[p] == alphas[i] {
+                                    x[i][j - 1][alphas[p]] + e
+                                } else {
+                                    x[i][j - 1][alphas[p]] + x[i][j - 1][alphas[i]] + e
+                                };
+                                let l_dpm = if alphas[p] == alphas[i] {
+                                    dpm[i][j - 1][alphas[p]] + o + e
+                                } else {
+                                    dpm[i][j - 1][alphas[i]] + dpm[i][j - 1][alphas[p]] + o + e
+                                };
+
+                                x[i][j][alphas[p]] = if l_dpm >= l_x {
+                                    for (path, is_in) in common_paths.iter().enumerate() {
+                                        if is_in {
+                                            if path != alphas[i] {
+                                                x[i][j][path] = dpm[i][j - 1][path];
+                                            }
+                                        }
+                                    }
+                                    l_dpm
+                                } else {
+                                    for (path, is_in) in common_paths.iter().enumerate() {
+                                        if is_in {
+                                            if path != alphas[i] {
+                                                x[i][j][path] = x[i][j - 1][path];
+                                            }
+                                        }
+                                    }
+                                    l_x
+                                };
+
+                                let l = x[i][j][alphas[p]];
+
+                                //set dpm
                                 let d = dpm[p][j - 1][alphas[p]]
                                     + score_matrix.get(&(lnz[i], sequence[j])).unwrap();
-                                let l = if alphas[i] == alphas[p] {
-                                    dpm[i][j - 1][alphas[p]]
-                                        + score_matrix.get(&(sequence[j], '-')).unwrap()
-                                } else {
-                                    dpm[i][j - 1][alphas[p]]
-                                        + dpm[i][j - 1][alphas[i]]
-                                        + score_matrix.get(&(sequence[j], '-')).unwrap()
-                                };
+
                                 dpm[i][j][alphas[p]] = *[d, u, l].iter().max().unwrap();
 
                                 for (path, is_in) in common_paths.iter().enumerate() {
@@ -329,9 +381,9 @@ pub fn exec(
                                             if dpm[i][j][alphas[p]] == d {
                                                 dpm[i][j][path] = dpm[p][j - 1][path];
                                             } else if dpm[i][j][alphas[p]] == u {
-                                                dpm[i][j][path] = dpm[p][j][path];
+                                                dpm[i][j][path] = y[i][j][path];
                                             } else {
-                                                dpm[i][j][path] = dpm[i][j - 1][path];
+                                                dpm[i][j][path] = x[i][j][path];
                                             }
                                         }
                                     }
