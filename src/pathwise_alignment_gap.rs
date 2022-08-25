@@ -1,6 +1,6 @@
+use crate::pathwise_alignment_output::build_alignment_gap;
 use crate::pathwise_graph::PathGraph;
 use std::collections::HashMap;
-
 pub fn exec(
     sequence: &[char],
     graph: &PathGraph,
@@ -519,4 +519,7 @@ pub fn exec(
         alphas[dpm.len() - 2],
         dpm[dpm.len() - 2][dpm[0].len() - 1]
     );
+
+    let cigar_output = build_alignment_gap(&dpm, &x, &y, alphas, 1, pred_hash, &nodes_with_pred);
+    println!("{}", cigar_output);
 }
