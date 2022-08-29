@@ -326,7 +326,7 @@ pub fn exec(
                                 y[i][j][alphas[p]] = if u_dpm >= u_y {
                                     for (path, is_in) in common_paths.iter().enumerate() {
                                         if is_in {
-                                            if path != alphas[i] {
+                                            if path != alphas[p] {
                                                 y[i][j][path] = dpm[p][j][path];
                                             }
                                         }
@@ -360,7 +360,7 @@ pub fn exec(
                                 x[i][j][alphas[p]] = if l_dpm >= l_x {
                                     for (path, is_in) in common_paths.iter().enumerate() {
                                         if is_in {
-                                            if path != alphas[i] {
+                                            if path != alphas[p] {
                                                 x[i][j][path] = dpm[i][j - 1][path];
                                             }
                                         }
@@ -369,7 +369,7 @@ pub fn exec(
                                 } else {
                                     for (path, is_in) in common_paths.iter().enumerate() {
                                         if is_in {
-                                            if path != alphas[i] {
+                                            if path != alphas[p] {
                                                 x[i][j][path] = x[i][j - 1][path];
                                             }
                                         }
@@ -399,7 +399,6 @@ pub fn exec(
                                     }
                                 }
                             } else {
-                                //TODO: restart here
                                 //set new alpha
                                 let temp_alpha = if common_paths[alphas[i]] {
                                     alphas[i]
@@ -425,7 +424,7 @@ pub fn exec(
                                         if is_in {
                                             if path != temp_alpha {
                                                 y[i][j][path] =
-                                                    dpm[p][j][path] - dpm[p][j - 1][temp_alpha];
+                                                    dpm[p][j][path] - dpm[p][j][temp_alpha];
                                             }
                                         }
                                     }
@@ -434,8 +433,7 @@ pub fn exec(
                                     for (path, is_in) in common_paths.iter().enumerate() {
                                         if is_in {
                                             if path != temp_alpha {
-                                                y[i][j][path] =
-                                                    y[p][j][path] - y[p][j - 1][temp_alpha];
+                                                y[i][j][path] = y[p][j][path] - y[p][j][temp_alpha];
                                             }
                                         }
                                     }
@@ -469,7 +467,7 @@ pub fn exec(
                                 } else {
                                     for (path, is_in) in common_paths.iter().enumerate() {
                                         if is_in {
-                                            if path != alphas[i] {
+                                            if path != temp_alpha {
                                                 x[i][j][path] =
                                                     x[i][j - 1][path] - x[i][j - 1][temp_alpha];
                                             }
@@ -525,23 +523,20 @@ pub fn exec(
         }
     }
 
-    println!(
-        "alpha: {}\t{:?}",
-        alphas[dpm.len() - 2],
-        dpm[dpm.len() - 2][dpm[0].len() - 1]
-    );
-    for path in 0..path_number {
-        if path == alphas[dpm.len() - 2] {
-            println!("{}", dpm[dpm.len() - 2][dpm[0].len() - 1][path]);
-        } else {
-            println!(
-                "{}",
-                dpm[dpm.len() - 2][dpm[0].len() - 1][alphas[dpm.len() - 2]]
-                    + dpm[dpm.len() - 2][dpm[0].len() - 1][path]
-            );
+    let mut results = vec![0; path_number];
+    for (pred, paths) in pred_hash.get_preds_and_paths(lnz.len() - 1) {
+        for (path, is_in) in paths.iter().enumerate() {
+            if is_in {
+                if path == alphas[pred] {
+                    results[path] = dpm[pred][dpm[pred].len() - 1][path]
+                } else {
+                    results[path] = dpm[pred][dpm[pred].len() - 1][path]
+                        + dpm[pred][dpm[pred].len() - 1][alphas[pred]]
+                }
+            }
         }
     }
-
+    println!("{:?}", results);
     let cigar_output = build_alignment_gap(&dpm, &x, &y, alphas, 1, pred_hash, &nodes_with_pred);
     println!("{}", cigar_output);
 }
