@@ -361,7 +361,12 @@ pub fn exec(
                                     for (path, is_in) in common_paths.iter().enumerate() {
                                         if is_in {
                                             if path != alphas[p] {
-                                                x[i][j][path] = dpm[i][j - 1][path];
+                                                if alphas[p] == alphas[i] {
+                                                    x[i][j][path] = dpm[i][j - 1][path];
+                                                } else {
+                                                    x[i][j][path] = dpm[i][j - 1][path]
+                                                        - dpm[i][j - 1][alphas[p]];
+                                                }
                                             }
                                         }
                                     }
@@ -370,7 +375,12 @@ pub fn exec(
                                     for (path, is_in) in common_paths.iter().enumerate() {
                                         if is_in {
                                             if path != alphas[p] {
-                                                x[i][j][path] = x[i][j - 1][path];
+                                                if alphas[p] == alphas[i] {
+                                                    x[i][j][path] = x[i][j - 1][path];
+                                                } else {
+                                                    x[i][j][path] =
+                                                        x[i][j - 1][path] - x[i][j - 1][alphas[p]];
+                                                }
                                             }
                                         }
                                     }
@@ -458,8 +468,12 @@ pub fn exec(
                                     for (path, is_in) in common_paths.iter().enumerate() {
                                         if is_in {
                                             if path != temp_alpha {
-                                                x[i][j][path] =
-                                                    dpm[i][j - 1][path] - dpm[i][j - 1][temp_alpha];
+                                                if temp_alpha == alphas[i] {
+                                                    x[i][j][path] = dpm[i][j - 1][path]
+                                                } else {
+                                                    x[i][j][path] = dpm[i][j - 1][path]
+                                                        - dpm[i][j - 1][temp_alpha];
+                                                }
                                             }
                                         }
                                     }
@@ -468,8 +482,12 @@ pub fn exec(
                                     for (path, is_in) in common_paths.iter().enumerate() {
                                         if is_in {
                                             if path != temp_alpha {
-                                                x[i][j][path] =
-                                                    x[i][j - 1][path] - x[i][j - 1][temp_alpha];
+                                                if temp_alpha == alphas[i] {
+                                                    x[i][j][path] = x[i][j - 1][path]
+                                                } else {
+                                                    x[i][j][path] =
+                                                        x[i][j - 1][path] - x[i][j - 1][temp_alpha];
+                                                }
                                             }
                                         }
                                     }
@@ -536,7 +554,21 @@ pub fn exec(
             }
         }
     }
-    println!("{:?}", results);
-    let cigar_output = build_alignment_gap(&dpm, &x, &y, alphas, 1, pred_hash, &nodes_with_pred);
+    println!("RESULTS: {:?}", &results);
+    let best_path = results
+        .iter()
+        .enumerate()
+        .map(|(path, score)| (score, path))
+        .max();
+
+    let cigar_output = build_alignment_gap(
+        &dpm,
+        &x,
+        &y,
+        alphas,
+        best_path.unwrap().1,
+        pred_hash,
+        &nodes_with_pred,
+    );
     println!("{}", cigar_output);
 }
