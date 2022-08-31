@@ -278,6 +278,96 @@ pub fn build_alignment_gap(
     build_cigar(&cigar)
 }
 
+pub fn extract_best_path_matrix(
+    best_path: usize,
+    dpm: &Vec<Vec<Vec<i32>>>,
+    alphas: &Vec<usize>,
+) -> Vec<Vec<i32>> {
+    let mut bpm: Vec<Vec<i32>> = vec![vec![0; dpm[0].len()]; dpm.len()];
+    for i in 0..dpm.len() {
+        for j in 0..dpm[0].len() {
+            bpm[i][j] = if alphas[i] == best_path {
+                dpm[i][j][best_path]
+            } else {
+                dpm[i][j][best_path] + dpm[i][j][alphas[i]]
+            }
+        }
+    }
+    bpm
+}
+/*
+pub fn build_best_path_alignment(
+    bpm: &Vec<Vec<i32>>,
+    pred_hash: &PredHash,
+    nwp: &BitVec,
+    best_path: usize,
+) -> String {
+    let mut cigar = Vec::new();
+    let mut i = bpm.len() - 1;
+    let mut j = bpm[i].len() - 1;
+
+    while i != 0 && j != 0 {
+        let mut predecessor = None;
+        let (d, u, l) = if !nwp[i] {
+            (bpm[i - 1][j - 1], bpm[i - 1][j], bpm[i][j - 1])
+        } else {
+            let preds = pred_hash.get_preds_and_paths(i);
+
+            let mut pred = 0;
+            for p in preds.iter() {
+                if p.1[best_path] {
+                    pred = p.0
+                }
+            }
+            predecessor = Some(pred);
+            (bpm[pred][j - 1], bpm[pred][j], bpm[i][j - 1])
+        };
+        let max = *[d, u, l].iter().max().unwrap();
+        if max == d {
+            cigar.push('D');
+            i = if predecessor.is_none() {
+                i - 1
+            } else {
+                predecessor.unwrap()
+            };
+            j -= 1;
+        } else if max == u {
+            cigar.push('U');
+            i = if predecessor.is_none() {
+                i - 1
+            } else {
+                predecessor.unwrap()
+            };
+        } else {
+            cigar.push('L');
+            j -= 1;
+        }
+    }
+    while j > 0 {
+        cigar.push('L');
+        j -= 1;
+    }
+    while i > 0 {
+        cigar.push('U');
+        i = if !nwp[i] {
+            i - 1
+        } else {
+            let preds = pred_hash.get_preds_and_paths(i);
+
+            let mut pred = 0;
+            for p in preds.iter() {
+                if p.1[best_path] {
+                    pred = p.0
+                }
+            }
+            pred
+        };
+    }
+    cigar.reverse();
+
+    build_cigar(&cigar)
+}
+*/
 fn build_cigar(cigar: &Vec<char>) -> String {
     let mut output_string = String::new();
 
