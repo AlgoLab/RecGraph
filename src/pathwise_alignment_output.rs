@@ -10,7 +10,14 @@ pub fn build_alignment(
     nwp: &BitVec,
 ) -> String {
     let mut cigar = Vec::new();
-    let mut i = dpm.len() - 1;
+    let mut i = 0;
+    let ending_nodes = pred_hash.get_preds_and_paths(dpm.len() - 1);
+    for (node, paths) in ending_nodes.iter() {
+        if paths[best_path] {
+            i = *node;
+        }
+    }
+
     let mut j = dpm[i].len() - 1;
     while i != 0 && j != 0 {
         let mut predecessor = None;
@@ -182,7 +189,13 @@ pub fn build_alignment_gap(
     nwp: &BitVec,
 ) -> String {
     let mut cigar = Vec::new();
-    let mut i = dpm.len() - 1;
+    let mut i = 0;
+    let ending_nodes = pred_hash.get_preds_and_paths(dpm.len() - 1);
+    for (node, paths) in ending_nodes.iter() {
+        if paths[best_path] {
+            i = *node;
+        }
+    }
     let mut j = dpm[i].len() - 1;
     while i != 0 && j != 0 {
         let mut predecessor = None;

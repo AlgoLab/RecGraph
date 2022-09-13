@@ -7,7 +7,7 @@ pub fn exec(
     score_matrix: &HashMap<(char, char), i32>,
     o: i32,
     e: i32,
-) {
+) -> usize {
     let lnz = &graph.lnz;
     let nodes_with_pred = &graph.nwp;
     let pred_hash = &graph.pred_hash;
@@ -554,7 +554,6 @@ pub fn exec(
             }
         }
     }
-    println!("RESULTS: {:?}", &results);
     let best_path = results
         .iter()
         .enumerate()
@@ -571,4 +570,5 @@ pub fn exec(
         &nodes_with_pred,
     );
     println!("{}", cigar_output);
+    best_path.unwrap().1
 }

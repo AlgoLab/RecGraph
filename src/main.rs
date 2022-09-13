@@ -258,7 +258,9 @@ fn main() {
             let graph = pathwise_graph::read_graph_w_path(&graph_path, false);
             let (g_open, g_ext) = args_parser::get_gap_open_gap_ext();
             for (i, seq) in sequences.iter().enumerate() {
-                pathwise_alignment_gap::exec(seq, &graph, &score_matrix, g_open, g_ext);
+                let best_path =
+                    pathwise_alignment_gap::exec(seq, &graph, &score_matrix, g_open, g_ext);
+                println!("Best path sequence {i}: {best_path}");
             }
         }
         _ => {
