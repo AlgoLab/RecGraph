@@ -175,8 +175,39 @@ pub fn build_alignment_semiglobal(
     }
 
     cigar.reverse();
+    let mut starting_node = 0;
+    while i > 0 {
+        if nwp[i] {
+            let preds = pred_hash.get_preds_and_paths(i);
+            for (pred, paths) in preds.iter() {
+                if paths[best_path] {
+                    i = *pred;
+                }
+            }
+        } else {
+            i -= 1
+        }
+        starting_node += 1;
+    }
 
-    build_cigar(&cigar)
+    let mut final_node = 0;
+    i = ending_node;
+    while i > 0 {
+        if nwp[i] {
+            let preds = pred_hash.get_preds_and_paths(i);
+            for (pred, paths) in preds.iter() {
+                if paths[best_path] {
+                    i = *pred;
+                }
+            }
+        } else {
+            i -= 1
+        }
+        final_node += 1;
+    }
+    let cigar = build_cigar(&cigar);
+    let cigar_output = format!("{}\t({} {})", cigar, starting_node, final_node);
+    cigar_output
 }
 
 pub fn build_alignment_gap(
