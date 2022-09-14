@@ -1,4 +1,4 @@
-use crate::pathwise_alignment_output::build_alignment_semiglobal;
+use crate::pathwise_alignment_output::build_alignment_semiglobal_gap;
 use crate::pathwise_graph::PathGraph;
 use std::collections::HashMap;
 
@@ -429,10 +429,10 @@ pub fn exec(
         }
     }
     let (final_node, best_path) = best_ending_node(&dpm, graph);
-    //TODO: correction in semigl-gap output
-    /*
-    let cigar_output = build_alignment_semiglobal(
+    let cigar_output = build_alignment_semiglobal_gap(
         &dpm,
+        &x,
+        &y,
         &alphas,
         best_path,
         &pred_hash,
@@ -440,7 +440,6 @@ pub fn exec(
         final_node,
     );
     println!("{}", cigar_output);
-    */
     best_path
 }
 
