@@ -239,6 +239,55 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
     )
 }
 
+pub fn create_reverse_path_graph(forward_graph: &PathGraph) -> PathGraph {
+    // create reverse lnz
+    let mut lnz_rev = forward_graph.lnz.clone();
+    lnz_rev[0] = 'F';
+    lnz_rev[forward_graph.lnz.len() - 1] = '$';
+    lnz_rev.reverse();
+
+    // create reverse paths_nodes
+    let mut paths_nodes_rev = forward_graph.paths_nodes.clone();
+    paths_nodes_rev.reverse();
+
+    // create reverse alphas
+    let mut alphas_rev = forward_graph.alphas.clone();
+    alphas_rev.reverse();
+
+    // create reverse predecessor
+    let mut nodes_with_pred_rev = BitVec::from_elem(lnz_rev.len(), false);
+    let mut pred_hash_struct_rev = PredHash::new();
+
+    for (node, predecessors) in forward_graph.pred_hash.predecessor.iter() {
+        for (pred, paths) in predecessors.iter() {
+            let node_rev = lnz_rev.len() - 1 - pred;
+            let pred_rev = lnz_rev.len() - 1 - node;
+            if !nodes_with_pred_rev[node_rev] {
+                nodes_with_pred_rev.set(node_rev, true);
+            }
+            for (path_id, path) in paths.iter().enumerate() {
+                if path {
+                    pred_hash_struct_rev.set_preds_and_paths(
+                        node_rev,
+                        pred_rev,
+                        path_id,
+                        forward_graph.paths_number,
+                    );
+                }
+            }
+        }
+    }
+
+    PathGraph::build(
+        lnz_rev,
+        nodes_with_pred_rev,
+        pred_hash_struct_rev,
+        paths_nodes_rev,
+        alphas_rev,
+        forward_graph.paths_number,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use handlegraph::{

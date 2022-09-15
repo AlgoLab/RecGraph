@@ -273,6 +273,12 @@ fn main() {
                 println!("Best path sequence {i}: {best_path}");
             }
         }
+        8 => {
+            let graph = pathwise_graph::read_graph_w_path(&graph_path, false);
+            let rev_graph = pathwise_graph::create_reverse_path_graph(&graph);
+            graph.to_string();
+            rev_graph.to_string();
+        }
         _ => {
             panic!("alignment mode must be 0, 1, 2 or 3");
         }
