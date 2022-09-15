@@ -24,6 +24,7 @@ pub mod pathwise_alignment;
 pub mod pathwise_alignment_gap;
 pub mod pathwise_alignment_gap_semi;
 pub mod pathwise_alignment_output;
+pub mod pathwise_alignment_recombination;
 pub mod pathwise_alignment_semiglobal;
 /// Pathwise graph creation
 pub mod pathwise_graph;
