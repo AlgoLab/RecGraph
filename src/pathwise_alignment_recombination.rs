@@ -8,6 +8,10 @@ pub fn exec(sequence: &[char], graph: &PathGraph, score_matrix: &HashMap<(char, 
 
     let rev_graph = pathwise_graph::create_reverse_path_graph(graph);
     let reverse_matrix = align(sequence, &rev_graph, score_matrix);
+
+    let alignment = best_alignment(&forward_matrix, &reverse_matrix);
+
+    println!("{:?}", alignment);
 }
 
 fn align(
@@ -327,4 +331,52 @@ fn absolute_scores(dpm: &mut Vec<Vec<Vec<i32>>>, alphas: &Vec<usize>, paths_node
             }
         }
     }
+}
+
+fn best_alignment(
+    m: &Vec<Vec<Vec<i32>>>,
+    w: &Vec<Vec<Vec<i32>>>,
+) -> (usize, usize, usize, usize, usize) {
+    let mut curr_best_score = 0;
+    let mut forw_ending_node = 0;
+    let mut rev_starting_node = 0;
+    let mut forw_best_path = 0;
+    let mut rev_best_path = 0;
+    let mut recombination_col = 0;
+
+    //TODO: redifine recombination penalty
+    let rec_penalty = 100;
+
+    for j in 0..m[0].len() {
+        for i in 0..m.len() {
+            for rev_i in i + 1..m.len() {
+                for forw_path in 0..m[0][0].len() {
+                    for rev_path in 0..m[0][0].len() {
+                        let penalty = if forw_path == rev_path {
+                            0
+                        } else {
+                            rec_penalty
+                        };
+                        if m[i][j][forw_path] + w[rev_i][j + 1][rev_path] - penalty
+                            > curr_best_score
+                        {
+                            curr_best_score = m[i][j][forw_path] + w[rev_i][j + 1][rev_path];
+                            forw_ending_node = i;
+                            rev_starting_node = rev_i;
+                            forw_best_path = forw_path;
+                            rev_best_path = rev_path;
+                            recombination_col = j;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    (
+        forw_ending_node,
+        rev_starting_node,
+        forw_best_path,
+        rev_best_path,
+        recombination_col,
+    )
 }
