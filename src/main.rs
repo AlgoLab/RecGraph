@@ -7,6 +7,7 @@ use rspoa::local_poa;
 use rspoa::pathwise_alignment;
 use rspoa::pathwise_alignment_gap;
 use rspoa::pathwise_alignment_gap_semi;
+use rspoa::pathwise_alignment_recombination;
 use rspoa::pathwise_alignment_semiglobal;
 use rspoa::pathwise_graph;
 use rspoa::score_matrix;
@@ -275,9 +276,10 @@ fn main() {
         }
         8 => {
             let graph = pathwise_graph::read_graph_w_path(&graph_path, false);
-            let rev_graph = pathwise_graph::create_reverse_path_graph(&graph);
-            graph.to_string();
-            rev_graph.to_string();
+            for (i, seq) in sequences.iter().enumerate() {
+                println!("Sequence {i}");
+                pathwise_alignment_recombination::exec(seq, &graph, &score_matrix);
+            }
         }
         _ => {
             panic!("alignment mode must be 0, 1, 2 or 3");

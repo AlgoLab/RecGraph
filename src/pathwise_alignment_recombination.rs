@@ -9,9 +9,14 @@ pub fn exec(sequence: &[char], graph: &PathGraph, score_matrix: &HashMap<(char, 
     let rev_graph = pathwise_graph::create_reverse_path_graph(graph);
     let reverse_matrix = align(sequence, &rev_graph, score_matrix);
 
-    let alignment = best_alignment(&forward_matrix, &reverse_matrix);
+    let (forw_ending_node, rev_starting_node, forw_best_path, rev_best_path, recombination_col) =
+        best_alignment(&forward_matrix, &reverse_matrix);
 
-    println!("{:?}", alignment);
+    if forw_best_path == rev_best_path {
+        println!("No recombination, best path: {forw_best_path}")
+    } else {
+        println!("Recombination in position {recombination_col} of path {forw_best_path} and {rev_best_path}")
+    }
 }
 
 fn align(
@@ -345,9 +350,9 @@ fn best_alignment(
     let mut recombination_col = 0;
 
     //TODO: redifine recombination penalty
-    let rec_penalty = 100;
+    let rec_penalty = 0;
 
-    for j in 0..m[0].len() {
+    for j in 0..m[0].len() - 1 {
         for i in 0..m.len() {
             for rev_i in i + 1..m.len() {
                 for forw_path in 0..m[0][0].len() {
