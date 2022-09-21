@@ -288,6 +288,44 @@ pub fn create_reverse_path_graph(forward_graph: &PathGraph) -> PathGraph {
     )
 }
 
+pub fn nodes_displacement_matrix(paths: &Vec<BitVec>) -> Vec<Vec<i32>> {
+    let mut ndm = vec![vec![0; paths.len()]; paths.len()];
+    for i in 0..paths.len() {
+        for j in 0..paths.len() {
+            let (common_pred, common_succ) = get_nodes_pred_and_succ(paths, i, j);
+            let displacement =
+                ((i - common_pred) - (j - common_pred)) + ((i - common_succ) + (j - common_succ));
+            ndm[i][j] = displacement as i32;
+        }
+    }
+    ndm
+}
+
+fn get_nodes_pred_and_succ(paths: &Vec<BitVec>, i: usize, j: usize) -> (usize, usize) {
+    let mut common_pred = 0;
+    let mut common_succ = paths.len();
+    let mut counter = 0;
+    while counter <= i && counter <= j {
+        let mut i_j_paths = paths[i].clone();
+        i_j_paths.and(&paths[j]);
+        i_j_paths.and(&paths[counter]);
+        if i_j_paths.any() {
+            common_pred = counter;
+        }
+        counter += 1;
+    }
+    counter = paths.len() - 1;
+    while counter >= i && counter >= j {
+        let mut i_j_paths = paths[i].clone();
+        i_j_paths.and(&paths[j]);
+        i_j_paths.and(&paths[counter]);
+        if i_j_paths.any() {
+            common_succ = counter;
+        }
+        counter -= 1;
+    }
+    (common_pred, common_succ)
+}
 #[cfg(test)]
 mod tests {
     use handlegraph::{

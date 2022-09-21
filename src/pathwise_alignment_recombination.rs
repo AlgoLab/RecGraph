@@ -9,13 +9,14 @@ pub fn exec(sequence: &[char], graph: &PathGraph, score_matrix: &HashMap<(char, 
     let rev_graph = pathwise_graph::create_reverse_path_graph(graph);
     let reverse_matrix = align(sequence, &rev_graph, score_matrix);
 
+    let displacement_matrix = pathwise_graph::nodes_displacement_matrix(&graph.paths_nodes);
     let (forw_ending_node, rev_starting_node, forw_best_path, rev_best_path, recombination_col) =
-        best_alignment(&forward_matrix, &reverse_matrix);
+        best_alignment(&forward_matrix, &reverse_matrix, &displacement_matrix);
 
     if forw_best_path == rev_best_path {
         println!("No recombination, best path: {forw_best_path}")
     } else {
-        println!("Recombination in position {recombination_col} of path {forw_best_path} and {rev_best_path}")
+        println!("Recombination between {forw_ending_node} of path {forw_best_path} and {rev_starting_node} of path {rev_best_path}")
     }
 }
 
@@ -341,6 +342,7 @@ fn absolute_scores(dpm: &mut Vec<Vec<Vec<i32>>>, alphas: &Vec<usize>, paths_node
 fn best_alignment(
     m: &Vec<Vec<Vec<i32>>>,
     w: &Vec<Vec<Vec<i32>>>,
+    dms: &Vec<Vec<i32>>,
 ) -> (usize, usize, usize, usize, usize) {
     let mut curr_best_score = 0;
     let mut forw_ending_node = 0;
@@ -350,18 +352,13 @@ fn best_alignment(
     let mut recombination_col = 0;
 
     //TODO: redifine recombination penalty
-    let rec_penalty = 0;
 
     for j in 0..m[0].len() - 1 {
         for i in 0..m.len() {
             for rev_i in i + 1..m.len() {
                 for forw_path in 0..m[0][0].len() {
                     for rev_path in 0..m[0][0].len() {
-                        let penalty = if forw_path == rev_path {
-                            0
-                        } else {
-                            rec_penalty
-                        };
+                        let penalty = if forw_path == rev_path { 0 } else { dms[i][j] };
                         if m[i][j][forw_path] + w[rev_i][j + 1][rev_path] - penalty
                             > curr_best_score
                         {
