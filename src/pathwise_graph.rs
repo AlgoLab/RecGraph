@@ -1,4 +1,5 @@
 use bit_vec::BitVec;
+use clap::command;
 use gfa::{gfa::*, parser::GFAParser};
 use handlegraph::{
     handle::{Handle, NodeId},
@@ -303,26 +304,31 @@ pub fn nodes_displacement_matrix(paths: &Vec<BitVec>) -> Vec<Vec<i32>> {
 
 fn get_nodes_pred_and_succ(paths: &Vec<BitVec>, i: usize, j: usize) -> (usize, usize) {
     let mut common_pred = 0;
-    let mut common_succ = paths.len();
+    let mut common_succ = paths.len() - 1;
     let mut counter = 0;
-    while counter <= i && counter <= j {
-        let mut i_j_paths = paths[i].clone();
-        i_j_paths.and(&paths[j]);
-        i_j_paths.and(&paths[counter]);
-        if i_j_paths.any() {
-            common_pred = counter;
+    if i == j {
+        common_pred = i;
+        common_succ = i;
+    } else {
+        while counter <= i && counter <= j {
+            let mut i_j_paths = paths[i].clone();
+            i_j_paths.and(&paths[j]);
+            i_j_paths.and(&paths[counter]);
+            if i_j_paths.any() {
+                common_pred = counter;
+            }
+            counter += 1;
         }
-        counter += 1;
-    }
-    counter = paths.len() - 1;
-    while counter >= i && counter >= j {
-        let mut i_j_paths = paths[i].clone();
-        i_j_paths.and(&paths[j]);
-        i_j_paths.and(&paths[counter]);
-        if i_j_paths.any() {
-            common_succ = counter;
+        counter = paths.len() - 1;
+        while counter >= i && counter >= j {
+            let mut i_j_paths = paths[i].clone();
+            i_j_paths.and(&paths[j]);
+            i_j_paths.and(&paths[counter]);
+            if i_j_paths.any() {
+                common_succ = counter;
+            }
+            counter -= 1;
         }
-        counter -= 1;
     }
     (common_pred, common_succ)
 }

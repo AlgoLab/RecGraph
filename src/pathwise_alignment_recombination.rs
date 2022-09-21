@@ -366,14 +366,14 @@ fn best_alignment(
     let mut recombination_col = 0;
 
     for j in 0..m[0].len() - 1 {
-        for i in 0..m.len() {
+        for i in 0..m.len() - 1 {
             for rev_i in i + 1..m.len() {
                 for forw_path in 0..m[0][0].len() {
                     for rev_path in 0..m[0][0].len() {
                         let penalty = if forw_path == rev_path {
                             0
                         } else {
-                            brc + (mrc * dms[i][j])
+                            brc + (mrc * dms[i][rev_i])
                         };
                         if m[i][j][forw_path] + w[rev_i][j + 1][rev_path] - penalty
                             > curr_best_score
