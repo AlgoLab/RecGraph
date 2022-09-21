@@ -21,6 +21,11 @@ pub fn build_alignment(
     let mut j = dpm[i].len() - 1;
     while i != 0 && j != 0 {
         let mut predecessor = None;
+        let curr_score = if alphas[i] == best_path {
+            dpm[i][j][best_path]
+        } else {
+            dpm[i][j][best_path] + dpm[i][j][alphas[i]]
+        };
         let (d, u, l) = if !nwp[i] {
             (
                 if alphas[i - 1] == best_path {
@@ -63,7 +68,12 @@ pub fn build_alignment(
         };
         let max = *[d, u, l].iter().max().unwrap();
         if max == d {
-            cigar.push('D');
+            if curr_score < d {
+                cigar.push('d');
+            } else {
+                cigar.push('D');
+            }
+
             i = if predecessor.is_none() {
                 i - 1
             } else {
@@ -107,6 +117,11 @@ pub fn build_alignment_semiglobal(
     let mut i = ending_node;
     let mut j = dpm[i].len() - 1;
     while i != 0 && j != 0 {
+        let curr_score = if alphas[i] == best_path {
+            dpm[i][j][best_path]
+        } else {
+            dpm[i][j][best_path] + dpm[i][j][alphas[i]]
+        };
         let mut predecessor = None;
         let (d, u, l) = if !nwp[i] {
             (
@@ -150,7 +165,12 @@ pub fn build_alignment_semiglobal(
         };
         let max = *[d, u, l].iter().max().unwrap();
         if max == d {
-            cigar.push('D');
+            if curr_score < d {
+                cigar.push('d');
+            } else {
+                cigar.push('D');
+            }
+
             i = if predecessor.is_none() {
                 i - 1
             } else {
@@ -229,6 +249,11 @@ pub fn build_alignment_gap(
     }
     let mut j = dpm[i].len() - 1;
     while i != 0 && j != 0 {
+        let curr_score = if alphas[i] == best_path {
+            dpm[i][j][best_path]
+        } else {
+            dpm[i][j][best_path] + dpm[i][j][alphas[i]]
+        };
         let mut predecessor = None;
         let (d, u, l) = if !nwp[i] {
             (
@@ -272,7 +297,12 @@ pub fn build_alignment_gap(
         };
         let max = *[d, u, l].iter().max().unwrap();
         if max == d {
-            cigar.push('D');
+            if curr_score < d {
+                cigar.push('d');
+            } else {
+                cigar.push('D');
+            }
+
             i = if predecessor.is_none() {
                 i - 1
             } else {
@@ -336,6 +366,11 @@ pub fn build_alignment_semiglobal_gap(
     let mut i = ending_node;
     let mut j = dpm[i].len() - 1;
     while i != 0 && j != 0 {
+        let curr_score = if alphas[i] == best_path {
+            dpm[i][j][best_path]
+        } else {
+            dpm[i][j][best_path] + dpm[i][j][alphas[i]]
+        };
         let mut predecessor = None;
         let (d, u, l) = if !nwp[i] {
             (
@@ -379,7 +414,12 @@ pub fn build_alignment_semiglobal_gap(
         };
         let max = *[d, u, l].iter().max().unwrap();
         if max == d {
-            cigar.push('D');
+            if curr_score < d {
+                cigar.push('d');
+            } else {
+                cigar.push('D');
+            }
+
             i = if predecessor.is_none() {
                 i - 1
             } else {
@@ -481,7 +521,7 @@ fn build_cigar(cigar: &Vec<char>) -> String {
     let mut d_count = 0;
     let mut u_count = 0;
     let mut l_count = 0;
-
+    let mut mm_count = 0;
     for ch in cigar.iter() {
         match ch {
             'D' => {
@@ -493,8 +533,13 @@ fn build_cigar(cigar: &Vec<char>) -> String {
                     output_string = format!("{}{}D", output_string, l_count);
                     l_count = 0
                 }
+                if mm_count != 0 {
+                    output_string = format!("{}{}X", output_string, mm_count);
+                    mm_count = 0
+                }
                 d_count += 1;
             }
+
             'U' => {
                 if d_count != 0 {
                     output_string = format!("{}{}M", output_string, d_count);
@@ -504,7 +549,26 @@ fn build_cigar(cigar: &Vec<char>) -> String {
                     output_string = format!("{}{}D", output_string, l_count);
                     l_count = 0
                 }
+                if mm_count != 0 {
+                    output_string = format!("{}{}X", output_string, mm_count);
+                    mm_count = 0
+                }
                 u_count += 1;
+            }
+            'd' => {
+                if d_count != 0 {
+                    output_string = format!("{}{}M", output_string, d_count);
+                    d_count = 0
+                }
+                if l_count != 0 {
+                    output_string = format!("{}{}D", output_string, l_count);
+                    l_count = 0
+                }
+                if u_count != 0 {
+                    output_string = format!("{}{}I", output_string, u_count);
+                    u_count = 0
+                }
+                mm_count += 1;
             }
             _ => {
                 if d_count != 0 {
@@ -514,6 +578,10 @@ fn build_cigar(cigar: &Vec<char>) -> String {
                 if u_count != 0 {
                     output_string = format!("{}{}I", output_string, u_count);
                     u_count = 0
+                }
+                if mm_count != 0 {
+                    output_string = format!("{}{}X", output_string, mm_count);
+                    mm_count = 0
                 }
                 l_count += 1;
             }
@@ -527,6 +595,9 @@ fn build_cigar(cigar: &Vec<char>) -> String {
     }
     if l_count != 0 {
         output_string = format!("{}{}D", output_string, l_count);
+    }
+    if mm_count != 0 {
+        output_string = format!("{}{}X", output_string, mm_count);
     }
     output_string
 }
