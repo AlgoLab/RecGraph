@@ -85,6 +85,26 @@ struct Args {
     )]
     gap_extension: i32,
 
+    // Recombination constant multiplier
+    #[clap(
+        help_heading = "Alignment",
+        short = 'r',
+        long = "multi-rec-cost",
+        default_value_t = 2,
+        help = "Displacement multiplier"
+    )]
+    multi_rec_cost: i32,
+
+    //Base recombination cost
+    #[clap(
+        help_heading = "Alignment",
+        short = 'R',
+        long = "base-rec-cost",
+        default_value_t = 6,
+        help = "Recombination cost, determined with -r as R + r(displacement)"
+    )]
+    base_rec_cost: i32,
+
     //Ambigous strand mode
     #[clap(
         help_heading = "Alignment",
@@ -114,6 +134,10 @@ struct Args {
         help = "Second adaptive banding par, number of basis added to both side of the band = b+f*L, l = length of the sequence"
     )]
     extra_f: f32,
+}
+pub fn get_base_multi_recombination_cost() -> (i32, i32) {
+    let args = Args::parse();
+    (args.base_rec_cost, args.multi_rec_cost)
 }
 
 pub fn get_match_mismatch() -> (i32, i32) {
