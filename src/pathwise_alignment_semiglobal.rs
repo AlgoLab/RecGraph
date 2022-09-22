@@ -21,7 +21,7 @@ pub fn exec(
                 (0, 0) => {
                     dpm[i][j] = vec![0; path_number];
                 }
-                (_, 0) => dpm[0][0] = vec![0; path_number],
+                (_, 0) => dpm[i][j] = vec![0; path_number],
                 (0, _) => {
                     dpm[i][j][alphas[0]] =
                         dpm[i][j - 1][alphas[0]] + score_matrix.get(&(sequence[j], '-')).unwrap();
@@ -206,6 +206,7 @@ pub fn exec(
         &nodes_with_pred,
         final_node,
     );
+
     println!("{}", cigar_output);
     best_path
 }
@@ -230,11 +231,12 @@ fn best_ending_node(dpm: &Vec<Vec<Vec<i32>>>, graph: &PathGraph) -> (usize, usiz
             .enumerate()
             .map(|(path, score)| (score, path))
             .max();
-        if max.is_none() || best_path.unwrap().0 > &max.unwrap() {
+        if max.is_none() || (best_path.unwrap().0 > &max.unwrap() && paths[best_path.unwrap().1]) {
             max = Some(*best_path.unwrap().0);
             ending_node = i;
             chosen_path = best_path.unwrap().1;
         }
     }
+
     (ending_node, chosen_path)
 }

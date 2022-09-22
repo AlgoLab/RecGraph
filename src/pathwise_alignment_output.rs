@@ -116,7 +116,7 @@ pub fn build_alignment_semiglobal(
     let mut cigar = Vec::new();
     let mut i = ending_node;
     let mut j = dpm[i].len() - 1;
-    while i != 0 && j != 0 {
+    while i > 0 && j > 0 {
         let curr_score = if alphas[i] == best_path {
             dpm[i][j][best_path]
         } else {
@@ -209,9 +209,9 @@ pub fn build_alignment_semiglobal(
         }
         starting_node += 1;
     }
-
     let mut final_node = 0;
     i = ending_node;
+
     while i > 0 {
         if nwp[i] {
             let preds = pred_hash.get_preds_and_paths(i);
@@ -225,6 +225,7 @@ pub fn build_alignment_semiglobal(
         }
         final_node += 1;
     }
+
     let cigar = build_cigar(&cigar);
     let cigar_output = format!("{}\t({} {})", cigar, starting_node, final_node);
     cigar_output

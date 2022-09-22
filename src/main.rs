@@ -274,12 +274,13 @@ fn main() {
                 println!("Best path sequence {i}: {best_path}");
             }
         }
-        8 => {
+        8 | 9 => {
             let graph = pathwise_graph::read_graph_w_path(&graph_path, false);
             let (base_rec_cost, multi_rec_cost) = args_parser::get_base_multi_recombination_cost();
             for (i, seq) in sequences.iter().enumerate() {
                 println!("Sequence {i}");
                 pathwise_alignment_recombination::exec(
+                    align_mode,
                     seq,
                     &graph,
                     &score_matrix,
