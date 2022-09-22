@@ -69,7 +69,7 @@ pub fn exec(
         let start_handle = graph.nodes_id_pos[starting_node];
         let mut counter = starting_node;
         let mut start_offset = 0;
-        while graph.nodes_id_pos[counter] == start_handle {
+        while graph.nodes_id_pos[counter] == start_handle && counter > 0 {
             counter -= 1;
             start_offset += 1;
         }
@@ -77,7 +77,7 @@ pub fn exec(
         let end_handle = graph.nodes_id_pos[ending_node];
         let mut counter = ending_node;
         let mut end_offset = 0;
-        while graph.nodes_id_pos[counter] == end_handle {
+        while graph.nodes_id_pos[counter] == end_handle && counter > 0 {
             counter -= 1;
             end_offset += 1;
         }
@@ -85,7 +85,7 @@ pub fn exec(
         let fen_handle = graph.nodes_id_pos[forw_ending_node];
         let mut counter = forw_ending_node;
         let mut fen_offset = 0;
-        while graph.nodes_id_pos[counter] == fen_handle {
+        while graph.nodes_id_pos[counter] == fen_handle && counter > 0 {
             counter -= 1;
             fen_offset += 1;
         }
@@ -93,7 +93,7 @@ pub fn exec(
         let rsn_handle = graph.nodes_id_pos[rev_starting_node];
         let mut counter = rev_starting_node;
         let mut rsn_offset = 0;
-        while graph.nodes_id_pos[counter] == rsn_handle {
+        while graph.nodes_id_pos[counter] == rsn_handle && counter > 0 {
             counter -= 1;
             rsn_offset += 1;
         }
@@ -847,9 +847,9 @@ fn get_start_ending_position(
     // ending position
     let mut rev_i = rev_ending_node;
     let mut j = rec_col + 1;
-    while rev_i < rev_dpm.len() - 1 && j < rev_dpm[rev_i].len() {
+    while rev_i < rev_dpm.len() - 1 && j < rev_dpm[rev_i].len() - 1 {
         let mut predecessor = None;
-        let (d, u, l) = if !rev_nwp[i] {
+        let (d, u, l) = if !rev_nwp[rev_i] {
             (
                 dpm[rev_i + 1][j + 1][rev_path],
                 dpm[rev_i + 1][j][rev_path],
