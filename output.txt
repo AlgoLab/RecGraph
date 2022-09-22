@@ -1,0 +1,4 @@
+Sequence 0
+Recombination between paths 0 and 1
+Recombination edge between node 1 (position: 36) and node 5 (position: 0)
+

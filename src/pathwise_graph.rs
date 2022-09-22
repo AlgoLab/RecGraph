@@ -1,5 +1,4 @@
 use bit_vec::BitVec;
-use clap::command;
 use gfa::{gfa::*, parser::GFAParser};
 use handlegraph::{
     handle::{Handle, NodeId},
@@ -15,6 +14,7 @@ pub struct PathGraph {
     pub paths_nodes: Vec<BitVec>,
     pub alphas: Vec<usize>,
     pub paths_number: usize,
+    pub nodes_id_pos: Vec<u64>,
 }
 
 impl PathGraph {
@@ -26,6 +26,7 @@ impl PathGraph {
             paths_nodes: vec![],
             alphas: vec![],
             paths_number: 0,
+            nodes_id_pos: vec![],
         }
     }
 
@@ -36,6 +37,7 @@ impl PathGraph {
         paths_nodes: Vec<BitVec>,
         alphas: Vec<usize>,
         paths_number: usize,
+        nodes_id_pos: Vec<u64>,
     ) -> PathGraph {
         PathGraph {
             lnz,
@@ -44,6 +46,7 @@ impl PathGraph {
             paths_nodes,
             alphas,
             paths_number,
+            nodes_id_pos,
         }
     }
 
@@ -145,11 +148,13 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
     let mut visited_node: HashMap<NodeId, i32> = HashMap::new();
     let mut linearization: Vec<char> = vec!['$'];
     let mut handles_id_position = HashMap::new();
-
+    let mut nodes_id_pos = Vec::new();
+    nodes_id_pos.push(0);
     for handle in sorted_handles.iter() {
         let start_position = last_index;
         for ch in graph.sequence(*handle) {
             linearization.push(ch as char);
+            nodes_id_pos.push(handle.id().into());
             last_index += 1;
         }
         let end_position = last_index - 1;
@@ -157,6 +162,7 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
         handles_id_position.insert(handle.id(), (start_position, end_position));
     }
     linearization.push('F');
+    nodes_id_pos.push(0);
 
     //create nwp, pred_hash,nodes paths and
     let mut nodes_with_pred = BitVec::from_elem(linearization.len(), false);
@@ -237,40 +243,25 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
         paths_nodes,
         alphas,
         paths_number,
+        nodes_id_pos,
     )
 }
 
 pub fn create_reverse_path_graph(forward_graph: &PathGraph) -> PathGraph {
-    // create reverse lnz
-    let mut lnz_rev = forward_graph.lnz.clone();
-    lnz_rev[0] = 'F';
-    lnz_rev[forward_graph.lnz.len() - 1] = '$';
-    lnz_rev.reverse();
-
-    // create reverse paths_nodes
-    let mut paths_nodes_rev = forward_graph.paths_nodes.clone();
-    paths_nodes_rev.reverse();
-
-    // create reverse alphas
-    let mut alphas_rev = forward_graph.alphas.clone();
-    alphas_rev.reverse();
-
     // create reverse predecessor
-    let mut nodes_with_pred_rev = BitVec::from_elem(lnz_rev.len(), false);
+    let mut nodes_with_pred_rev = BitVec::from_elem(forward_graph.lnz.len(), false);
     let mut pred_hash_struct_rev = PredHash::new();
 
     for (node, predecessors) in forward_graph.pred_hash.predecessor.iter() {
         for (pred, paths) in predecessors.iter() {
-            let node_rev = lnz_rev.len() - 1 - pred;
-            let pred_rev = lnz_rev.len() - 1 - node;
-            if !nodes_with_pred_rev[node_rev] {
-                nodes_with_pred_rev.set(node_rev, true);
+            if !nodes_with_pred_rev[*pred] {
+                nodes_with_pred_rev.set(*pred, true);
             }
             for (path_id, path) in paths.iter().enumerate() {
                 if path {
                     pred_hash_struct_rev.set_preds_and_paths(
-                        node_rev,
-                        pred_rev,
+                        *pred,
+                        *node,
                         path_id,
                         forward_graph.paths_number,
                     );
@@ -280,12 +271,13 @@ pub fn create_reverse_path_graph(forward_graph: &PathGraph) -> PathGraph {
     }
 
     PathGraph::build(
-        lnz_rev,
+        forward_graph.lnz.clone(),
         nodes_with_pred_rev,
         pred_hash_struct_rev,
-        paths_nodes_rev,
-        alphas_rev,
+        forward_graph.paths_nodes.clone(),
+        forward_graph.alphas.clone(),
         forward_graph.paths_number,
+        forward_graph.nodes_id_pos.clone(),
     )
 }
 
@@ -295,7 +287,7 @@ pub fn nodes_displacement_matrix(paths: &Vec<BitVec>) -> Vec<Vec<i32>> {
         for j in 0..paths.len() {
             let (common_pred, common_succ) = get_nodes_pred_and_succ(paths, i, j);
             let displacement =
-                ((i - common_pred) - (j - common_pred)) + ((i - common_succ) + (j - common_succ));
+                ((i - common_pred) - (j - common_pred)) + ((common_succ - i) + (common_succ - j));
             ndm[i][j] = displacement as i32;
         }
     }

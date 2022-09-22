@@ -90,10 +90,10 @@ struct Args {
         help_heading = "Alignment",
         short = 'r',
         long = "multi-rec-cost",
-        default_value_t = 2,
+        default_value_t = 0.2,
         help = "Displacement multiplier"
     )]
-    multi_rec_cost: i32,
+    multi_rec_cost: f32,
 
     //Base recombination cost
     #[clap(
@@ -135,7 +135,7 @@ struct Args {
     )]
     extra_f: f32,
 }
-pub fn get_base_multi_recombination_cost() -> (i32, i32) {
+pub fn get_base_multi_recombination_cost() -> (i32, f32) {
     let args = Args::parse();
     (args.base_rec_cost, args.multi_rec_cost)
 }
