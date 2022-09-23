@@ -2,7 +2,20 @@ use bit_vec::BitVec;
 
 use crate::pathwise_graph::{self, PathGraph, PredHash};
 use std::collections::HashMap;
-
+fn get_node_offset(nodes_handles: &Vec<u64>, curr_node: usize) -> i32 {
+    let handle = nodes_handles[curr_node];
+    if handle == 0 {
+        0
+    } else {
+        let mut counter = curr_node;
+        let mut offset = 0;
+        while nodes_handles[counter - 1] == handle {
+            counter -= 1;
+            offset += 1;
+        }
+        offset
+    }
+}
 pub fn exec(
     aln_mode: i32,
     sequence: &[char],
@@ -33,20 +46,10 @@ pub fn exec(
             println!("No recombination, best path: {forw_best_path}")
         } else {
             let fen_handle = graph.nodes_id_pos[forw_ending_node];
-            let mut counter = forw_ending_node;
-            let mut fen_offset = 0;
-            while graph.nodes_id_pos[counter] == fen_handle {
-                counter -= 1;
-                fen_offset += 1;
-            }
+            let fen_offset = get_node_offset(&graph.nodes_id_pos, forw_ending_node);
 
             let rsn_handle = graph.nodes_id_pos[rev_starting_node];
-            let mut counter = rev_starting_node;
-            let mut rsn_offset = 0;
-            while graph.nodes_id_pos[counter] == rsn_handle {
-                counter -= 1;
-                rsn_offset += 1;
-            }
+            let rsn_offset = get_node_offset(&graph.nodes_id_pos, rev_starting_node);
 
             println!("Recombination between paths {forw_best_path} and {rev_best_path}");
             println!("Recombination edge between node {fen_handle} (position: {fen_offset}) and node {rsn_handle} (position: {rsn_offset})");
@@ -67,36 +70,17 @@ pub fn exec(
             rev_starting_node,
         );
         let start_handle = graph.nodes_id_pos[starting_node];
-        let mut counter = starting_node;
-        let mut start_offset = 0;
-        while graph.nodes_id_pos[counter] == start_handle && counter > 0 {
-            counter -= 1;
-            start_offset += 1;
-        }
+        let start_offset = get_node_offset(&graph.nodes_id_pos, starting_node);
 
         let end_handle = graph.nodes_id_pos[ending_node];
-        let mut counter = ending_node;
-        let mut end_offset = 0;
-        while graph.nodes_id_pos[counter] == end_handle && counter > 0 {
-            counter -= 1;
-            end_offset += 1;
-        }
+        let end_offset = get_node_offset(&graph.nodes_id_pos, ending_node);
 
         let fen_handle = graph.nodes_id_pos[forw_ending_node];
-        let mut counter = forw_ending_node;
-        let mut fen_offset = 0;
-        while graph.nodes_id_pos[counter] == fen_handle && counter > 0 {
-            counter -= 1;
-            fen_offset += 1;
-        }
+        let fen_offset = get_node_offset(&graph.nodes_id_pos, forw_ending_node);
 
         let rsn_handle = graph.nodes_id_pos[rev_starting_node];
-        let mut counter = rev_starting_node;
-        let mut rsn_offset = 0;
-        while graph.nodes_id_pos[counter] == rsn_handle && counter > 0 {
-            counter -= 1;
-            rsn_offset += 1;
-        }
+        let rsn_offset = get_node_offset(&graph.nodes_id_pos, rev_starting_node);
+
         if forw_best_path == rev_best_path {
             println!("No recombination, best path: {forw_best_path} (start: handle {start_handle} [{start_offset}]\tend: handle {end_handle} [{end_offset}])")
         } else {
@@ -778,6 +762,10 @@ fn best_alignment(
             }
         }
     }
+    /*
+    println!("i: {forw_ending_node}\trev_i: {rev_starting_node}\tj: {recombination_col}");
+    println!("m[i,j]: {:?}\tw[rev_i,j]: {:?}", m[forw_ending_node][recombination_col], w[rev_starting_node][recombination_col+1]);
+    */
     (
         forw_ending_node,
         rev_starting_node,
