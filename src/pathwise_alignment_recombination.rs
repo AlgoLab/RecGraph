@@ -739,7 +739,7 @@ fn best_alignment(
 
     for j in 0..m[0].len() - 1 {
         for i in 0..m.len() - 1 {
-            for rev_i in 0..m.len() {
+            for rev_i in 0..m.len() - 1 {
                 for forw_path in 0..m[0][0].len() {
                     for rev_path in 0..m[0][0].len() {
                         let penalty = if forw_path == rev_path {

@@ -252,8 +252,9 @@ fn main() {
         5 => {
             let graph = pathwise_graph::read_graph_w_path(&graph_path, false);
             for (i, seq) in sequences.iter().enumerate() {
-                let best_path = pathwise_alignment_semiglobal::exec(seq, &graph, &score_matrix);
-                println!("Best path sequence {i}: {best_path}");
+                let mut gaf = pathwise_alignment_semiglobal::exec(seq, &graph, &score_matrix);
+                gaf.query_name = seq_names[i].clone();
+                utils::write_gaf(&gaf.to_string(), i);
             }
         }
         6 => {
