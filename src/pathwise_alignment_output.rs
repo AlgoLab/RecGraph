@@ -532,7 +532,7 @@ pub fn extract_best_path_matrix(
     bpm
 }
 
-fn build_cigar(cigar: &Vec<char>) -> String {
+pub fn build_cigar(cigar: &Vec<char>) -> String {
     let mut output_string = String::new();
 
     let mut d_count = 0;

@@ -1,6 +1,10 @@
 use bit_vec::BitVec;
 
-use crate::pathwise_graph::{self, PathGraph, PredHash};
+use crate::{
+    gaf_output::GAFStruct,
+    pathwise_alignment_output::build_cigar,
+    pathwise_graph::{self, PathGraph, PredHash},
+};
 use std::collections::HashMap;
 fn get_node_offset(nodes_handles: &Vec<u64>, curr_node: usize) -> i32 {
     let handle = nodes_handles[curr_node];
@@ -23,7 +27,7 @@ pub fn exec(
     score_matrix: &HashMap<(char, char), i32>,
     base_rec_cost: i32,
     multi_rec_cost: f32,
-) {
+) -> GAFStruct {
     let forward_matrix = align(aln_mode, sequence, graph, score_matrix);
 
     let rev_graph = pathwise_graph::create_reverse_path_graph(graph);
@@ -40,7 +44,7 @@ pub fn exec(
             base_rec_cost,
             multi_rec_cost,
         );
-
+    let gaf;
     if aln_mode == 8 {
         if forw_best_path == rev_best_path {
             println!("No recombination, best path: {forw_best_path}")
@@ -55,39 +59,28 @@ pub fn exec(
             println!("Recombination edge between node {fen_handle} (position: {fen_offset}) and node {rsn_handle} (position: {rsn_offset})");
             println!()
         }
+        gaf = GAFStruct::new();
     } else {
-        let (starting_node, ending_node) = get_start_ending_position(
-            recombination_col,
-            &graph.nwp,
-            &graph.pred_hash,
+        gaf = gaf_output_semiglobal(
             &forward_matrix,
-            forw_best_path,
-            forw_ending_node,
-            &rev_graph.nwp,
-            &rev_graph.pred_hash,
             &reverse_matrix,
+            &graph.lnz,
+            &sequence,
+            &score_matrix,
+            &graph.alphas,
+            forw_best_path,
             rev_best_path,
+            &graph.pred_hash,
+            &rev_graph.pred_hash,
+            &graph.nwp,
+            &rev_graph.nwp,
+            &graph.nodes_id_pos,
+            forw_ending_node,
             rev_starting_node,
+            recombination_col,
         );
-        let start_handle = graph.nodes_id_pos[starting_node];
-        let start_offset = get_node_offset(&graph.nodes_id_pos, starting_node);
-
-        let end_handle = graph.nodes_id_pos[ending_node];
-        let end_offset = get_node_offset(&graph.nodes_id_pos, ending_node);
-
-        let fen_handle = graph.nodes_id_pos[forw_ending_node];
-        let fen_offset = get_node_offset(&graph.nodes_id_pos, forw_ending_node);
-
-        let rsn_handle = graph.nodes_id_pos[rev_starting_node];
-        let rsn_offset = get_node_offset(&graph.nodes_id_pos, rev_starting_node);
-
-        if forw_best_path == rev_best_path {
-            println!("No recombination, best path: {forw_best_path} (start: handle {start_handle} [{start_offset}]\tend: handle {end_handle} [{end_offset}])")
-        } else {
-            println!("Recombination between paths {forw_best_path} and {rev_best_path} (start: handle {start_handle} [{start_offset}]\tend: handle {end_handle} [{end_offset}])");
-            println!("Recombination edge between node {fen_handle} (position: {fen_offset}) and node {rsn_handle} (position: {rsn_offset})");
-        }
     }
+    gaf
 }
 fn rev_align(
     aln_mode: i32,
@@ -791,9 +784,9 @@ fn gaf_output_semiglobal(
     handles_nodes_id: &Vec<u64>,
     forward_ending_node: usize,
     reverse_starting_node: usize,
-    reverse_ending_node: usize,
+
     rec_col: usize,
-) {
+) -> GAFStruct {
     let mut cigar = Vec::new();
     let mut path_length: usize = 0;
     let mut i = reverse_starting_node;
@@ -801,7 +794,7 @@ fn gaf_output_semiglobal(
     let mut handle_id_alignment = Vec::new();
 
     // reverse alignment
-    while i <= reverse_ending_node && j < dpm[0].len() - 1 {
+    while i > 0 && i < dpm.len() - 1 && j < dpm[0].len() - 1 {
         let curr_score = rev_dpm[i][j][rev_best_path];
 
         let mut predecessor = None;
@@ -828,13 +821,42 @@ fn gaf_output_semiglobal(
 
         let max = *[d, u, l].iter().max().unwrap();
         if max == d {
+            if curr_score < d {
+                cigar.push('d');
+            } else {
+                cigar.push('D');
+            }
+            handle_id_alignment.push(handles_nodes_id[i]);
+            i = if predecessor.is_none() {
+                i + 1
+            } else {
+                predecessor.unwrap()
+            };
+            j += 1;
+            path_length += 1;
         } else if max == u {
+            cigar.push('U');
+            handle_id_alignment.push(handles_nodes_id[i]);
+            i = if predecessor.is_none() {
+                i + 1
+            } else {
+                predecessor.unwrap()
+            };
+            path_length += 1;
         } else {
+            cigar.push('L');
+            j += 1;
         }
     }
-    //TODO: set ambient for forward alignment
-
+    while j < dpm[0].len() {
+        cigar.push('L');
+        j += 1;
+    }
+    let rev_ending_node = i;
+    let mut temp_cigar = Vec::new();
+    let mut temp_handle_id_alignment = Vec::new();
     i = forward_ending_node;
+    j = rec_col;
     while i > 0 && j > 0 {
         let curr_score = if alphas[i] == best_path {
             dpm[i][j][best_path]
@@ -891,11 +913,11 @@ fn gaf_output_semiglobal(
         let max = *[d, u, l].iter().max().unwrap();
         if max == d {
             if curr_score < d {
-                cigar.push('d');
+                temp_cigar.push('d');
             } else {
-                cigar.push('D');
+                temp_cigar.push('D');
             }
-            handle_id_alignment.push(handles_nodes_id[i]);
+            temp_handle_id_alignment.push(handles_nodes_id[i]);
             i = if predecessor.is_none() {
                 i - 1
             } else {
@@ -904,8 +926,8 @@ fn gaf_output_semiglobal(
             j -= 1;
             path_length += 1;
         } else if max == u {
-            cigar.push('U');
-            handle_id_alignment.push(handles_nodes_id[i]);
+            temp_cigar.push('U');
+            temp_handle_id_alignment.push(handles_nodes_id[i]);
             i = if predecessor.is_none() {
                 i - 1
             } else {
@@ -913,17 +935,66 @@ fn gaf_output_semiglobal(
             };
             path_length += 1;
         } else {
-            cigar.push('L');
+            temp_cigar.push('L');
             j -= 1;
         }
     }
     while j > 0 {
-        cigar.push('L');
+        temp_cigar.push('L');
         j -= 1;
     }
 
-    // TODO: build gaf
+    temp_cigar.reverse();
+    temp_cigar.append(&mut cigar);
+
+    temp_handle_id_alignment.reverse();
+    temp_handle_id_alignment.append(&mut handle_id_alignment);
+    temp_handle_id_alignment.dedup();
+
+    let query_name = String::from("Temp");
+    let seq_length = dpm[0].len() - 1;
+    let query_start = 0;
+    let query_end = dpm[0].len() - 2;
+    let strand = '+';
+    let path: Vec<usize> = temp_handle_id_alignment
+        .iter()
+        .map(|id| *id as usize)
+        .collect();
+    let path_start = get_node_offset(handles_nodes_id, if i == 0 { i } else { i + 1 }) as usize; // first letter used in first node of alignment
+    let path_end = get_node_offset(handles_nodes_id, rev_ending_node) as usize;
+    let align_block_length = "*"; // to set
+    let mapping_quality = "*"; // to set
+    let recombination = if best_path == rev_best_path {
+        format!("No recombination, best path: {}", best_path)
+    } else {
+        format!(
+            "recombination path {} {}, nodes {} {}",
+            best_path,
+            rev_best_path,
+            handles_nodes_id[forward_ending_node],
+            handles_nodes_id[reverse_starting_node]
+        )
+    };
+    let comments = format!("{}, {}", build_cigar(&temp_cigar), recombination);
+
+    let gaf_output = GAFStruct::build_gaf_struct(
+        query_name,
+        seq_length,
+        query_start,
+        query_end,
+        strand,
+        path,
+        path_length,
+        path_start,
+        path_end,
+        0,
+        String::from(align_block_length),
+        String::from(mapping_quality),
+        comments,
+    );
+    gaf_output
 }
+/*
 fn get_start_ending_position(
     rec_col: usize,
     nwp: &BitVec,
@@ -1026,3 +1097,4 @@ fn get_start_ending_position(
     }
     (i, rev_i)
 }
+*/

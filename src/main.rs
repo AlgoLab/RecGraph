@@ -279,8 +279,7 @@ fn main() {
             let graph = pathwise_graph::read_graph_w_path(&graph_path, false);
             let (base_rec_cost, multi_rec_cost) = args_parser::get_base_multi_recombination_cost();
             for (i, seq) in sequences.iter().enumerate() {
-                println!("Sequence {i}");
-                pathwise_alignment_recombination::exec(
+                let mut gaf = pathwise_alignment_recombination::exec(
                     align_mode,
                     seq,
                     &graph,
@@ -288,6 +287,8 @@ fn main() {
                     base_rec_cost,
                     multi_rec_cost,
                 );
+                gaf.query_name = seq_names[i].clone();
+                utils::write_gaf(&gaf.to_string(), i);
             }
         }
         _ => {
