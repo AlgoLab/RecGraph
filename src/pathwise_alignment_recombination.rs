@@ -775,6 +775,155 @@ fn best_alignment(
     )
 }
 
+fn gaf_output_semiglobal(
+    dpm: &Vec<Vec<Vec<i32>>>,
+    rev_dpm: &Vec<Vec<Vec<i32>>>,
+    lnz: &Vec<char>,
+    seq: &[char],
+    scores: &HashMap<(char, char), i32>,
+    alphas: &Vec<usize>,
+    best_path: usize,
+    rev_best_path: usize,
+    pred_hash: &PredHash,
+    rev_pred_hash: &PredHash,
+    nwp: &BitVec,
+    rev_nwp: &BitVec,
+    handles_nodes_id: &Vec<u64>,
+    forward_ending_node: usize,
+    reverse_starting_node: usize,
+    reverse_ending_node: usize,
+    rec_col: usize,
+) {
+    let mut cigar = Vec::new();
+    let mut path_length: usize = 0;
+    let mut i = reverse_starting_node;
+    let mut j = rec_col + 1;
+    let mut handle_id_alignment = Vec::new();
+
+    // reverse alignment
+    while i <= reverse_ending_node && j < dpm[0].len() - 1 {
+        let curr_score = rev_dpm[i][j][rev_best_path];
+
+        let mut predecessor = None;
+        let (d, u, l) = if !rev_nwp[i] {
+            (
+                rev_dpm[i + 1][j + 1][rev_best_path] + scores.get(&(lnz[i], seq[j])).unwrap(),
+                rev_dpm[i + 1][j][rev_best_path] + scores.get(&(lnz[i], '-')).unwrap(),
+                rev_dpm[i][j + 1][rev_best_path] + scores.get(&('-', seq[j])).unwrap(),
+            )
+        } else {
+            let preds = rev_pred_hash.get_preds_and_paths(i);
+            let (mut d, mut u, mut l) = (0, 0, 0);
+            for (pred, paths) in preds.iter() {
+                if paths[rev_best_path] {
+                    predecessor = Some(*pred);
+                    d = rev_dpm[*pred][j + 1][rev_best_path]
+                        + scores.get(&(lnz[i], seq[j])).unwrap();
+                    u = rev_dpm[*pred][j][rev_best_path] + scores.get(&(lnz[i], '-')).unwrap();
+                    l = rev_dpm[i][j + 1][rev_best_path] + scores.get(&('-', seq[j])).unwrap();
+                }
+            }
+            (d, u, l)
+        };
+
+        let max = *[d, u, l].iter().max().unwrap();
+        if max == d {
+        } else if max == u {
+        } else {
+        }
+    }
+    //TODO: set ambient for forward alignment
+
+    i = forward_ending_node;
+    while i > 0 && j > 0 {
+        let curr_score = if alphas[i] == best_path {
+            dpm[i][j][best_path]
+        } else {
+            dpm[i][j][best_path] + dpm[i][j][alphas[i]]
+        };
+        let mut predecessor = None;
+        let (d, u, l) = if !nwp[i] {
+            (
+                if alphas[i - 1] == best_path {
+                    dpm[i - 1][j - 1][best_path]
+                } else {
+                    dpm[i - 1][j - 1][best_path] + dpm[i - 1][j - 1][alphas[i - 1]]
+                } + scores.get(&(lnz[i], seq[j])).unwrap(),
+                if alphas[i - 1] == best_path {
+                    dpm[i - 1][j][best_path]
+                } else {
+                    dpm[i - 1][j][best_path] + dpm[i - 1][j][alphas[i - 1]]
+                } + scores.get(&(lnz[i], '-')).unwrap(),
+                if alphas[i] == best_path {
+                    dpm[i][j - 1][best_path]
+                } else {
+                    dpm[i][j - 1][best_path] + dpm[i][j - 1][alphas[i]]
+                } + scores.get(&('-', seq[j])).unwrap(),
+            )
+        } else {
+            let preds = pred_hash.get_preds_and_paths(i);
+            let (mut d, mut u, mut l) = (0, 0, 0);
+            for (pred, paths) in preds.iter() {
+                if paths[best_path] {
+                    predecessor = Some(*pred);
+                    if alphas[*pred] == best_path {
+                        d = dpm[*pred][j - 1][best_path] + scores.get(&(lnz[i], seq[j])).unwrap();
+                        u = dpm[*pred][j][best_path] + scores.get(&(lnz[i], '-')).unwrap();
+                    } else {
+                        d = dpm[*pred][j - 1][best_path]
+                            + dpm[*pred][j - 1][alphas[*pred]]
+                            + scores.get(&(lnz[i], seq[j])).unwrap();
+                        u = dpm[*pred][j][best_path]
+                            + dpm[*pred][j][alphas[*pred]]
+                            + scores.get(&(lnz[i], '-')).unwrap();
+                    }
+                    if alphas[i] == best_path {
+                        l = dpm[i][j - 1][best_path] + scores.get(&('-', seq[j])).unwrap();
+                    } else {
+                        l = dpm[i][j - 1][best_path]
+                            + dpm[i][j - 1][alphas[i]]
+                            + scores.get(&('-', seq[j])).unwrap();
+                    }
+                }
+            }
+            (d, u, l)
+        };
+        let max = *[d, u, l].iter().max().unwrap();
+        if max == d {
+            if curr_score < d {
+                cigar.push('d');
+            } else {
+                cigar.push('D');
+            }
+            handle_id_alignment.push(handles_nodes_id[i]);
+            i = if predecessor.is_none() {
+                i - 1
+            } else {
+                predecessor.unwrap()
+            };
+            j -= 1;
+            path_length += 1;
+        } else if max == u {
+            cigar.push('U');
+            handle_id_alignment.push(handles_nodes_id[i]);
+            i = if predecessor.is_none() {
+                i - 1
+            } else {
+                predecessor.unwrap()
+            };
+            path_length += 1;
+        } else {
+            cigar.push('L');
+            j -= 1;
+        }
+    }
+    while j > 0 {
+        cigar.push('L');
+        j -= 1;
+    }
+
+    // TODO: build gaf
+}
 fn get_start_ending_position(
     rec_col: usize,
     nwp: &BitVec,
