@@ -138,7 +138,6 @@ pub fn build_alignment(
         path_length += 1;
     }
     cigar.reverse();
-    cigar.pop();
 
     let query_name = String::from("Temp");
     let seq_length = dpm[0].len() - 1;

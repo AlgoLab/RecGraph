@@ -4,9 +4,10 @@ use crate::{
     gaf_output::GAFStruct,
     pathwise_alignment_output::{self, build_cigar},
     pathwise_graph::{self, PathGraph, PredHash},
+    recombination_output,
 };
 use std::collections::HashMap;
-fn get_node_offset(nodes_handles: &Vec<u64>, curr_node: usize) -> i32 {
+pub fn get_node_offset(nodes_handles: &Vec<u64>, curr_node: usize) -> i32 {
     let handle = nodes_handles[curr_node];
     if handle == 0 {
         0
@@ -47,7 +48,7 @@ pub fn exec(
             &graph.paths_nodes,
             &graph.pred_hash,
         );
-    let mut gaf = GAFStruct::new();
+    let gaf;
     if aln_mode == 8 {
         if forw_best_path == rev_best_path {
             gaf = pathwise_alignment_output::build_alignment(
@@ -58,16 +59,23 @@ pub fn exec(
                 forw_best_path,
             );
         } else {
-            //TODO: set gaf for global recombination
-            let fen_handle = graph.nodes_id_pos[forw_ending_node];
-            let fen_offset = get_node_offset(&graph.nodes_id_pos, forw_ending_node);
-
-            let rsn_handle = graph.nodes_id_pos[rev_starting_node];
-            let rsn_offset = get_node_offset(&graph.nodes_id_pos, rev_starting_node);
-
-            println!("Recombination between paths {forw_best_path} and {rev_best_path}");
-            println!("Recombination edge between node {fen_handle} (position: {fen_offset}) and node {rsn_handle} (position: {rsn_offset})");
-            println!()
+            gaf = recombination_output::gaf_output_global_rec(
+                &forward_matrix,
+                &reverse_matrix,
+                &sequence,
+                &score_matrix,
+                forw_best_path,
+                rev_best_path,
+                forw_ending_node,
+                rev_starting_node,
+                recombination_col,
+                &graph.lnz,
+                &graph.pred_hash,
+                &rev_graph.pred_hash,
+                &graph.nwp,
+                &rev_graph.nwp,
+                &graph.nodes_id_pos,
+            )
         }
     } else {
         if forw_best_path == rev_best_path {
