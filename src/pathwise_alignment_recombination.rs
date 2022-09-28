@@ -2,7 +2,7 @@ use bit_vec::BitVec;
 
 use crate::{
     gaf_output::GAFStruct,
-    pathwise_alignment_output::build_cigar,
+    pathwise_alignment_output::{self, build_cigar},
     pathwise_graph::{self, PathGraph, PredHash},
 };
 use std::collections::HashMap;
@@ -43,12 +43,22 @@ pub fn exec(
             &displacement_matrix,
             base_rec_cost,
             multi_rec_cost,
+            aln_mode,
+            &graph.paths_nodes,
+            &graph.pred_hash,
         );
     let mut gaf = GAFStruct::new();
     if aln_mode == 8 {
         if forw_best_path == rev_best_path {
-            println!("No recombination, best path: {forw_best_path}")
+            gaf = pathwise_alignment_output::build_alignment(
+                &forward_matrix,
+                &graph,
+                &sequence,
+                &score_matrix,
+                forw_best_path,
+            );
         } else {
+            //TODO: set gaf for global recombination
             let fen_handle = graph.nodes_id_pos[forw_ending_node];
             let fen_offset = get_node_offset(&graph.nodes_id_pos, forw_ending_node);
 
@@ -724,43 +734,75 @@ fn best_alignment(
     dms: &Vec<Vec<i32>>,
     brc: i32,
     mrc: f32,
+    aln_mode: i32,
+    nodes_path: &Vec<BitVec>,
+    pred_hash: &PredHash,
 ) -> (usize, usize, usize, usize, usize) {
-    let mut curr_best_score = 0;
     let mut forw_ending_node = 0;
     let mut rev_starting_node = 0;
-    let mut forw_best_path = 0;
-    let mut rev_best_path = 0;
     let mut recombination_col = 0;
+
+    let mut max = None;
+    let mut best_path = None;
+    if aln_mode == 8 {
+        let preds = pred_hash.get_preds_and_paths(m.len() - 1);
+        for (pred, paths) in preds.iter() {
+            for (path, is_in) in paths.iter().enumerate() {
+                if is_in {
+                    if max.is_none() || max.unwrap() < m[*pred][m[*pred].len() - 1][path] {
+                        max = Some(m[*pred][m[*pred].len() - 1][path]);
+                        best_path = Some(path)
+                    }
+                }
+            }
+        }
+    } else {
+        for i in 0..m.len() - 1 {
+            for path in 0..m[i][m[i].len() - 1].len() {
+                if nodes_path[i][path] {
+                    if max.is_none() || max.unwrap() < m[i][m[i].len() - 1][path] {
+                        max = Some(m[i][m[i].len() - 1][path]);
+                        best_path = Some(path);
+                    }
+                }
+            }
+        }
+    }
+    let mut curr_best_score = max.unwrap();
+    let mut forw_best_path = best_path.unwrap();
+    let mut rev_best_path = best_path.unwrap();
 
     for j in 0..m[0].len() - 1 {
         for i in 0..m.len() - 1 {
             for rev_i in 0..m.len() - 1 {
                 for forw_path in 0..m[0][0].len() {
-                    for rev_path in 0..m[0][0].len() {
-                        let penalty = if forw_path == rev_path {
-                            0
-                        } else {
-                            brc + (mrc * dms[i][rev_i] as f32) as i32
-                        };
-                        if m[i][j][forw_path] + w[rev_i][j + 1][rev_path] - penalty
-                            > curr_best_score
-                        {
-                            curr_best_score = m[i][j][forw_path] + w[rev_i][j + 1][rev_path];
-                            forw_ending_node = i;
-                            rev_starting_node = rev_i;
-                            forw_best_path = forw_path;
-                            rev_best_path = rev_path;
-                            recombination_col = j;
+                    if nodes_path[i][forw_path] {
+                        for rev_path in 0..m[0][0].len() {
+                            if nodes_path[rev_i][rev_path] {
+                                let penalty = if forw_path == rev_path {
+                                    0
+                                } else {
+                                    brc + (mrc * dms[i][rev_i] as f32) as i32
+                                };
+                                if m[i][j][forw_path] + w[rev_i][j + 1][rev_path] - penalty
+                                    > curr_best_score
+                                {
+                                    curr_best_score =
+                                        m[i][j][forw_path] + w[rev_i][j + 1][rev_path];
+                                    forw_ending_node = i;
+                                    rev_starting_node = rev_i;
+                                    forw_best_path = forw_path;
+                                    rev_best_path = rev_path;
+                                    recombination_col = j;
+                                }
+                            }
                         }
                     }
                 }
             }
         }
     }
-    /*
-    println!("i: {forw_ending_node}\trev_i: {rev_starting_node}\tj: {recombination_col}");
-    println!("m[i,j]: {:?}\tw[rev_i,j]: {:?}", m[forw_ending_node][recombination_col], w[rev_starting_node][recombination_col+1]);
-    */
+
     (
         forw_ending_node,
         rev_starting_node,
