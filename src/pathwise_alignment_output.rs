@@ -122,6 +122,7 @@ pub fn build_alignment_semiglobal(
     let mut cigar = Vec::new();
     let mut path_length: usize = 0;
     let mut i = ending_node;
+    println!("{ending_node}");
     let mut j = dpm[i].len() - 1;
     let mut handle_id_alignment = Vec::new();
 
