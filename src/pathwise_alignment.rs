@@ -1,3 +1,4 @@
+use crate::gaf_output::GAFStruct;
 use crate::pathwise_alignment_output::build_alignment;
 use crate::pathwise_graph::PathGraph;
 use std::collections::HashMap;
@@ -5,7 +6,7 @@ pub fn exec(
     sequence: &[char],
     graph: &PathGraph,
     score_matrix: &HashMap<(char, char), i32>,
-) -> usize {
+) -> GAFStruct {
     let lnz = &graph.lnz;
     let nodes_with_pred = &graph.nwp;
     let pred_hash = &graph.pred_hash;
@@ -310,17 +311,10 @@ pub fn exec(
         .map(|(path, score)| (score, path))
         .max();
 
-    let cigar_output = build_alignment(
-        &dpm,
-        &alphas,
-        best_path.unwrap().1,
-        &pred_hash,
-        &nodes_with_pred,
-    );
-    println!("{}", cigar_output);
-    best_path.unwrap().1
+    let gaf = build_alignment(&dpm, &graph, &sequence, &score_matrix, best_path.unwrap().1);
+    gaf
 }
-
+/*
 #[cfg(test)]
 mod tests {
     use crate::{pathwise_graph, score_matrix::create_score_matrix_match_mis, sequences};
@@ -376,3 +370,4 @@ mod tests {
         assert_eq!(best_path, 0);
     }
 }
+ */

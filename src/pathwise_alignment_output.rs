@@ -2,16 +2,27 @@ use std::collections::HashMap;
 
 use bit_vec::BitVec;
 
-use crate::{gaf_output::GAFStruct, pathwise_graph::PredHash};
+use crate::{
+    gaf_output::GAFStruct,
+    pathwise_graph::{PathGraph, PredHash},
+};
 
 pub fn build_alignment(
     dpm: &Vec<Vec<Vec<i32>>>,
-    alphas: &Vec<usize>,
+    graph: &PathGraph,
+    seq: &[char],
+    scores: &HashMap<(char, char), i32>,
     best_path: usize,
-    pred_hash: &PredHash,
-    nwp: &BitVec,
-) -> String {
+) -> GAFStruct {
+    let pred_hash = &graph.pred_hash;
+    let alphas = &graph.alphas;
+    let nwp = &graph.nwp;
+    let handles_nodes_id = &graph.nodes_id_pos;
+    let lnz = &graph.lnz;
+
+    let mut path_length: usize = 0;
     let mut cigar = Vec::new();
+    let mut handle_id_alignment = Vec::new();
     let mut i = 0;
     let ending_nodes = pred_hash.get_preds_and_paths(dpm.len() - 1);
     for (node, paths) in ending_nodes.iter() {
@@ -19,6 +30,7 @@ pub fn build_alignment(
             i = *node;
         }
     }
+    let ending_node = i;
 
     let mut j = dpm[i].len() - 1;
     while i != 0 && j != 0 {
@@ -34,17 +46,17 @@ pub fn build_alignment(
                     dpm[i - 1][j - 1][best_path]
                 } else {
                     dpm[i - 1][j - 1][best_path] + dpm[i - 1][j - 1][alphas[i - 1]]
-                },
+                } + scores.get(&(lnz[i], seq[j])).unwrap(),
                 if alphas[i - 1] == best_path {
                     dpm[i - 1][j][best_path]
                 } else {
                     dpm[i - 1][j][best_path] + dpm[i - 1][j][alphas[i - 1]]
-                },
+                } + scores.get(&(lnz[i], '-')).unwrap(),
                 if alphas[i] == best_path {
                     dpm[i][j - 1][best_path]
                 } else {
                     dpm[i][j - 1][best_path] + dpm[i][j - 1][alphas[i]]
-                },
+                } + scores.get(&('-', seq[j])).unwrap(),
             )
         } else {
             let preds = pred_hash.get_preds_and_paths(i);
@@ -53,16 +65,22 @@ pub fn build_alignment(
                 if paths[best_path] {
                     predecessor = Some(*pred);
                     if alphas[*pred] == best_path {
-                        d = dpm[*pred][j - 1][best_path];
-                        u = dpm[*pred][j][best_path];
+                        d = dpm[*pred][j - 1][best_path] + scores.get(&(lnz[i], seq[j])).unwrap();
+                        u = dpm[*pred][j][best_path] + scores.get(&(lnz[i], '-')).unwrap();
                     } else {
-                        d = dpm[*pred][j - 1][best_path] + dpm[*pred][j - 1][alphas[*pred]];
-                        u = dpm[*pred][j][best_path] + dpm[*pred][j][alphas[*pred]];
+                        d = dpm[*pred][j - 1][best_path]
+                            + dpm[*pred][j - 1][alphas[*pred]]
+                            + scores.get(&(lnz[i], seq[j])).unwrap();
+                        u = dpm[*pred][j][best_path]
+                            + dpm[*pred][j][alphas[*pred]]
+                            + scores.get(&(lnz[i], '-')).unwrap();
                     }
                     if alphas[i] == best_path {
-                        l = dpm[i][j - 1][best_path];
+                        l = dpm[i][j - 1][best_path] + scores.get(&('-', seq[j])).unwrap();
                     } else {
-                        l = dpm[i][j - 1][best_path] + dpm[i][j - 1][alphas[i]];
+                        l = dpm[i][j - 1][best_path]
+                            + dpm[i][j - 1][alphas[i]]
+                            + scores.get(&('-', seq[j])).unwrap();
                     }
                 }
             }
@@ -75,20 +93,23 @@ pub fn build_alignment(
             } else {
                 cigar.push('D');
             }
-
+            handle_id_alignment.push(handles_nodes_id[i]);
             i = if predecessor.is_none() {
                 i - 1
             } else {
                 predecessor.unwrap()
             };
             j -= 1;
+            path_length += 1;
         } else if max == u {
             cigar.push('U');
+            handle_id_alignment.push(handles_nodes_id[i]);
             i = if predecessor.is_none() {
                 i - 1
             } else {
                 predecessor.unwrap()
             };
+            path_length += 1;
         } else {
             cigar.push('L');
             j -= 1;
@@ -99,12 +120,57 @@ pub fn build_alignment(
         j -= 1;
     }
     while i > 0 {
+        let predecessor = if !nwp[i] {
+            i - 1
+        } else {
+            let preds = pred_hash.get_preds_and_paths(i);
+            let mut p = 0;
+            for (pred, paths) in preds.iter() {
+                if paths[best_path] {
+                    p = *pred;
+                }
+            }
+            p
+        };
         cigar.push('U');
-        i -= 1;
+        handle_id_alignment.push(handles_nodes_id[i]);
+        i = predecessor;
+        path_length += 1;
     }
     cigar.reverse();
     cigar.pop();
-    build_cigar(&cigar)
+
+    let query_name = String::from("Temp");
+    let seq_length = dpm[0].len() - 1;
+    let query_start = 0;
+    let query_end = dpm[0].len() - 2;
+    let strand = '+';
+    handle_id_alignment.dedup();
+    handle_id_alignment.reverse();
+    let path: Vec<usize> = handle_id_alignment.iter().map(|id| *id as usize).collect();
+    //path length already set
+    let path_start = 0;
+    let path_end = get_node_offset(handles_nodes_id, ending_node) as usize; // last letter used in last node of alignment
+
+    let align_block_length = "*"; // to set
+    let mapping_quality = "*"; // to set
+    let comments = format!("{}, best path: {}", build_cigar(&cigar), best_path);
+    let gaf_output = GAFStruct::build_gaf_struct(
+        query_name,
+        seq_length,
+        query_start,
+        query_end,
+        strand,
+        path,
+        path_length,
+        path_start,
+        path_end,
+        0,
+        String::from(align_block_length),
+        String::from(mapping_quality),
+        comments,
+    );
+    gaf_output
 }
 
 pub fn build_alignment_semiglobal(
@@ -122,7 +188,6 @@ pub fn build_alignment_semiglobal(
     let mut cigar = Vec::new();
     let mut path_length: usize = 0;
     let mut i = ending_node;
-    println!("{ending_node}");
     let mut j = dpm[i].len() - 1;
     let mut handle_id_alignment = Vec::new();
 
