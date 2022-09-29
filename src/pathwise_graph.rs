@@ -91,7 +91,7 @@ impl PredHash {
         }
         preds_paths
     }
-    
+
     pub fn set_preds_and_paths(
         &mut self,
         curr_node: usize,
@@ -291,11 +291,12 @@ pub fn nodes_displacement_matrix(graph: &PathGraph) -> Vec<Vec<i32>> {
                 ndm[i][j] = 0;
             } else {
                 let (common_pred, common_succ) = get_nodes_pred_and_succ(paths, i, j);
-                /* 
+                /*
                 let distance = ((i - common_pred) - (j - common_pred))
                     + ((common_succ - j) - (common_succ - i));
                 */
-                let distance = ((dfe[i] - dfe[common_pred]) - (dfe[j] - dfe[common_pred])) + ((dfe[i] - dfe[common_succ]) - (dfe[j]- dfe[common_succ]));
+                let distance = ((dfe[i] - dfe[common_pred]) - (dfe[j] - dfe[common_pred]))
+                    + ((dfe[i] - dfe[common_succ]) - (dfe[j] - dfe[common_succ]));
                 let displacement = distance as i32;
                 ndm[i][j] = displacement.abs();
             }
@@ -311,7 +312,7 @@ fn get_distance_from_end(graph: &PathGraph) -> Vec<usize> {
     let mut r_values: Vec<isize> = vec![-1; lnz_len];
     r_values[lnz_len - 1] = 0;
 
-    for (p,_) in pred_hash.get_preds_and_paths(lnz_len - 1) {
+    for (p, _) in pred_hash.get_preds_and_paths(lnz_len - 1) {
         r_values[p] = 0;
     }
     for i in (1..lnz_len - 1).rev() {
@@ -319,7 +320,7 @@ fn get_distance_from_end(graph: &PathGraph) -> Vec<usize> {
             r_values[i] = r_values[i + 1] + 1;
         }
         if nwp[i] {
-            for (p,_) in pred_hash.get_preds_and_paths(i) {
+            for (p, _) in pred_hash.get_preds_and_paths(i) {
                 if r_values[p] == -1 || r_values[p] > r_values[i] + 1 {
                     r_values[p] = r_values[i] + 1;
                 }
@@ -353,7 +354,7 @@ fn get_nodes_pred_and_succ(paths: &Vec<BitVec>, i: usize, j: usize) -> (usize, u
         }
         counter += 1;
     }
-    
+
     (common_pred, common_succ)
 }
 #[cfg(test)]

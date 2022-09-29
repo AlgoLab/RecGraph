@@ -295,13 +295,6 @@ fn main() {
                 utils::write_gaf(&gaf.to_string(), i);
             }
         }
-        10 => {
-            let graph = pathwise_graph::read_graph_w_path(&graph_path, false);
-            let start = std::time::Instant::now();
-            let m = nodes_displacement_matrix(&graph);
-            let duration = start.elapsed().as_millis();
-            println!("{duration}");
-        }
         _ => {
             panic!("alignment mode must be 0, 1, 2 or 3");
         }
