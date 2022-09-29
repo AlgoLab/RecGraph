@@ -1,8 +1,10 @@
 use bit_vec::BitVec;
 
 use crate::{
-    gaf_output::GAFStruct, pathwise_alignment_output::build_cigar,
-    pathwise_alignment_recombination::get_node_offset, pathwise_graph::PredHash,
+    gaf_output::GAFStruct,
+    pathwise_alignment_output::build_cigar,
+    pathwise_alignment_recombination::get_node_offset,
+    pathwise_graph::{PathGraph, PredHash},
 };
 use std::collections::HashMap;
 
@@ -231,6 +233,139 @@ pub fn gaf_output_global_rec(
     };
     let comments = format!("{}, {}", build_cigar(&temp_cigar), recombination);
 
+    let gaf_output = GAFStruct::build_gaf_struct(
+        query_name,
+        seq_length,
+        query_start,
+        query_end,
+        strand,
+        path,
+        path_length,
+        path_start,
+        path_end,
+        0,
+        String::from(align_block_length),
+        String::from(mapping_quality),
+        comments,
+    );
+    gaf_output
+}
+
+pub fn gaf_output_global_no_rec(
+    dpm: &Vec<Vec<Vec<i32>>>,
+    graph: &PathGraph,
+    seq: &[char],
+    scores: &HashMap<(char, char), i32>,
+    best_path: usize,
+) -> GAFStruct {
+    let pred_hash = &graph.pred_hash;
+    let nwp = &graph.nwp;
+    let handles_nodes_id = &graph.nodes_id_pos;
+    let lnz = &graph.lnz;
+
+    let mut path_length: usize = 0;
+    let mut cigar = Vec::new();
+    let mut handle_id_alignment = Vec::new();
+    let mut i = 0;
+    let ending_nodes = pred_hash.get_preds_and_paths(dpm.len() - 1);
+    for (node, paths) in ending_nodes.iter() {
+        if paths[best_path] {
+            i = *node;
+        }
+    }
+    let ending_node = i;
+
+    let mut j = dpm[i].len() - 1;
+    while i != 0 && j != 0 {
+        let curr_score = dpm[i][j][best_path];
+        let mut predecessor = None;
+        let (d, u, l) = if !nwp[i] {
+            (
+                dpm[i - 1][j - 1][best_path] + scores.get(&(lnz[i], seq[j])).unwrap(),
+                dpm[i - 1][j][best_path] + scores.get(&(lnz[i], '-')).unwrap(),
+                dpm[i][j - 1][best_path] + scores.get(&('-', seq[j])).unwrap(),
+            )
+        } else {
+            let preds = pred_hash.get_preds_and_paths(i);
+            let (mut d, mut u, mut l) = (0, 0, 0);
+            for (pred, paths) in preds.iter() {
+                if paths[best_path] {
+                    predecessor = Some(*pred);
+                    d = dpm[*pred][j - 1][best_path] + scores.get(&(lnz[i], seq[j])).unwrap();
+                    u = dpm[*pred][j][best_path] + scores.get(&(lnz[i], '-')).unwrap();
+                    l = dpm[i][j - 1][best_path] + scores.get(&('-', seq[j])).unwrap();
+                }
+            }
+            (d, u, l)
+        };
+        let max = *[d, u, l].iter().max().unwrap();
+        if max == d {
+            if curr_score < d {
+                cigar.push('d');
+            } else {
+                cigar.push('D');
+            }
+            handle_id_alignment.push(handles_nodes_id[i]);
+            i = if predecessor.is_none() {
+                i - 1
+            } else {
+                predecessor.unwrap()
+            };
+            j -= 1;
+            path_length += 1;
+        } else if max == u {
+            cigar.push('U');
+            handle_id_alignment.push(handles_nodes_id[i]);
+            i = if predecessor.is_none() {
+                i - 1
+            } else {
+                predecessor.unwrap()
+            };
+            path_length += 1;
+        } else {
+            cigar.push('L');
+            j -= 1;
+        }
+    }
+    while j > 0 {
+        cigar.push('L');
+        j -= 1;
+    }
+    while i > 0 {
+        let predecessor = if !nwp[i] {
+            i - 1
+        } else {
+            let preds = pred_hash.get_preds_and_paths(i);
+            let mut p = 0;
+            for (pred, paths) in preds.iter() {
+                if paths[best_path] {
+                    p = *pred;
+                }
+            }
+            p
+        };
+        cigar.push('U');
+        handle_id_alignment.push(handles_nodes_id[i]);
+        i = predecessor;
+        path_length += 1;
+    }
+    cigar.reverse();
+
+    let query_name = String::from("Temp");
+    let seq_length = dpm[0].len() - 1;
+    let query_start = 0;
+    let query_end = dpm[0].len() - 2;
+    let strand = '+';
+    handle_id_alignment.dedup();
+    handle_id_alignment.reverse();
+    let path: Vec<usize> = handle_id_alignment.iter().map(|id| *id as usize).collect();
+    //path length already set
+    let path_start = 0;
+    let path_end = get_node_offset(handles_nodes_id, ending_node) as usize; // last letter used in last node of alignment
+
+    let align_block_length = "*"; // to set
+    let mapping_quality = "*"; // to set
+    let comments = format!("{}, best path: {}", build_cigar(&cigar), best_path);
     let gaf_output = GAFStruct::build_gaf_struct(
         query_name,
         seq_length,

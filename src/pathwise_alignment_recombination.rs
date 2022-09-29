@@ -2,7 +2,7 @@ use bit_vec::BitVec;
 
 use crate::{
     gaf_output::GAFStruct,
-    pathwise_alignment_output::{self, build_cigar},
+    pathwise_alignment_output::build_cigar,
     pathwise_graph::{self, PathGraph, PredHash},
     recombination_output,
 };
@@ -28,14 +28,13 @@ pub fn exec(
     score_matrix: &HashMap<(char, char), i32>,
     base_rec_cost: i32,
     multi_rec_cost: f32,
+    displacement_matrix: &Vec<Vec<i32>>,
 ) -> GAFStruct {
     let forward_matrix = align(aln_mode, sequence, graph, score_matrix);
 
     let rev_graph = pathwise_graph::create_reverse_path_graph(graph);
 
     let reverse_matrix = rev_align(aln_mode, sequence, &rev_graph, score_matrix);
-
-    let displacement_matrix = pathwise_graph::nodes_displacement_matrix(&graph.paths_nodes);
 
     let (forw_ending_node, rev_starting_node, forw_best_path, rev_best_path, recombination_col) =
         best_alignment(
@@ -51,7 +50,7 @@ pub fn exec(
     let gaf;
     if aln_mode == 8 {
         if forw_best_path == rev_best_path {
-            gaf = pathwise_alignment_output::build_alignment(
+            gaf = recombination_output::gaf_output_global_no_rec(
                 &forward_matrix,
                 &graph,
                 &sequence,
@@ -783,28 +782,33 @@ fn best_alignment(
     for j in 0..m[0].len() - 1 {
         for i in 0..m.len() - 1 {
             for rev_i in 0..m.len() - 1 {
-                for forw_path in 0..m[0][0].len() {
-                    if nodes_path[i][forw_path] {
-                        for rev_path in 0..m[0][0].len() {
-                            if nodes_path[rev_i][rev_path] {
-                                let penalty = if forw_path == rev_path {
-                                    0
-                                } else {
-                                    brc + (mrc * dms[i][rev_i] as f32) as i32
-                                };
-                                if m[i][j][forw_path] + w[rev_i][j + 1][rev_path] - penalty
-                                    > curr_best_score
-                                {
-                                    curr_best_score =
-                                        m[i][j][forw_path] + w[rev_i][j + 1][rev_path];
-                                    forw_ending_node = i;
-                                    rev_starting_node = rev_i;
-                                    forw_best_path = forw_path;
-                                    rev_best_path = rev_path;
-                                    recombination_col = j;
-                                }
-                            }
-                        }
+                let forw_path = m[i][j]
+                    .iter()
+                    .enumerate()
+                    .map(|(path, score)| (score, path))
+                    .max()
+                    .unwrap()
+                    .1;
+                let rev_path = w[rev_i][j + 1]
+                    .iter()
+                    .enumerate()
+                    .map(|(path, score)| (score, path))
+                    .max()
+                    .unwrap()
+                    .1;
+                if nodes_path[i][forw_path] && nodes_path[rev_i][rev_path] {
+                    let penalty = if forw_path == rev_path {
+                        0
+                    } else {
+                        brc + (mrc * dms[i][rev_i] as f32) as i32
+                    };
+                    if m[i][j][forw_path] + w[rev_i][j + 1][rev_path] - penalty > curr_best_score {
+                        curr_best_score = m[i][j][forw_path] + w[rev_i][j + 1][rev_path];
+                        forw_ending_node = i;
+                        rev_starting_node = rev_i;
+                        forw_best_path = forw_path;
+                        rev_best_path = rev_path;
+                        recombination_col = j;
                     }
                 }
             }

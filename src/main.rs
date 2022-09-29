@@ -10,6 +10,7 @@ use rspoa::pathwise_alignment_gap_semi;
 use rspoa::pathwise_alignment_recombination;
 use rspoa::pathwise_alignment_semiglobal;
 use rspoa::pathwise_graph;
+use rspoa::pathwise_graph::nodes_displacement_matrix;
 use rspoa::score_matrix;
 use rspoa::sequences;
 use rspoa::utils;
@@ -278,6 +279,7 @@ fn main() {
         }
         8 | 9 => {
             let graph = pathwise_graph::read_graph_w_path(&graph_path, false);
+            let displ_matrix = nodes_displacement_matrix(&graph);
             let (base_rec_cost, multi_rec_cost) = args_parser::get_base_multi_recombination_cost();
             for (i, seq) in sequences.iter().enumerate() {
                 let mut gaf = pathwise_alignment_recombination::exec(
@@ -287,10 +289,18 @@ fn main() {
                     &score_matrix,
                     base_rec_cost,
                     multi_rec_cost,
+                    &displ_matrix,
                 );
                 gaf.query_name = seq_names[i].clone();
                 utils::write_gaf(&gaf.to_string(), i);
             }
+        }
+        10 => {
+            let graph = pathwise_graph::read_graph_w_path(&graph_path, false);
+            let start = std::time::Instant::now();
+            let m = nodes_displacement_matrix(&graph);
+            let duration = start.elapsed().as_millis();
+            println!("{duration}");
         }
         _ => {
             panic!("alignment mode must be 0, 1, 2 or 3");

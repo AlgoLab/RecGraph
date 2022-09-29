@@ -5,7 +5,7 @@ use handlegraph::{
     handlegraph::HandleGraph,
     hashgraph::HashGraph,
 };
-use std::collections::HashMap;
+use std::{cmp, collections::HashMap};
 //TODO: check path versus, only working with every path on + or -
 pub struct PathGraph {
     pub lnz: Vec<char>,
@@ -91,7 +91,7 @@ impl PredHash {
         }
         preds_paths
     }
-
+    
     pub fn set_preds_and_paths(
         &mut self,
         curr_node: usize,
@@ -281,47 +281,79 @@ pub fn create_reverse_path_graph(forward_graph: &PathGraph) -> PathGraph {
     )
 }
 
-pub fn nodes_displacement_matrix(paths: &Vec<BitVec>) -> Vec<Vec<i32>> {
+pub fn nodes_displacement_matrix(graph: &PathGraph) -> Vec<Vec<i32>> {
+    let paths = &&graph.paths_nodes;
+    let dfe = get_distance_from_end(graph);
     let mut ndm = vec![vec![0; paths.len()]; paths.len()];
     for i in 0..paths.len() {
         for j in 0..paths.len() {
-            let (common_pred, common_succ) = get_nodes_pred_and_succ(paths, i, j);
-            let displacement =
-                ((i - common_pred) - (j - common_pred)) + ((common_succ - i) + (common_succ - j));
-            ndm[i][j] = displacement as i32;
+            if i == j {
+                ndm[i][j] = 0;
+            } else {
+                let (common_pred, common_succ) = get_nodes_pred_and_succ(paths, i, j);
+                /* 
+                let distance = ((i - common_pred) - (j - common_pred))
+                    + ((common_succ - j) - (common_succ - i));
+                */
+                let distance = ((dfe[i] - dfe[common_pred]) - (dfe[j] - dfe[common_pred])) + ((dfe[i] - dfe[common_succ]) - (dfe[j]- dfe[common_succ]));
+                let displacement = distance as i32;
+                ndm[i][j] = displacement.abs();
+            }
         }
     }
     ndm
 }
 
+fn get_distance_from_end(graph: &PathGraph) -> Vec<usize> {
+    let nwp = &graph.nwp;
+    let pred_hash = &graph.pred_hash;
+    let lnz_len = graph.lnz.len();
+    let mut r_values: Vec<isize> = vec![-1; lnz_len];
+    r_values[lnz_len - 1] = 0;
+
+    for (p,_) in pred_hash.get_preds_and_paths(lnz_len - 1) {
+        r_values[p] = 0;
+    }
+    for i in (1..lnz_len - 1).rev() {
+        if r_values[i] == -1 || r_values[i] > r_values[i + 1] + 1 {
+            r_values[i] = r_values[i + 1] + 1;
+        }
+        if nwp[i] {
+            for (p,_) in pred_hash.get_preds_and_paths(i) {
+                if r_values[p] == -1 || r_values[p] > r_values[i] + 1 {
+                    r_values[p] = r_values[i] + 1;
+                }
+            }
+        }
+    }
+    r_values.iter().map(|x| *x as usize).collect()
+}
 fn get_nodes_pred_and_succ(paths: &Vec<BitVec>, i: usize, j: usize) -> (usize, usize) {
     let mut common_pred = 0;
     let mut common_succ = paths.len() - 1;
-    let mut counter = 0;
-    if i == j {
-        common_pred = i;
-        common_succ = i;
-    } else {
-        while counter <= i && counter <= j {
-            let mut i_j_paths = paths[i].clone();
-            i_j_paths.and(&paths[j]);
-            i_j_paths.and(&paths[counter]);
-            if i_j_paths.any() {
-                common_pred = counter;
-            }
-            counter += 1;
+    let mut counter = cmp::min(i, j);
+    while counter > 0 {
+        let mut i_j_paths = paths[i].clone();
+        i_j_paths.and(&paths[j]);
+        i_j_paths.and(&paths[counter]);
+        if i_j_paths.any() {
+            common_pred = counter;
+            break;
         }
-        counter = paths.len() - 1;
-        while counter >= i && counter >= j {
-            let mut i_j_paths = paths[i].clone();
-            i_j_paths.and(&paths[j]);
-            i_j_paths.and(&paths[counter]);
-            if i_j_paths.any() {
-                common_succ = counter;
-            }
-            counter -= 1;
-        }
+        counter -= 1;
     }
+    counter = cmp::max(i, j);
+    while counter < paths.len() {
+        let mut i_j_paths = paths[i].clone();
+        i_j_paths.and(&paths[j]);
+        i_j_paths.and(&paths[counter]);
+        if i_j_paths.any() {
+            common_succ = counter;
+            break;
+        }
+        counter += 1;
+    }
+    
     (common_pred, common_succ)
 }
 #[cfg(test)]
