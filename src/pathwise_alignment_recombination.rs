@@ -4,7 +4,7 @@ use crate::{
     gaf_output::GAFStruct,
     pathwise_alignment_output::build_cigar,
     pathwise_graph::{self, PathGraph, PredHash},
-    recombination_output,
+    recombination_output, utils,
 };
 use std::collections::HashMap;
 pub fn get_node_offset(nodes_handles: &Vec<u64>, curr_node: usize) -> i32 {
@@ -915,6 +915,8 @@ fn gaf_output_semiglobal_rec(
     } else {
         cigar.push('d')
     }
+    path_length += 1;
+
     while i > 0 && j > 0 {
         let mut predecessor = None;
         let (d, u, l) = if !nwp[i] {
@@ -988,6 +990,8 @@ fn gaf_output_semiglobal_rec(
         .collect();
     let path_start = get_node_offset(handles_nodes_id, if i == 0 { i } else { i + 1 }) as usize; // first letter used in first node of alignment
     let path_end = get_node_offset(handles_nodes_id, rev_ending_node) as usize;
+    //let (path_len, path_start, path_end) = utils::get_path_len_start_end(&handles_nodes_id, if i == 0 { i } else { i + 1 }, rev_ending_node, path_length);
+
     let align_block_length = "*"; // to set
     let mapping_quality = "*"; // to set
     let recombination = if best_path == rev_best_path {
@@ -1117,9 +1121,12 @@ fn gaf_output_semiglobal_no_rec(
     handle_id_alignment.dedup();
     handle_id_alignment.reverse();
     let path: Vec<usize> = handle_id_alignment.iter().map(|id| *id as usize).collect();
-    //path length already set
-    let path_start = get_node_offset(handles_nodes_id, if i == 0 { i } else { i + 1 }) as usize; // first letter used in first node of alignment
-    let path_end = get_node_offset(handles_nodes_id, ending_node) as usize; // last letter used in last node of alignment
+    let (path_len, path_start, path_end) = utils::get_path_len_start_end(
+        &handles_nodes_id,
+        if i == 0 { i } else { i + 1 },
+        ending_node,
+        path_length,
+    );
 
     let align_block_length = "*"; // to set
     let mapping_quality = "*"; // to set
@@ -1131,7 +1138,7 @@ fn gaf_output_semiglobal_no_rec(
         query_end,
         strand,
         path,
-        path_length,
+        path_len,
         path_start,
         path_end,
         0,

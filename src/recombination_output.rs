@@ -5,6 +5,7 @@ use crate::{
     pathwise_alignment_output::build_cigar,
     pathwise_alignment_recombination::get_node_offset,
     pathwise_graph::{PathGraph, PredHash},
+    utils,
 };
 use std::collections::HashMap;
 
@@ -355,9 +356,8 @@ pub fn gaf_output_global_no_rec(
     handle_id_alignment.dedup();
     handle_id_alignment.reverse();
     let path: Vec<usize> = handle_id_alignment.iter().map(|id| *id as usize).collect();
-    //path length already set
-    let path_start = 0;
-    let path_end = get_node_offset(handles_nodes_id, ending_node) as usize; // last letter used in last node of alignment
+    let (path_len, path_start, path_end) =
+        utils::get_path_len_start_end(&handles_nodes_id, 0, ending_node, path_length);
 
     let align_block_length = "*"; // to set
     let mapping_quality = "*"; // to set
@@ -369,7 +369,7 @@ pub fn gaf_output_global_no_rec(
         query_end,
         strand,
         path,
-        path_length,
+        path_len,
         path_start,
         path_end,
         0,

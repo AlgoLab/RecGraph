@@ -217,3 +217,38 @@ pub fn write_gaf(gaf_out: &str, number: usize) {
         writeln!(f, "{}", gaf_out).expect("error in writing");
     }
 }
+
+pub fn get_path_len_start_end(
+    handles_nodes_id: &Vec<u64>,
+    start: usize,
+    end: usize,
+    path_len: usize,
+) -> (usize, usize, usize) {
+    let mut path_start = 0;
+    if start > 0 {
+        let first_node_id = handles_nodes_id[start];
+        let mut counter = start - 1;
+        while counter > 0 && handles_nodes_id[counter] == first_node_id {
+            counter -= 1;
+            path_start += 1;
+        }
+    }
+    let path_end = if path_len > 0 {
+        path_start + path_len - 1
+    } else {
+        0
+    };
+
+    let mut end_offset = 0;
+    if end > 0 {
+        let last_node_id = handles_nodes_id[end];
+        let mut counter = end + 1;
+        while counter < handles_nodes_id.len() - 1 && handles_nodes_id[counter] == last_node_id {
+            counter += 1;
+            end_offset += 1;
+        }
+    }
+
+    let path_len = path_end + end_offset + 1;
+    (path_len, path_start, path_end)
+}

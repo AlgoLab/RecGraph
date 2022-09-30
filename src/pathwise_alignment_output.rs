@@ -5,6 +5,7 @@ use bit_vec::BitVec;
 use crate::{
     gaf_output::GAFStruct,
     pathwise_graph::{PathGraph, PredHash},
+    utils,
 };
 
 pub fn build_alignment(
@@ -143,9 +144,8 @@ pub fn build_alignment(
     handle_id_alignment.dedup();
     handle_id_alignment.reverse();
     let path: Vec<usize> = handle_id_alignment.iter().map(|id| *id as usize).collect();
-    //path length already set
-    let path_start = 0;
-    let path_end = get_node_offset(handles_nodes_id, ending_node) as usize; // last letter used in last node of alignment
+    let (path_len, path_start, path_end) =
+        utils::get_path_len_start_end(&handles_nodes_id, 0, ending_node, path_length);
 
     let align_block_length = "*"; // to set
     let mapping_quality = "*"; // to set
@@ -157,7 +157,7 @@ pub fn build_alignment(
         query_end,
         strand,
         path,
-        path_length,
+        path_len,
         path_start,
         path_end,
         0,
@@ -278,10 +278,13 @@ pub fn build_alignment_semiglobal(
     handle_id_alignment.dedup();
     handle_id_alignment.reverse();
     let path: Vec<usize> = handle_id_alignment.iter().map(|id| *id as usize).collect();
-    //path length already set
-    let path_start = get_node_offset(handles_nodes_id, if i == 0 { i } else { i + 1 }) as usize; // first letter used in first node of alignment
-    let path_end = get_node_offset(handles_nodes_id, ending_node) as usize; // last letter used in last node of alignment
 
+    let (path_len, path_start, path_end) = utils::get_path_len_start_end(
+        &handles_nodes_id,
+        if i == 0 { i } else { i + 1 },
+        ending_node,
+        path_length,
+    );
     let align_block_length = "*"; // to set
     let mapping_quality = "*"; // to set
     let comments = format!("{}, best path: {}", build_cigar(&cigar), best_path);
@@ -292,7 +295,7 @@ pub fn build_alignment_semiglobal(
         query_end,
         strand,
         path,
-        path_length,
+        path_len,
         path_start,
         path_end,
         0,
@@ -674,7 +677,7 @@ pub fn build_cigar(cigar: &Vec<char>) -> String {
     }
     output_string
 }
-
+/*
 fn get_node_offset(nodes_handles: &Vec<u64>, curr_node: usize) -> i32 {
     let handle = nodes_handles[curr_node];
     if handle == 0 {
@@ -689,3 +692,4 @@ fn get_node_offset(nodes_handles: &Vec<u64>, curr_node: usize) -> i32 {
         offset
     }
 }
+*/
