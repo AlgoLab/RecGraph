@@ -90,7 +90,7 @@ struct Args {
         help_heading = "Alignment",
         short = 'r',
         long = "multi-rec-cost",
-        default_value_t = 0.01,
+        default_value_t = 0.1,
         help = "Displacement multiplier"
     )]
     multi_rec_cost: f32,
@@ -100,7 +100,7 @@ struct Args {
         help_heading = "Alignment",
         short = 'R',
         long = "base-rec-cost",
-        default_value_t = 0,
+        default_value_t = 4,
         help = "Recombination cost, determined with -r as R + r(displacement)"
     )]
     base_rec_cost: i32,

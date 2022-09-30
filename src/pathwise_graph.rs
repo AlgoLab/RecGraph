@@ -291,10 +291,6 @@ pub fn nodes_displacement_matrix(graph: &PathGraph) -> Vec<Vec<i32>> {
                 ndm[i][j] = 0;
             } else {
                 let (common_pred, common_succ) = get_nodes_pred_and_succ(paths, i, j);
-                /*
-                let distance = ((i - common_pred) - (j - common_pred))
-                    + ((common_succ - j) - (common_succ - i));
-                */
                 let distance = ((dfe[i] - dfe[common_pred]) - (dfe[j] - dfe[common_pred]))
                     + ((dfe[i] - dfe[common_succ]) - (dfe[j] - dfe[common_succ]));
                 let displacement = distance as i32;

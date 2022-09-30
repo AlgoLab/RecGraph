@@ -35,11 +35,7 @@ pub fn build_alignment(
     let mut j = dpm[i].len() - 1;
     while i != 0 && j != 0 {
         let mut predecessor = None;
-        let curr_score = if alphas[i] == best_path {
-            dpm[i][j][best_path]
-        } else {
-            dpm[i][j][best_path] + dpm[i][j][alphas[i]]
-        };
+
         let (d, u, l) = if !nwp[i] {
             (
                 if alphas[i - 1] == best_path {
@@ -88,7 +84,7 @@ pub fn build_alignment(
         };
         let max = *[d, u, l].iter().max().unwrap();
         if max == d {
-            if curr_score < d {
+            if lnz[i] != seq[j] {
                 cigar.push('d');
             } else {
                 cigar.push('D');
@@ -191,11 +187,6 @@ pub fn build_alignment_semiglobal(
     let mut handle_id_alignment = Vec::new();
 
     while i > 0 && j > 0 {
-        let curr_score = if alphas[i] == best_path {
-            dpm[i][j][best_path]
-        } else {
-            dpm[i][j][best_path] + dpm[i][j][alphas[i]]
-        };
         let mut predecessor = None;
         let (d, u, l) = if !nwp[i] {
             (
@@ -245,7 +236,7 @@ pub fn build_alignment_semiglobal(
         };
         let max = *[d, u, l].iter().max().unwrap();
         if max == d {
-            if curr_score < d {
+            if lnz[i] != seq[j] {
                 cigar.push('d');
             } else {
                 cigar.push('D');

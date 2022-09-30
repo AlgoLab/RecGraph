@@ -10,6 +10,7 @@ use rspoa::pathwise_alignment_gap_semi;
 use rspoa::pathwise_alignment_recombination;
 use rspoa::pathwise_alignment_semiglobal;
 use rspoa::pathwise_graph;
+use rspoa::pathwise_graph::create_reverse_path_graph;
 use rspoa::pathwise_graph::nodes_displacement_matrix;
 use rspoa::score_matrix;
 use rspoa::sequences;

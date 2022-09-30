@@ -779,9 +779,9 @@ fn best_alignment(
     let mut forw_best_path = best_path.unwrap();
     let mut rev_best_path = best_path.unwrap();
 
-    for j in 0..m[0].len() - 1 {
-        for i in 0..m.len() - 1 {
-            for rev_i in 0..m.len() - 1 {
+    for j in 1..m[0].len() - 1 {
+        for i in 1..m.len() - 1 {
+            for rev_i in 1..m.len() - 1 {
                 let forw_path = m[i][j]
                     .iter()
                     .enumerate()
@@ -849,8 +849,6 @@ fn gaf_output_semiglobal_rec(
     let mut handle_id_alignment = Vec::new();
     // reverse alignment
     while i > 0 && i < dpm.len() - 1 && j < dpm[0].len() - 1 {
-        let curr_score = rev_dpm[i][j][rev_best_path];
-
         let mut predecessor = None;
         let (d, u, l) = if !rev_nwp[i] {
             (
@@ -875,7 +873,7 @@ fn gaf_output_semiglobal_rec(
 
         let max = *[d, u, l].iter().max().unwrap();
         if max == d {
-            if curr_score < d {
+            if lnz[i] != seq[j] {
                 cigar.push('d');
             } else {
                 cigar.push('D');
@@ -918,7 +916,6 @@ fn gaf_output_semiglobal_rec(
         cigar.push('d')
     }
     while i > 0 && j > 0 {
-        let curr_score = dpm[i][j][best_path];
         let mut predecessor = None;
         let (d, u, l) = if !nwp[i] {
             (
@@ -941,7 +938,7 @@ fn gaf_output_semiglobal_rec(
         };
         let max = *[d, u, l].iter().max().unwrap();
         if max == d {
-            if curr_score < d {
+            if lnz[i] != seq[j] {
                 temp_cigar.push('d');
             } else {
                 temp_cigar.push('D');
@@ -1056,7 +1053,6 @@ fn gaf_output_semiglobal_no_rec(
     let mut handle_id_alignment = Vec::new();
 
     while i > 0 && j > 0 {
-        let curr_score = dpm[i][j][best_path];
         let mut predecessor = None;
         let (d, u, l) = if !nwp[i] {
             (
@@ -1079,10 +1075,10 @@ fn gaf_output_semiglobal_no_rec(
         };
         let max = *[d, u, l].iter().max().unwrap();
         if max == d {
-            if curr_score < d {
-                cigar.push('d');
+            if lnz[i] == seq[j] {
+                cigar.push('D')
             } else {
-                cigar.push('D');
+                cigar.push('d')
             }
             handle_id_alignment.push(handles_nodes_id[i]);
             i = if predecessor.is_none() {

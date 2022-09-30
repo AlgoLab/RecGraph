@@ -33,8 +33,6 @@ pub fn gaf_output_global_rec(
     // reverse alignment
     let mut rev_ending_node = i;
     while i > 0 && i < dpm.len() - 1 && j < dpm[0].len() - 1 {
-        let curr_score = rev_dpm[i][j][rev_best_path];
-
         let mut predecessor = None;
         let (d, u, l) = if !rev_nwp[i] {
             (
@@ -59,7 +57,7 @@ pub fn gaf_output_global_rec(
 
         let max = *[d, u, l].iter().max().unwrap();
         if max == d {
-            if curr_score < d {
+            if lnz[i] != seq[j] {
                 cigar.push('d');
             } else {
                 cigar.push('D');
@@ -128,7 +126,6 @@ pub fn gaf_output_global_rec(
         cigar.push('d')
     }
     while i > 0 && j > 0 {
-        let curr_score = dpm[i][j][best_path];
         let mut predecessor = None;
         let (d, u, l) = if !nwp[i] {
             (
@@ -151,7 +148,7 @@ pub fn gaf_output_global_rec(
         };
         let max = *[d, u, l].iter().max().unwrap();
         if max == d {
-            if curr_score < d {
+            if lnz[i] == seq[j] {
                 temp_cigar.push('d');
             } else {
                 temp_cigar.push('D');
@@ -195,8 +192,8 @@ pub fn gaf_output_global_rec(
             }
             p
         };
-        cigar.push('U');
-        handle_id_alignment.push(handles_nodes_id[i]);
+        temp_cigar.push('U');
+        temp_handle_id_alignment.push(handles_nodes_id[i]);
         i = predecessor;
         path_length += 1;
     }
@@ -277,7 +274,6 @@ pub fn gaf_output_global_no_rec(
 
     let mut j = dpm[i].len() - 1;
     while i != 0 && j != 0 {
-        let curr_score = dpm[i][j][best_path];
         let mut predecessor = None;
         let (d, u, l) = if !nwp[i] {
             (
@@ -300,7 +296,7 @@ pub fn gaf_output_global_no_rec(
         };
         let max = *[d, u, l].iter().max().unwrap();
         if max == d {
-            if curr_score < d {
+            if lnz[i] != seq[j] {
                 cigar.push('d');
             } else {
                 cigar.push('D');
