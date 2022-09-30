@@ -296,14 +296,6 @@ fn main() {
                 utils::write_gaf(&gaf.to_string(), i);
             }
         }
-        10 => {
-            let graph = pathwise_graph::read_graph_w_path(&graph_path, false);
-            let (len, start, end) =
-                recombination_output::get_path_len_start_end(&graph.nodes_id_pos, 0, 2, 3);
-            println!("LEN: {len}");
-            println!("START: {start}");
-            println!("END: {end}");
-        }
         _ => {
             panic!("alignment mode must be 0, 1, 2 or 3");
         }
