@@ -218,7 +218,7 @@ fn best_ending_node(dpm: &Vec<Vec<Vec<i32>>>, graph: &PathGraph) -> (usize, usiz
     let mut max: Option<i32> = None;
     let mut ending_node: usize = 0;
     let mut chosen_path: usize = 0;
-    for i in 0..dpm.len() - 1 {
+    for i in 1..dpm.len() - 1 {
         let paths = graph.paths_nodes[i].clone();
         let mut absolute_scores = dpm[i][dpm[i].len() - 1].clone();
         for (path, is_in) in paths.iter().enumerate() {

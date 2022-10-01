@@ -33,8 +33,8 @@ pub fn exec(
     let forward_matrix = align(aln_mode, sequence, graph, score_matrix);
 
     let rev_graph = pathwise_graph::create_reverse_path_graph(graph);
-
-    let reverse_matrix = rev_align(aln_mode, sequence, &rev_graph, score_matrix);
+    let rev_sequence = get_rev_sequence(&sequence);
+    let reverse_matrix = rev_align(aln_mode, &rev_sequence, &rev_graph, score_matrix);
 
     let (forw_ending_node, rev_starting_node, forw_best_path, rev_best_path, recombination_col) =
         best_alignment(
@@ -74,7 +74,7 @@ pub fn exec(
                 &graph.nwp,
                 &rev_graph.nwp,
                 &graph.nodes_id_pos,
-            )
+            );
         }
     } else {
         if forw_best_path == rev_best_path {
@@ -131,13 +131,13 @@ fn rev_align(
     let last_node_pos = lnz.len() - 1;
     let last_char_pos = sequence.len() - 1;
     for i in (1..last_node_pos + 1).rev() {
-        for j in (1..last_char_pos + 1).rev() {
+        for j in (1..=last_char_pos).rev() {
             if i == last_node_pos && j == last_char_pos {
                 dpm[i][j] = vec![0; path_number];
             } else if i == last_node_pos {
-                dpm[i][j][alphas[0]] =
-                    dpm[i][j + 1][alphas[0]] + score_matrix.get(&(sequence[j], '-')).unwrap();
-                for k in alphas[0] + 1..path_number {
+                dpm[i][j][alphas[i]] =
+                    dpm[i][j + 1][alphas[i]] + score_matrix.get(&(sequence[j], '-')).unwrap();
+                for k in alphas[i] + 1..path_number {
                     dpm[i][j][k] = dpm[i][j + 1][k];
                 }
             } else if j == last_char_pos {
@@ -406,19 +406,7 @@ fn rev_align(
             }
         }
     }
-    let mut results = vec![0; path_number];
-    for (pred, paths) in pred_hash.get_preds_and_paths(0) {
-        for (path, is_in) in paths.iter().enumerate() {
-            if is_in {
-                if path == alphas[pred] {
-                    results[path] = dpm[pred][dpm[pred].len() - 1][path]
-                } else {
-                    results[path] = dpm[pred][dpm[pred].len() - 1][path]
-                        + dpm[pred][dpm[pred].len() - 1][alphas[pred]]
-                }
-            }
-        }
-    }
+
     absolute_scores(&mut dpm, alphas, path_node);
     dpm
 }
@@ -789,7 +777,7 @@ fn best_alignment(
                     .max()
                     .unwrap()
                     .1;
-                let rev_path = w[rev_i][j + 1]
+                let rev_path = w[rev_i][j]
                     .iter()
                     .enumerate()
                     .map(|(path, score)| (score, path))
@@ -802,8 +790,8 @@ fn best_alignment(
                     } else {
                         brc + (mrc * dms[i][rev_i] as f32) as i32
                     };
-                    if m[i][j][forw_path] + w[rev_i][j + 1][rev_path] - penalty > curr_best_score {
-                        curr_best_score = m[i][j][forw_path] + w[rev_i][j + 1][rev_path];
+                    if m[i][j][forw_path] + w[rev_i][j][rev_path] - penalty >= curr_best_score {
+                        curr_best_score = m[i][j][forw_path] + w[rev_i][j][rev_path];
                         forw_ending_node = i;
                         rev_starting_node = rev_i;
                         forw_best_path = forw_path;
@@ -814,7 +802,6 @@ fn best_alignment(
             }
         }
     }
-
     (
         forw_ending_node,
         rev_starting_node,
@@ -845,16 +832,18 @@ fn gaf_output_semiglobal_rec(
     let mut cigar = Vec::new();
     let mut path_length: usize = 0;
     let mut i = reverse_starting_node;
-    let mut j = rec_col + 1;
+    let mut j = rec_col;
     let mut handle_id_alignment = Vec::new();
+    let mut rev_ending_node = i;
     // reverse alignment
+    let r_seq = &get_rev_sequence(seq);
     while i > 0 && i < dpm.len() - 1 && j < dpm[0].len() - 1 {
         let mut predecessor = None;
         let (d, u, l) = if !rev_nwp[i] {
             (
-                rev_dpm[i + 1][j + 1][rev_best_path] + scores.get(&(lnz[i], seq[j])).unwrap(),
+                rev_dpm[i + 1][j + 1][rev_best_path] + scores.get(&(lnz[i], r_seq[j])).unwrap(),
                 rev_dpm[i + 1][j][rev_best_path] + scores.get(&(lnz[i], '-')).unwrap(),
-                rev_dpm[i][j + 1][rev_best_path] + scores.get(&('-', seq[j])).unwrap(),
+                rev_dpm[i][j + 1][rev_best_path] + scores.get(&('-', r_seq[j])).unwrap(),
             )
         } else {
             let preds = rev_pred_hash.get_preds_and_paths(i);
@@ -863,17 +852,18 @@ fn gaf_output_semiglobal_rec(
                 if paths[rev_best_path] {
                     predecessor = Some(*pred);
                     d = rev_dpm[*pred][j + 1][rev_best_path]
-                        + scores.get(&(lnz[i], seq[j])).unwrap();
+                        + scores.get(&(lnz[i], r_seq[j])).unwrap();
                     u = rev_dpm[*pred][j][rev_best_path] + scores.get(&(lnz[i], '-')).unwrap();
-                    l = rev_dpm[i][j + 1][rev_best_path] + scores.get(&('-', seq[j])).unwrap();
+                    l = rev_dpm[i][j + 1][rev_best_path] + scores.get(&('-', r_seq[j])).unwrap();
                 }
             }
             (d, u, l)
         };
 
         let max = *[d, u, l].iter().max().unwrap();
+        rev_ending_node = i;
         if max == d {
-            if lnz[i] != seq[j] {
+            if lnz[i] != r_seq[j] {
                 cigar.push('d');
             } else {
                 cigar.push('D');
@@ -905,17 +895,10 @@ fn gaf_output_semiglobal_rec(
         j += 1;
     }
 
-    let rev_ending_node = i;
     let mut temp_cigar = Vec::new();
     let mut temp_handle_id_alignment = Vec::new();
     i = forward_ending_node;
     j = rec_col;
-    if lnz[i] == seq[j] {
-        cigar.push('D')
-    } else {
-        cigar.push('d')
-    }
-    path_length += 1;
 
     while i > 0 && j > 0 {
         let mut predecessor = None;
@@ -997,12 +980,16 @@ fn gaf_output_semiglobal_rec(
     let recombination = if best_path == rev_best_path {
         format!("No recombination, best path: {}", best_path)
     } else {
+        let fen_offset = get_node_offset(handles_nodes_id, forward_ending_node);
+        let rsn_offset = get_node_offset(handles_nodes_id, reverse_starting_node);
         format!(
-            "recombination path {} {}, nodes {} {}",
+            "recombination path {} {}, nodes {}[{}] {}[{}]",
             best_path,
             rev_best_path,
             handles_nodes_id[forward_ending_node],
-            handles_nodes_id[reverse_starting_node]
+            fen_offset,
+            handles_nodes_id[reverse_starting_node],
+            rsn_offset
         )
     };
     let comments = format!("{}, {}", build_cigar(&temp_cigar), recombination);
@@ -1028,7 +1015,7 @@ fn gaf_output_semiglobal_rec(
 fn ending_node(dpm: &Vec<Vec<Vec<i32>>>, best_path: usize, paths_nodes: &Vec<BitVec>) -> usize {
     let mut best_score = None;
     let mut best_node = 0;
-    for i in 0..dpm.len() - 1 {
+    for i in 1..dpm.len() - 1 {
         if paths_nodes[i][best_path] {
             if best_score.is_none() || dpm[i][dpm[0].len() - 1][best_path] > best_score.unwrap() {
                 best_score = Some(dpm[i][dpm[0].len() - 1][best_path]);
@@ -1147,4 +1134,14 @@ fn gaf_output_semiglobal_no_rec(
         comments,
     );
     gaf_output
+}
+
+pub fn get_rev_sequence(seq: &[char]) -> Vec<char> {
+    let mut rev_seq = Vec::new();
+    for c in seq.iter() {
+        rev_seq.push(*c)
+    }
+    rev_seq.push('F');
+    rev_seq.remove(0);
+    rev_seq
 }

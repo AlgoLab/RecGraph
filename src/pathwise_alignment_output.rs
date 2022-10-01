@@ -677,6 +677,7 @@ pub fn build_cigar(cigar: &Vec<char>) -> String {
     }
     output_string
 }
+
 /*
 fn get_node_offset(nodes_handles: &Vec<u64>, curr_node: usize) -> i32 {
     let handle = nodes_handles[curr_node];

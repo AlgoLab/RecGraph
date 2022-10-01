@@ -38,6 +38,8 @@ pub fn create_score_matrix_match_mis(m: i32, x: i32) -> HashMap<(char, char), i3
         for j in ['A', 'C', 'G', 'T', 'N', '-'].iter() {
             if i == j {
                 score_matrix.insert((*i, *j), m);
+            } else if *i == '-' || *j == '-' {
+                score_matrix.insert((*i, *j), x * 2);
             } else {
                 score_matrix.insert((*i, *j), x);
             }

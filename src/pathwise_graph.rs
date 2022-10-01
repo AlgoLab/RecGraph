@@ -309,7 +309,7 @@ fn get_distance_from_end(graph: &PathGraph) -> Vec<usize> {
     r_values[lnz_len - 1] = 0;
 
     for (p, _) in pred_hash.get_preds_and_paths(lnz_len - 1) {
-        r_values[p] = 0;
+        r_values[p] = 1;
     }
     for i in (1..lnz_len - 1).rev() {
         if r_values[i] == -1 || r_values[i] > r_values[i + 1] + 1 {

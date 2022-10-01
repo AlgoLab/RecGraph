@@ -11,7 +11,6 @@ use rspoa::pathwise_alignment_recombination;
 use rspoa::pathwise_alignment_semiglobal;
 use rspoa::pathwise_graph;
 use rspoa::pathwise_graph::nodes_displacement_matrix;
-use rspoa::recombination_output;
 use rspoa::score_matrix;
 use rspoa::sequences;
 use rspoa::utils;
@@ -293,6 +292,7 @@ fn main() {
                     &displ_matrix,
                 );
                 gaf.query_name = seq_names[i].clone();
+
                 utils::write_gaf(&gaf.to_string(), i);
             }
         }

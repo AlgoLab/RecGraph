@@ -3,7 +3,7 @@ use bit_vec::BitVec;
 use crate::{
     gaf_output::GAFStruct,
     pathwise_alignment_output::build_cigar,
-    pathwise_alignment_recombination::get_node_offset,
+    pathwise_alignment_recombination::{get_node_offset, get_rev_sequence},
     pathwise_graph::{PathGraph, PredHash},
     utils,
 };
@@ -29,17 +29,25 @@ pub fn gaf_output_global_rec(
     let mut cigar = Vec::new();
     let mut path_length: usize = 0;
     let mut i = reverse_starting_node;
-    let mut j = rec_col + 1;
+    let mut j = rec_col;
     let mut handle_id_alignment = Vec::new();
+    let mut rev_ending_node = 0;
+    let ending_nodes = pred_hash.get_preds_and_paths(dpm.len() - 1);
+    for (node, paths) in ending_nodes.iter() {
+        if paths[best_path] {
+            rev_ending_node = *node
+        }
+    }
+
     // reverse alignment
-    let mut rev_ending_node = i;
+    let r_seq = &get_rev_sequence(seq);
     while i > 0 && i < dpm.len() - 1 && j < dpm[0].len() - 1 {
         let mut predecessor = None;
         let (d, u, l) = if !rev_nwp[i] {
             (
-                rev_dpm[i + 1][j + 1][rev_best_path] + scores.get(&(lnz[i], seq[j])).unwrap(),
+                rev_dpm[i + 1][j + 1][rev_best_path] + scores.get(&(lnz[i], r_seq[j])).unwrap(),
                 rev_dpm[i + 1][j][rev_best_path] + scores.get(&(lnz[i], '-')).unwrap(),
-                rev_dpm[i][j + 1][rev_best_path] + scores.get(&('-', seq[j])).unwrap(),
+                rev_dpm[i][j + 1][rev_best_path] + scores.get(&('-', r_seq[j])).unwrap(),
             )
         } else {
             let preds = rev_pred_hash.get_preds_and_paths(i);
@@ -48,9 +56,9 @@ pub fn gaf_output_global_rec(
                 if paths[rev_best_path] {
                     predecessor = Some(*pred);
                     d = rev_dpm[*pred][j + 1][rev_best_path]
-                        + scores.get(&(lnz[i], seq[j])).unwrap();
+                        + scores.get(&(lnz[i], r_seq[j])).unwrap();
                     u = rev_dpm[*pred][j][rev_best_path] + scores.get(&(lnz[i], '-')).unwrap();
-                    l = rev_dpm[i][j + 1][rev_best_path] + scores.get(&('-', seq[j])).unwrap();
+                    l = rev_dpm[i][j + 1][rev_best_path] + scores.get(&('-', r_seq[j])).unwrap();
                 }
             }
             (d, u, l)
@@ -58,15 +66,12 @@ pub fn gaf_output_global_rec(
 
         let max = *[d, u, l].iter().max().unwrap();
         if max == d {
-            if lnz[i] != seq[j] {
+            if lnz[i] != r_seq[j] {
                 cigar.push('d');
             } else {
                 cigar.push('D');
             }
             handle_id_alignment.push(handles_nodes_id[i]);
-            if handles_nodes_id[i] != 0 {
-                rev_ending_node = i;
-            }
             i = if predecessor.is_none() {
                 i + 1
             } else {
@@ -77,9 +82,6 @@ pub fn gaf_output_global_rec(
         } else if max == u {
             cigar.push('U');
             handle_id_alignment.push(handles_nodes_id[i]);
-            if handles_nodes_id[i] != 0 {
-                rev_ending_node = i;
-            }
             i = if predecessor.is_none() {
                 i + 1
             } else {
@@ -112,20 +114,13 @@ pub fn gaf_output_global_rec(
         handle_id_alignment.push(handles_nodes_id[i]);
         i = predecessor;
         path_length += 1;
-        if handles_nodes_id[i] != 0 {
-            rev_ending_node = i;
-        }
     }
 
     let mut temp_cigar = Vec::new();
     let mut temp_handle_id_alignment = Vec::new();
     i = forward_ending_node;
     j = rec_col;
-    if lnz[i] == seq[j] {
-        cigar.push('D')
-    } else {
-        cigar.push('d')
-    }
+
     while i > 0 && j > 0 {
         let mut predecessor = None;
         let (d, u, l) = if !nwp[i] {
@@ -149,7 +144,7 @@ pub fn gaf_output_global_rec(
         };
         let max = *[d, u, l].iter().max().unwrap();
         if max == d {
-            if lnz[i] == seq[j] {
+            if lnz[i] != seq[j] {
                 temp_cigar.push('d');
             } else {
                 temp_cigar.push('D');
@@ -221,12 +216,16 @@ pub fn gaf_output_global_rec(
     let recombination = if best_path == rev_best_path {
         format!("No recombination, best path: {}", best_path)
     } else {
+        let fen_offset = get_node_offset(handles_nodes_id, forward_ending_node);
+        let rsn_offset = get_node_offset(handles_nodes_id, reverse_starting_node);
         format!(
-            "recombination path {} {}, nodes {} {}",
+            "recombination path {} {}, nodes {}[{}] {}[{}]",
             best_path,
             rev_best_path,
             handles_nodes_id[forward_ending_node],
-            handles_nodes_id[reverse_starting_node]
+            fen_offset,
+            handles_nodes_id[reverse_starting_node],
+            rsn_offset
         )
     };
     let comments = format!("{}, {}", build_cigar(&temp_cigar), recombination);
