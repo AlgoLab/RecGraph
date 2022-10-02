@@ -229,17 +229,18 @@ fn best_ending_node(dpm: &Vec<Vec<Vec<i32>>>, graph: &PathGraph) -> (usize, usiz
                 }
             }
         }
-        let best_path = absolute_scores
-            .iter()
-            .enumerate()
-            .map(|(path, score)| (score, path))
-            .max();
-        if max.is_none() || (best_path.unwrap().0 > &max.unwrap() && paths[best_path.unwrap().1]) {
+
+        let mut best_path: Option<(&i32, usize)> = None;
+        for (path, score) in absolute_scores.iter().enumerate() {
+            if paths[path] && (best_path.is_none() || best_path.unwrap().0 < score) {
+                best_path = Some((&score, path));
+            }
+        }
+        if max.is_none() || best_path.unwrap().0 > &max.unwrap() {
             max = Some(*best_path.unwrap().0);
             ending_node = i;
             chosen_path = best_path.unwrap().1;
         }
     }
-
     (ending_node, chosen_path)
 }

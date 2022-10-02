@@ -310,7 +310,6 @@ pub fn exec(
         .enumerate()
         .map(|(path, score)| (score, path))
         .max();
-
     let gaf = build_alignment(&dpm, &graph, &sequence, &score_matrix, best_path.unwrap().1);
     gaf
 }

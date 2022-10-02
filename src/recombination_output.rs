@@ -27,14 +27,14 @@ pub fn gaf_output_global_rec(
     handles_nodes_id: &Vec<u64>,
 ) -> GAFStruct {
     let mut cigar = Vec::new();
-    let mut path_length: usize = 0;
+    let mut rev_path_length: usize = 0;
     let mut i = reverse_starting_node;
     let mut j = rec_col;
     let mut handle_id_alignment = Vec::new();
     let mut rev_ending_node = 0;
     let ending_nodes = pred_hash.get_preds_and_paths(dpm.len() - 1);
     for (node, paths) in ending_nodes.iter() {
-        if paths[best_path] {
+        if paths[rev_best_path] {
             rev_ending_node = *node
         }
     }
@@ -78,7 +78,7 @@ pub fn gaf_output_global_rec(
                 predecessor.unwrap()
             };
             j += 1;
-            path_length += 1;
+            rev_path_length += 1;
         } else if max == u {
             cigar.push('U');
             handle_id_alignment.push(handles_nodes_id[i]);
@@ -87,7 +87,7 @@ pub fn gaf_output_global_rec(
             } else {
                 predecessor.unwrap()
             };
-            path_length += 1;
+            rev_path_length += 1;
         } else {
             cigar.push('L');
             j += 1;
@@ -113,14 +113,14 @@ pub fn gaf_output_global_rec(
         cigar.push('U');
         handle_id_alignment.push(handles_nodes_id[i]);
         i = predecessor;
-        path_length += 1;
+        rev_path_length += 1;
     }
 
     let mut temp_cigar = Vec::new();
     let mut temp_handle_id_alignment = Vec::new();
     i = forward_ending_node;
     j = rec_col;
-
+    let mut forw_path_length = 0;
     while i > 0 && j > 0 {
         let mut predecessor = None;
         let (d, u, l) = if !nwp[i] {
@@ -156,7 +156,7 @@ pub fn gaf_output_global_rec(
                 predecessor.unwrap()
             };
             j -= 1;
-            path_length += 1;
+            forw_path_length += 1;
         } else if max == u {
             temp_cigar.push('U');
             temp_handle_id_alignment.push(handles_nodes_id[i]);
@@ -165,7 +165,7 @@ pub fn gaf_output_global_rec(
             } else {
                 predecessor.unwrap()
             };
-            path_length += 1;
+            forw_path_length += 1;
         } else {
             temp_cigar.push('L');
             j -= 1;
@@ -191,7 +191,7 @@ pub fn gaf_output_global_rec(
         temp_cigar.push('U');
         temp_handle_id_alignment.push(handles_nodes_id[i]);
         i = predecessor;
-        path_length += 1;
+        forw_path_length += 1;
     }
     temp_cigar.reverse();
     temp_cigar.append(&mut cigar);
@@ -209,8 +209,15 @@ pub fn gaf_output_global_rec(
         .iter()
         .map(|id| *id as usize)
         .collect();
-    let path_start = 0;
-    let path_end = get_node_offset(handles_nodes_id, rev_ending_node) as usize;
+    let (path_len, path_start, path_end) = utils::get_rec_path_len_start_end(
+        handles_nodes_id,
+        forward_ending_node,
+        reverse_starting_node,
+        0,
+        rev_ending_node,
+        forw_path_length,
+        rev_path_length,
+    );
     let align_block_length = "*"; // to set
     let mapping_quality = "*"; // to set
     let recombination = if best_path == rev_best_path {
@@ -237,7 +244,7 @@ pub fn gaf_output_global_rec(
         query_end,
         strand,
         path,
-        path_length,
+        path_len,
         path_start,
         path_end,
         0,
