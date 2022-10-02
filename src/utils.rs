@@ -252,3 +252,72 @@ pub fn get_path_len_start_end(
     let path_len = path_end + end_offset + 1;
     (path_len, path_start, path_end)
 }
+
+pub fn get_rec_path_len_start_end(
+    handles_nodes_id: &Vec<u64>,
+    fen: usize,
+    rsn: usize,
+    start: usize,
+    end: usize,
+    forw_path_length: usize,
+    rev_path_length: usize,
+) -> (usize, usize, usize) {
+    //forward path info
+    let mut path_start = 0;
+    if start > 0 {
+        let first_node_id = handles_nodes_id[start];
+        let mut counter = start - 1;
+        while counter > 0 && handles_nodes_id[counter] == first_node_id {
+            counter -= 1;
+            path_start += 1;
+        }
+    }
+
+    let forw_path_end = if forw_path_length > 0 {
+        path_start + forw_path_length - 1
+    } else {
+        0
+    };
+
+    let mut forw_end_offset = 0;
+    if fen > 0 {
+        let last_node_id = handles_nodes_id[fen];
+        let mut counter = fen + 1;
+        while counter < handles_nodes_id.len() - 1 && handles_nodes_id[counter] == last_node_id {
+            counter += 1;
+            forw_end_offset += 1;
+        }
+    }
+    let forw_path_len = forw_path_end + forw_end_offset + 1;
+
+    //reverse path info
+    let mut rev_path_start = 0;
+    if rsn > 0 {
+        let first_node_id = handles_nodes_id[rsn];
+        let mut counter = rsn - 1;
+        while counter > 0 && handles_nodes_id[counter] == first_node_id {
+            counter -= 1;
+            rev_path_start += 1;
+        }
+    }
+
+    let rev_path_end = if rev_path_length > 0 {
+        rev_path_start + rev_path_length - 1
+    } else {
+        0
+    };
+    let path_end = forw_path_len + rev_path_end;
+    let mut end_offset = 0;
+    if end > 0 {
+        let last_node_id = handles_nodes_id[end];
+        let mut counter = end + 1;
+        while counter < handles_nodes_id.len() - 1 && handles_nodes_id[counter] == last_node_id {
+            counter += 1;
+            end_offset += 1;
+        }
+    }
+    let rev_path_len = rev_path_end + end_offset + 1;
+    let path_len = forw_path_len + rev_path_len;
+
+    (path_len, path_start, path_end)
+}
