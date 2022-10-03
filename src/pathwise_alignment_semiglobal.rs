@@ -125,7 +125,20 @@ pub fn exec(
                                             } else if dpm[i][j][alphas[p]] == u {
                                                 dpm[i][j][path] = dpm[p][j][path];
                                             } else {
-                                                dpm[i][j][path] = dpm[i][j - 1][path];
+                                                /*
+                                                if alphas[p] == alphas[i] {
+                                                    dpm[i][j][path] = dpm[i][j - 1][path];
+                                                } else {
+                                                    dpm[i][j][path] = dpm[i][j - 1][alphas[p]]
+                                                        - dpm[i][j - 1][path];
+                                                }
+                                                */
+                                                if alphas[p] == alphas[i] {
+                                                    dpm[i][j][path] = dpm[i][j - 1][path];
+                                                } else {
+                                                    dpm[i][j][path] = dpm[i][j - 1][path]
+                                                        - dpm[i][j - 1][alphas[p]];
+                                                }
                                             }
                                         }
                                     }
@@ -173,7 +186,20 @@ pub fn exec(
                                                 dpm[i][j][path] =
                                                     dpm[p][j][path] - dpm[p][j][temp_alpha];
                                             } else {
-                                                dpm[i][j][path] = dpm[i][j - 1][path];
+                                                /*
+                                                if temp_alpha == alphas[i] {
+                                                    dpm[i][j][path] = dpm[i][j - 1][path];
+                                                } else {
+                                                    dpm[i][j][path] = dpm[i][j - 1][temp_alpha]
+                                                        - dpm[i][j - 1][path];
+                                                }
+                                                */
+                                                if temp_alpha == alphas[i] {
+                                                    dpm[i][j][path] = dpm[i][j - 1][path];
+                                                } else {
+                                                    dpm[i][j][path] = dpm[i][j - 1][path]
+                                                        - dpm[i][j - 1][temp_alpha];
+                                                }
                                             }
                                         }
                                     }
@@ -221,6 +247,7 @@ fn best_ending_node(dpm: &Vec<Vec<Vec<i32>>>, graph: &PathGraph) -> (usize, usiz
     for i in 1..dpm.len() - 1 {
         let paths = graph.paths_nodes[i].clone();
         let mut absolute_scores = dpm[i][dpm[i].len() - 1].clone();
+
         for (path, is_in) in paths.iter().enumerate() {
             if is_in {
                 if path != graph.alphas[i] {
@@ -233,14 +260,17 @@ fn best_ending_node(dpm: &Vec<Vec<Vec<i32>>>, graph: &PathGraph) -> (usize, usiz
         let mut best_path: Option<(&i32, usize)> = None;
         for (path, score) in absolute_scores.iter().enumerate() {
             if paths[path] && (best_path.is_none() || best_path.unwrap().0 < score) {
+                //*score <= (dpm[0].len()*2) as i32 &&
                 best_path = Some((&score, path));
             }
         }
+
         if max.is_none() || best_path.unwrap().0 > &max.unwrap() {
             max = Some(*best_path.unwrap().0);
             ending_node = i;
             chosen_path = best_path.unwrap().1;
         }
     }
+
     (ending_node, chosen_path)
 }

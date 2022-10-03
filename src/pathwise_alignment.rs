@@ -220,7 +220,12 @@ pub fn exec(
                                             } else if dpm[i][j][alphas[p]] == u {
                                                 dpm[i][j][path] = dpm[p][j][path];
                                             } else {
-                                                dpm[i][j][path] = dpm[i][j - 1][path];
+                                                if alphas[p] == alphas[i] {
+                                                    dpm[i][j][path] = dpm[i][j - 1][path];
+                                                } else {
+                                                    dpm[i][j][path] = dpm[i][j - 1][alphas[p]]
+                                                        - dpm[i][j - 1][path];
+                                                }
                                             }
                                         }
                                     }
@@ -268,7 +273,12 @@ pub fn exec(
                                                 dpm[i][j][path] =
                                                     dpm[p][j][path] - dpm[p][j][temp_alpha];
                                             } else {
-                                                dpm[i][j][path] = dpm[i][j - 1][path];
+                                                if temp_alpha == alphas[i] {
+                                                    dpm[i][j][path] = dpm[i][j - 1][path];
+                                                } else {
+                                                    dpm[i][j][path] = dpm[i][j - 1][temp_alpha]
+                                                        - dpm[i][j - 1][path];
+                                                }
                                             }
                                         }
                                     }
