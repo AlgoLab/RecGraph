@@ -223,8 +223,8 @@ pub fn exec(
                                                 if alphas[p] == alphas[i] {
                                                     dpm[i][j][path] = dpm[i][j - 1][path];
                                                 } else {
-                                                    dpm[i][j][path] = dpm[i][j - 1][alphas[p]]
-                                                        - dpm[i][j - 1][path];
+                                                    dpm[i][j][path] = dpm[i][j - 1][path]
+                                                        - dpm[i][j - 1][alphas[p]];
                                                 }
                                             }
                                         }
@@ -276,8 +276,8 @@ pub fn exec(
                                                 if temp_alpha == alphas[i] {
                                                     dpm[i][j][path] = dpm[i][j - 1][path];
                                                 } else {
-                                                    dpm[i][j][path] = dpm[i][j - 1][temp_alpha]
-                                                        - dpm[i][j - 1][path];
+                                                    dpm[i][j][path] = dpm[i][j - 1][path]
+                                                        - dpm[i][j - 1][temp_alpha];
                                                 }
                                             }
                                         }
