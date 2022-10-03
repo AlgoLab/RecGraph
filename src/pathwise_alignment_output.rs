@@ -185,7 +185,7 @@ pub fn build_alignment_semiglobal(
     let mut i = ending_node;
     let mut j = dpm[i].len() - 1;
     let mut handle_id_alignment = Vec::new();
-
+    let score = dpm[i][j][best_path];
     while i > 0 && j > 0 {
         let mut predecessor = None;
         let (d, u, l) = if !nwp[i] {
@@ -287,7 +287,12 @@ pub fn build_alignment_semiglobal(
     );
     let align_block_length = "*"; // to set
     let mapping_quality = "*"; // to set
-    let comments = format!("{}, best path: {}", build_cigar(&cigar), best_path);
+    let comments = format!(
+        "{}, best path: {}, score: {}",
+        build_cigar(&cigar),
+        best_path,
+        score
+    );
     let gaf_output = GAFStruct::build_gaf_struct(
         query_name,
         seq_length,

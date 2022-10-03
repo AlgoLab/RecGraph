@@ -401,8 +401,8 @@ pub fn gaf_output_semiglobal_rec(
     handles_nodes_id: &Vec<u64>,
     forward_ending_node: usize,
     reverse_starting_node: usize,
-
     rec_col: usize,
+    best_score: i32,
 ) -> GAFStruct {
     let mut cigar = Vec::new();
     let mut rev_path_length: usize = 0;
@@ -566,13 +566,14 @@ pub fn gaf_output_semiglobal_rec(
         let fen_offset = get_node_offset(handles_nodes_id, forward_ending_node);
         let rsn_offset = get_node_offset(handles_nodes_id, reverse_starting_node);
         format!(
-            "recombination path {} {}, nodes {}[{}] {}[{}]",
+            "recombination path {} {}, nodes {}[{}] {}[{}], score: {}",
             best_path,
             rev_best_path,
             handles_nodes_id[forward_ending_node],
             fen_offset,
             handles_nodes_id[reverse_starting_node],
-            rsn_offset
+            rsn_offset,
+            best_score
         )
     };
     let comments = format!("{}, {}", build_cigar(&temp_cigar), recombination);
@@ -612,6 +613,7 @@ pub fn gaf_output_semiglobal_no_rec(
     let mut i = ending_node;
     let mut j = dpm[i].len() - 1;
     let mut handle_id_alignment = Vec::new();
+    let score = dpm[i][j][best_path];
 
     while i > 0 && j > 0 {
         let mut predecessor = None;
@@ -687,7 +689,12 @@ pub fn gaf_output_semiglobal_no_rec(
 
     let align_block_length = "*"; // to set
     let mapping_quality = "*"; // to set
-    let comments = format!("{}, best path: {}", build_cigar(&cigar), best_path);
+    let comments = format!(
+        "{}, best path: {}, score: {}",
+        build_cigar(&cigar),
+        best_path,
+        score
+    );
     let gaf_output = GAFStruct::build_gaf_struct(
         query_name,
         seq_length,

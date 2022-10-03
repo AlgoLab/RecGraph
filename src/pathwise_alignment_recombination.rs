@@ -35,17 +35,23 @@ pub fn exec(
     let rev_sequence = get_rev_sequence(&sequence);
     let reverse_matrix = rev_align(aln_mode, &rev_sequence, &rev_graph, score_matrix);
 
-    let (forw_ending_node, rev_starting_node, forw_best_path, rev_best_path, recombination_col) =
-        best_alignment(
-            &forward_matrix,
-            &reverse_matrix,
-            &displacement_matrix,
-            base_rec_cost,
-            multi_rec_cost,
-            aln_mode,
-            &graph.paths_nodes,
-            &graph.pred_hash,
-        );
+    let (
+        forw_ending_node,
+        rev_starting_node,
+        forw_best_path,
+        rev_best_path,
+        recombination_col,
+        score,
+    ) = best_alignment(
+        &forward_matrix,
+        &reverse_matrix,
+        &displacement_matrix,
+        base_rec_cost,
+        multi_rec_cost,
+        aln_mode,
+        &graph.paths_nodes,
+        &graph.pred_hash,
+    );
     let gaf;
     if aln_mode == 8 {
         if forw_best_path == rev_best_path {
@@ -106,6 +112,7 @@ pub fn exec(
                 forw_ending_node,
                 rev_starting_node,
                 recombination_col,
+                score,
             );
         }
     }
@@ -751,7 +758,7 @@ fn best_alignment(
     aln_mode: i32,
     nodes_path: &Vec<BitVec>,
     pred_hash: &PredHash,
-) -> (usize, usize, usize, usize, usize) {
+) -> (usize, usize, usize, usize, usize, i32) {
     let mut forw_ending_node = 0;
     let mut rev_starting_node = 0;
     let mut recombination_col = 0;
@@ -810,7 +817,7 @@ fn best_alignment(
                         brc + (mrc * dms[i][rev_i] as f32) as i32
                     };
                     if m[i][j][forw_path] + w[rev_i][j][rev_path] - penalty >= curr_best_score {
-                        curr_best_score = m[i][j][forw_path] + w[rev_i][j][rev_path];
+                        curr_best_score = m[i][j][forw_path] + w[rev_i][j][rev_path] - penalty;
                         forw_ending_node = i;
                         rev_starting_node = rev_i;
                         forw_best_path = forw_path;
@@ -827,6 +834,7 @@ fn best_alignment(
         forw_best_path,
         rev_best_path,
         recombination_col,
+        curr_best_score,
     )
 }
 
