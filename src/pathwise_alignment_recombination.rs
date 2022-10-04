@@ -810,12 +810,10 @@ fn best_alignment(
                     .max()
                     .unwrap()
                     .1;
-                if nodes_path[i][forw_path] && nodes_path[rev_i][rev_path] {
-                    let penalty = if forw_path == rev_path {
-                        0
-                    } else {
-                        brc + (mrc * dms[i][rev_i] as f32) as i32
-                    };
+                if nodes_path[i][forw_path] && nodes_path[rev_i][rev_path] && forw_path != rev_path
+                {
+                    let penalty = brc + (mrc * dms[i][rev_i] as f32) as i32;
+
                     if m[i][j][forw_path] + w[rev_i][j][rev_path] - penalty >= curr_best_score {
                         curr_best_score = m[i][j][forw_path] + w[rev_i][j][rev_path] - penalty;
                         forw_ending_node = i;
