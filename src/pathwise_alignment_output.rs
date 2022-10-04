@@ -185,7 +185,11 @@ pub fn build_alignment_semiglobal(
     let mut i = ending_node;
     let mut j = dpm[i].len() - 1;
     let mut handle_id_alignment = Vec::new();
-    let score = dpm[i][j][best_path];
+    let score = if best_path == alphas[i] {
+        dpm[i][j][best_path]
+    } else {
+        dpm[i][j][best_path] + dpm[i][j][alphas[i]]
+    };
     while i > 0 && j > 0 {
         let mut predecessor = None;
         let (d, u, l) = if !nwp[i] {
