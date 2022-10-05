@@ -402,7 +402,7 @@ pub fn gaf_output_semiglobal_rec(
     forward_ending_node: usize,
     reverse_starting_node: usize,
     rec_col: usize,
-    best_score: i32,
+    best_score: f32,
 ) -> GAFStruct {
     let mut cigar = Vec::new();
     let mut rev_path_length: usize = 0;

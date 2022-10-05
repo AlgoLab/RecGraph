@@ -758,7 +758,7 @@ fn best_alignment(
     aln_mode: i32,
     nodes_path: &Vec<BitVec>,
     pred_hash: &PredHash,
-) -> (usize, usize, usize, usize, usize, i32) {
+) -> (usize, usize, usize, usize, usize, f32) {
     let mut forw_ending_node = 0;
     let mut rev_starting_node = 0;
     let mut recombination_col = 0;
@@ -789,7 +789,7 @@ fn best_alignment(
             }
         }
     }
-    let mut curr_best_score = max.unwrap();
+    let mut curr_best_score = max.unwrap() as f32;
     let mut forw_best_path = best_path.unwrap();
     let mut rev_best_path = best_path.unwrap();
 
@@ -812,10 +812,13 @@ fn best_alignment(
                     .1;
                 if nodes_path[i][forw_path] && nodes_path[rev_i][rev_path] && forw_path != rev_path
                 {
-                    let penalty = brc + (mrc * dms[i][rev_i] as f32) as i32;
+                    let penalty = brc as f32 + (mrc * dms[i][rev_i] as f32);
 
-                    if m[i][j][forw_path] + w[rev_i][j][rev_path] - penalty >= curr_best_score {
-                        curr_best_score = m[i][j][forw_path] + w[rev_i][j][rev_path] - penalty;
+                    if (m[i][j][forw_path] + w[rev_i][j][rev_path]) as f32 - penalty
+                        >= curr_best_score
+                    {
+                        curr_best_score =
+                            (m[i][j][forw_path] + w[rev_i][j][rev_path]) as f32 - penalty;
                         forw_ending_node = i;
                         rev_starting_node = rev_i;
                         forw_best_path = forw_path;
