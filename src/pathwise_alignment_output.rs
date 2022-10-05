@@ -185,6 +185,8 @@ pub fn build_alignment_semiglobal(
     let mut i = ending_node;
     let mut j = dpm[i].len() - 1;
     let mut handle_id_alignment = Vec::new();
+    let mut path_sequence = Vec::new();
+
     let score = if best_path == alphas[i] {
         dpm[i][j][best_path]
     } else {
@@ -246,6 +248,7 @@ pub fn build_alignment_semiglobal(
                 cigar.push('D');
             }
             handle_id_alignment.push(handles_nodes_id[i]);
+            path_sequence.push(lnz[i]);
             i = if predecessor.is_none() {
                 i - 1
             } else {
@@ -256,6 +259,7 @@ pub fn build_alignment_semiglobal(
         } else if max == u {
             cigar.push('U');
             handle_id_alignment.push(handles_nodes_id[i]);
+            path_sequence.push(lnz[i]);
             i = if predecessor.is_none() {
                 i - 1
             } else {
@@ -273,6 +277,8 @@ pub fn build_alignment_semiglobal(
     }
 
     cigar.reverse();
+    path_sequence.reverse();
+    let path_string_sequence: String = path_sequence.into_iter().collect();
 
     let query_name = String::from("Temp");
     let seq_length = dpm[0].len() - 1;
@@ -292,10 +298,11 @@ pub fn build_alignment_semiglobal(
     let align_block_length = "*"; // to set
     let mapping_quality = "*"; // to set
     let comments = format!(
-        "{}, best path: {}, score: {}",
+        "{}, best path: {}, score: {}\t{}",
         build_cigar(&cigar),
         best_path,
-        score
+        score,
+        path_string_sequence
     );
     let gaf_output = GAFStruct::build_gaf_struct(
         query_name,

@@ -296,6 +296,7 @@ fn main() {
                 utils::write_gaf(&gaf.to_string(), i);
             }
         }
+
         _ => {
             panic!("alignment mode must be 0, 1, 2 or 3");
         }

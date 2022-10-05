@@ -410,6 +410,8 @@ pub fn gaf_output_semiglobal_rec(
     let mut j = rec_col;
     let mut handle_id_alignment = Vec::new();
     let mut rev_ending_node = i;
+    let mut path_sequence = Vec::new();
+
     // reverse alignment
     let r_seq = &get_rev_sequence(seq);
     while i > 0 && i < dpm.len() - 1 && j < dpm[0].len() - 1 {
@@ -444,6 +446,7 @@ pub fn gaf_output_semiglobal_rec(
                 cigar.push('D');
             }
             handle_id_alignment.push(handles_nodes_id[i]);
+            path_sequence.push(lnz[i]);
             i = if predecessor.is_none() {
                 i + 1
             } else {
@@ -454,6 +457,7 @@ pub fn gaf_output_semiglobal_rec(
         } else if max == u {
             cigar.push('U');
             handle_id_alignment.push(handles_nodes_id[i]);
+            path_sequence.push(lnz[i]);
             i = if predecessor.is_none() {
                 i + 1
             } else {
@@ -473,6 +477,8 @@ pub fn gaf_output_semiglobal_rec(
     let mut path_length: usize = 0;
     let mut temp_cigar = Vec::new();
     let mut temp_handle_id_alignment = Vec::new();
+    let mut temp_path_sequence = Vec::new();
+
     i = forward_ending_node;
     j = rec_col;
 
@@ -505,6 +511,7 @@ pub fn gaf_output_semiglobal_rec(
                 temp_cigar.push('D');
             }
             temp_handle_id_alignment.push(handles_nodes_id[i]);
+            temp_path_sequence.push(lnz[i]);
             i = if predecessor.is_none() {
                 i - 1
             } else {
@@ -515,6 +522,7 @@ pub fn gaf_output_semiglobal_rec(
         } else if max == u {
             temp_cigar.push('U');
             temp_handle_id_alignment.push(handles_nodes_id[i]);
+            temp_path_sequence.push(lnz[i]);
             i = if predecessor.is_none() {
                 i - 1
             } else {
@@ -537,6 +545,11 @@ pub fn gaf_output_semiglobal_rec(
     temp_handle_id_alignment.reverse();
     temp_handle_id_alignment.append(&mut handle_id_alignment);
     temp_handle_id_alignment.dedup();
+
+    temp_path_sequence.reverse();
+    temp_path_sequence.append(&mut path_sequence);
+
+    let path_sequence_string: String = temp_path_sequence.into_iter().collect();
 
     let query_name = String::from("Temp");
     let seq_length = dpm[0].len() - 1;
@@ -566,14 +579,15 @@ pub fn gaf_output_semiglobal_rec(
         let fen_offset = get_node_offset(handles_nodes_id, forward_ending_node);
         let rsn_offset = get_node_offset(handles_nodes_id, reverse_starting_node);
         format!(
-            "recombination path {} {}, nodes {}[{}] {}[{}], score: {}",
+            "recombination path {} {}, nodes {}[{}] {}[{}], score: {}\t{}",
             best_path,
             rev_best_path,
             handles_nodes_id[forward_ending_node],
             fen_offset,
             handles_nodes_id[reverse_starting_node],
             rsn_offset,
-            best_score
+            best_score,
+            path_sequence_string
         )
     };
     let comments = format!("{}, {}", build_cigar(&temp_cigar), recombination);
@@ -613,6 +627,8 @@ pub fn gaf_output_semiglobal_no_rec(
     let mut i = ending_node;
     let mut j = dpm[i].len() - 1;
     let mut handle_id_alignment = Vec::new();
+    let mut path_sequence = Vec::new();
+
     let score = dpm[i][j][best_path];
 
     while i > 0 && j > 0 {
@@ -644,6 +660,7 @@ pub fn gaf_output_semiglobal_no_rec(
                 cigar.push('d')
             }
             handle_id_alignment.push(handles_nodes_id[i]);
+            path_sequence.push(lnz[i]);
             i = if predecessor.is_none() {
                 i - 1
             } else {
@@ -654,6 +671,8 @@ pub fn gaf_output_semiglobal_no_rec(
         } else if max == u {
             cigar.push('U');
             handle_id_alignment.push(handles_nodes_id[i]);
+            path_sequence.push(lnz[i]);
+
             i = if predecessor.is_none() {
                 i - 1
             } else {
@@ -671,6 +690,8 @@ pub fn gaf_output_semiglobal_no_rec(
     }
 
     cigar.reverse();
+    path_sequence.reverse();
+    let path_sequence_string: String = path_sequence.into_iter().collect();
 
     let query_name = String::from("Temp");
     let seq_length = dpm[0].len() - 1;
@@ -690,10 +711,11 @@ pub fn gaf_output_semiglobal_no_rec(
     let align_block_length = "*"; // to set
     let mapping_quality = "*"; // to set
     let comments = format!(
-        "{}, best path: {}, score: {}",
+        "{}, best path: {}, score: {}\t{}",
         build_cigar(&cigar),
         best_path,
-        score
+        score,
+        path_sequence_string
     );
     let gaf_output = GAFStruct::build_gaf_struct(
         query_name,
