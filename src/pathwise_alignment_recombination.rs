@@ -51,6 +51,7 @@ pub fn exec(
         aln_mode,
         &graph.paths_nodes,
         &graph.pred_hash,
+        &graph.nodes_id_pos,
     );
     let gaf;
     if aln_mode == 8 {
@@ -758,6 +759,7 @@ fn best_alignment(
     aln_mode: i32,
     nodes_path: &Vec<BitVec>,
     pred_hash: &PredHash,
+    nodes_id_pos: &Vec<u64>,
 ) -> (usize, usize, usize, usize, usize, f32) {
     let mut forw_ending_node = 0;
     let mut rev_starting_node = 0;
@@ -796,34 +798,38 @@ fn best_alignment(
     for j in 1..m[0].len() - 1 {
         for i in 1..m.len() - 1 {
             for rev_i in 1..m.len() - 1 {
-                let forw_path = m[i][j]
-                    .iter()
-                    .enumerate()
-                    .map(|(path, score)| (score, path))
-                    .max()
-                    .unwrap()
-                    .1;
-                let rev_path = w[rev_i][j]
-                    .iter()
-                    .enumerate()
-                    .map(|(path, score)| (score, path))
-                    .max()
-                    .unwrap()
-                    .1;
-                if nodes_path[i][forw_path] && nodes_path[rev_i][rev_path] && forw_path != rev_path
-                {
-                    let penalty = brc as f32 + (mrc * dms[i][rev_i] as f32);
-
-                    if (m[i][j][forw_path] + w[rev_i][j][rev_path]) as f32 - penalty
-                        >= curr_best_score
+                if nodes_id_pos[i] != nodes_id_pos[rev_i] {
+                    let forw_path = m[i][j]
+                        .iter()
+                        .enumerate()
+                        .map(|(path, score)| (score, path))
+                        .max()
+                        .unwrap()
+                        .1;
+                    let rev_path = w[rev_i][j]
+                        .iter()
+                        .enumerate()
+                        .map(|(path, score)| (score, path))
+                        .max()
+                        .unwrap()
+                        .1;
+                    if nodes_path[i][forw_path]
+                        && nodes_path[rev_i][rev_path]
+                        && forw_path != rev_path
                     {
-                        curr_best_score =
-                            (m[i][j][forw_path] + w[rev_i][j][rev_path]) as f32 - penalty;
-                        forw_ending_node = i;
-                        rev_starting_node = rev_i;
-                        forw_best_path = forw_path;
-                        rev_best_path = rev_path;
-                        recombination_col = j;
+                        let penalty = brc as f32 + (mrc * dms[i][rev_i] as f32);
+
+                        if (m[i][j][forw_path] + w[rev_i][j][rev_path]) as f32 - penalty
+                            >= curr_best_score
+                        {
+                            curr_best_score =
+                                (m[i][j][forw_path] + w[rev_i][j][rev_path]) as f32 - penalty;
+                            forw_ending_node = i;
+                            rev_starting_node = rev_i;
+                            forw_best_path = forw_path;
+                            rev_best_path = rev_path;
+                            recombination_col = j;
+                        }
                     }
                 }
             }
