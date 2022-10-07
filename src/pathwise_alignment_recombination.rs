@@ -801,23 +801,33 @@ fn best_alignment(
 
     let mut rec_penalty = 0;
     for j in out_of_band as usize..m[0].len() - out_of_band as usize {
+        let forw_paths: Vec<usize> = m
+            .iter()
+            .enumerate()
+            .map(|(_i, v)| v[j]
+                 .iter()
+                 .enumerate()
+                 .map(|(path, score)| (score, path))
+                 .max()
+                 .unwrap()
+                 .1)
+            .collect();
+        let rev_paths: Vec<usize> = w
+            .iter()
+            .enumerate()
+            .map(|(_rev_i, v)| v[j]
+                 .iter()
+                 .enumerate()
+                 .map(|(path, score)| (score, path))
+                 .max()
+                 .unwrap()
+                 .1)
+            .collect();
         for i in 1..m.len() - 1 {
+            let forw_path = forw_paths[i];
             for rev_i in 1..m.len() - 1 {
                 if nodes_id_pos[i] != nodes_id_pos[rev_i] {
-                    let forw_path = m[i][j]
-                        .iter()
-                        .enumerate()
-                        .map(|(path, score)| (score, path))
-                        .max()
-                        .unwrap()
-                        .1;
-                    let rev_path = w[rev_i][j]
-                        .iter()
-                        .enumerate()
-                        .map(|(path, score)| (score, path))
-                        .max()
-                        .unwrap()
-                        .1;
+                    let rev_path = rev_paths[rev_i];
                     if nodes_path[i][forw_path]
                         && nodes_path[rev_i][rev_path]
                         && forw_path != rev_path
