@@ -835,7 +835,7 @@ fn best_alignment(
                         let penalty = brc as f32 + (mrc * dms[i][rev_i] as f32);
 
                         if (m[i][j][forw_path] + w[rev_i][j][rev_path]) as f32 - penalty
-                            >= curr_best_score
+                            > curr_best_score
                         {
                             curr_best_score =
                                 (m[i][j][forw_path] + w[rev_i][j][rev_path]) as f32 - penalty;
