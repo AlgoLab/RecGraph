@@ -5,7 +5,7 @@ use handlegraph::{
     handlegraph::HandleGraph,
     hashgraph::HashGraph,
 };
-use std::{cmp, collections::HashMap};
+use std::collections::HashMap;
 //TODO: check path versus, only working with every path on + or -
 pub struct PathGraph {
     pub lnz: Vec<char>,
@@ -281,27 +281,53 @@ pub fn create_reverse_path_graph(forward_graph: &PathGraph) -> PathGraph {
     )
 }
 
-pub fn nodes_displacement_matrix(graph: &PathGraph) -> Vec<Vec<i32>> {
-    let paths = &&graph.paths_nodes;
+pub fn nodes_displacement_matrix(graph: &PathGraph, rev_graph: &PathGraph) -> Vec<Vec<i32>> {
+    let paths = &graph.paths_nodes;
+
     let dfe = get_distance_from_end(graph);
+
+    let dfs = get_distance_from_start(rev_graph);
+
     let mut ndm = vec![vec![0; paths.len()]; paths.len()];
     for i in 0..paths.len() {
         for j in 0..paths.len() {
             if i == j {
                 ndm[i][j] = 0;
             } else {
-                let (common_pred, common_succ) = get_nodes_pred_and_succ(paths, i, j);
-                let distance = ((dfe[i] - dfe[common_pred]) - (dfe[j] - dfe[common_pred]))
-                    + ((dfe[i] - dfe[common_succ]) - (dfe[j] - dfe[common_succ]));
+                let distance = (dfs[i] - dfs[j]).abs() + (dfe[i] - dfe[j]).abs();
                 let displacement = distance as i32;
-                ndm[i][j] = displacement.abs();
+                ndm[i][j] = displacement;
             }
         }
     }
+
     ndm
 }
+fn get_distance_from_start(graph: &PathGraph) -> Vec<isize> {
+    let nwp = &graph.nwp;
+    let pred_hash = &graph.pred_hash;
+    let lnz_len = graph.lnz.len();
+    let mut r_values: Vec<isize> = vec![-1; lnz_len];
+    r_values[0] = 0;
+    for (p, _) in pred_hash.get_preds_and_paths(0) {
+        r_values[p] = 1;
+    }
 
-fn get_distance_from_end(graph: &PathGraph) -> Vec<usize> {
+    for i in 1..lnz_len - 1 {
+        if r_values[i] == -1 || r_values[i] > r_values[i - 1] + 1 {
+            r_values[i] = r_values[i - 1] + 1;
+        }
+        if nwp[i] {
+            for (p, _) in pred_hash.get_preds_and_paths(i) {
+                if r_values[p] == -1 || r_values[p] > r_values[i] + 1 {
+                    r_values[p] = r_values[i] + 1;
+                }
+            }
+        }
+    }
+    r_values
+}
+fn get_distance_from_end(graph: &PathGraph) -> Vec<isize> {
     let nwp = &graph.nwp;
     let pred_hash = &graph.pred_hash;
     let lnz_len = graph.lnz.len();
@@ -311,6 +337,7 @@ fn get_distance_from_end(graph: &PathGraph) -> Vec<usize> {
     for (p, _) in pred_hash.get_preds_and_paths(lnz_len - 1) {
         r_values[p] = 1;
     }
+
     for i in (1..lnz_len - 1).rev() {
         if r_values[i] == -1 || r_values[i] > r_values[i + 1] + 1 {
             r_values[i] = r_values[i + 1] + 1;
@@ -323,36 +350,9 @@ fn get_distance_from_end(graph: &PathGraph) -> Vec<usize> {
             }
         }
     }
-    r_values.iter().map(|x| *x as usize).collect()
+    r_values
 }
-fn get_nodes_pred_and_succ(paths: &Vec<BitVec>, i: usize, j: usize) -> (usize, usize) {
-    let mut common_pred = 0;
-    let mut common_succ = paths.len() - 1;
-    let mut counter = cmp::min(i, j);
-    while counter > 0 {
-        let mut i_j_paths = paths[i].clone();
-        i_j_paths.and(&paths[j]);
-        i_j_paths.and(&paths[counter]);
-        if i_j_paths.any() {
-            common_pred = counter;
-            break;
-        }
-        counter -= 1;
-    }
-    counter = cmp::max(i, j);
-    while counter < paths.len() {
-        let mut i_j_paths = paths[i].clone();
-        i_j_paths.and(&paths[j]);
-        i_j_paths.and(&paths[counter]);
-        if i_j_paths.any() {
-            common_succ = counter;
-            break;
-        }
-        counter += 1;
-    }
 
-    (common_pred, common_succ)
-}
 #[cfg(test)]
 mod tests {
     use handlegraph::{

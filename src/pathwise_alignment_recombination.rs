@@ -2,10 +2,10 @@ use bit_vec::BitVec;
 
 use crate::{
     gaf_output::GAFStruct,
-    pathwise_graph::{self, PathGraph, PredHash},
+    pathwise_graph::{PathGraph, PredHash},
     recombination_output,
 };
-use std::collections::HashMap;
+use std::{cmp, collections::HashMap};
 pub fn get_node_offset(nodes_handles: &Vec<u64>, curr_node: usize) -> i32 {
     let handle = nodes_handles[curr_node];
     if handle == 0 {
@@ -24,14 +24,15 @@ pub fn exec(
     aln_mode: i32,
     sequence: &[char],
     graph: &PathGraph,
+    rev_graph: &PathGraph,
     score_matrix: &HashMap<(char, char), i32>,
     base_rec_cost: i32,
     multi_rec_cost: f32,
     displacement_matrix: &Vec<Vec<i32>>,
+    rbw: f32,
 ) -> GAFStruct {
     let forward_matrix = align(aln_mode, sequence, graph, score_matrix);
 
-    let rev_graph = pathwise_graph::create_reverse_path_graph(graph);
     let rev_sequence = get_rev_sequence(&sequence);
     let reverse_matrix = rev_align(aln_mode, &rev_sequence, &rev_graph, score_matrix);
 
@@ -52,6 +53,7 @@ pub fn exec(
         &graph.paths_nodes,
         &graph.pred_hash,
         &graph.nodes_id_pos,
+        rbw,
     );
     let gaf;
     if aln_mode == 8 {
@@ -760,6 +762,7 @@ fn best_alignment(
     nodes_path: &Vec<BitVec>,
     pred_hash: &PredHash,
     nodes_id_pos: &Vec<u64>,
+    rbw: f32,
 ) -> (usize, usize, usize, usize, usize, f32) {
     let mut forw_ending_node = 0;
     let mut rev_starting_node = 0;
@@ -794,8 +797,9 @@ fn best_alignment(
     let mut curr_best_score = max.unwrap() as f32;
     let mut forw_best_path = best_path.unwrap();
     let mut rev_best_path = best_path.unwrap();
+    let out_of_band = cmp::max((m[0].len() as f32 * (1.0 - rbw) / 2.0) as i32, 1);
 
-    for j in 1..m[0].len() - 1 {
+    for j in out_of_band as usize..m[0].len() - out_of_band as usize {
         for i in 1..m.len() - 1 {
             for rev_i in 1..m.len() - 1 {
                 if nodes_id_pos[i] != nodes_id_pos[rev_i] {

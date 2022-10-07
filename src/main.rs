@@ -279,17 +279,23 @@ fn main() {
         }
         8 | 9 => {
             let graph = pathwise_graph::read_graph_w_path(&graph_path, false);
-            let displ_matrix = nodes_displacement_matrix(&graph);
+            let rev_graph = pathwise_graph::create_reverse_path_graph(&graph);
+            let displ_matrix = nodes_displacement_matrix(&graph, &rev_graph);
+
             let (base_rec_cost, multi_rec_cost) = args_parser::get_base_multi_recombination_cost();
+            let rbw = args_parser::get_recombination_band_width();
+
             for (i, seq) in sequences.iter().enumerate() {
                 let mut gaf = pathwise_alignment_recombination::exec(
                     align_mode,
                     seq,
                     &graph,
+                    &rev_graph,
                     &score_matrix,
                     base_rec_cost,
                     multi_rec_cost,
                     &displ_matrix,
+                    rbw,
                 );
                 gaf.query_name = seq_names[i].clone();
 

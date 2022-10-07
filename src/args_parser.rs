@@ -105,6 +105,16 @@ struct Args {
     )]
     base_rec_cost: i32,
 
+    //Recombination band width
+    #[clap(
+        help_heading = "Alignment",
+        short = 'B',
+        long = "rec-band-width",
+        default_value_t = 1.0,
+        help = "Recombinatio band width"
+    )]
+    rec_band_width: f32,
+
     //Ambigous strand mode
     #[clap(
         help_heading = "Alignment",
@@ -184,4 +194,9 @@ pub fn get_amb_strand_mode() -> bool {
 pub fn get_out_file() -> String {
     let args = Args::parse();
     args.out_file
+}
+
+pub fn get_recombination_band_width() -> f32 {
+    let args = Args::parse();
+    args.rec_band_width
 }
