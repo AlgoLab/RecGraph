@@ -763,7 +763,7 @@ fn best_alignment(
     pred_hash: &PredHash,
     nodes_id_pos: &Vec<u64>,
     rbw: f32,
-) -> (usize, usize, usize, usize, usize, f32) {
+) -> (usize, usize, usize, usize, usize, (f32, i32)) {
     let mut forw_ending_node = 0;
     let mut rev_starting_node = 0;
     let mut recombination_col = 0;
@@ -799,6 +799,7 @@ fn best_alignment(
     let mut rev_best_path = best_path.unwrap();
     let out_of_band = cmp::max((m[0].len() as f32 * (1.0 - rbw) / 2.0) as i32, 1);
 
+    let mut rec_penalty = 0;
     for j in out_of_band as usize..m[0].len() - out_of_band as usize {
         for i in 1..m.len() - 1 {
             for rev_i in 1..m.len() - 1 {
@@ -833,6 +834,7 @@ fn best_alignment(
                             forw_best_path = forw_path;
                             rev_best_path = rev_path;
                             recombination_col = j;
+                            rec_penalty = dms[i][rev_i];
                         }
                     }
                 }
@@ -845,7 +847,7 @@ fn best_alignment(
         forw_best_path,
         rev_best_path,
         recombination_col,
-        curr_best_score,
+        (curr_best_score, rec_penalty),
     )
 }
 

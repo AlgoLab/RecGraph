@@ -402,7 +402,7 @@ pub fn gaf_output_semiglobal_rec(
     forward_ending_node: usize,
     reverse_starting_node: usize,
     rec_col: usize,
-    best_score: f32,
+    best_score: (f32, i32),
 ) -> GAFStruct {
     let mut cigar = Vec::new();
     let mut rev_path_length: usize = 0;
@@ -579,14 +579,15 @@ pub fn gaf_output_semiglobal_rec(
         let fen_offset = get_node_offset(handles_nodes_id, forward_ending_node);
         let rsn_offset = get_node_offset(handles_nodes_id, reverse_starting_node);
         format!(
-            "recombination path {} {}, nodes {}[{}] {}[{}], score: {}\t{}",
+            "recombination path {} {}, nodes {}[{}] {}[{}], score: {}, displacement: {}\t{}",
             best_path,
             rev_best_path,
             handles_nodes_id[forward_ending_node],
             fen_offset,
             handles_nodes_id[reverse_starting_node],
             rsn_offset,
-            best_score,
+            best_score.0,
+            best_score.1,
             path_sequence_string
         )
     };
