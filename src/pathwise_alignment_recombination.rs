@@ -804,24 +804,26 @@ fn best_alignment(
         let forw_paths: Vec<usize> = m
             .iter()
             .enumerate()
-            .map(|(_i, v)| v[j]
-                 .iter()
-                 .enumerate()
-                 .map(|(path, score)| (score, path))
-                 .max()
-                 .unwrap()
-                 .1)
+            .map(|(_i, v)| {
+                v[j].iter()
+                    .enumerate()
+                    .map(|(path, score)| (score, path))
+                    .max()
+                    .unwrap()
+                    .1
+            })
             .collect();
         let rev_paths: Vec<usize> = w
             .iter()
             .enumerate()
-            .map(|(_rev_i, v)| v[j]
-                 .iter()
-                 .enumerate()
-                 .map(|(path, score)| (score, path))
-                 .max()
-                 .unwrap()
-                 .1)
+            .map(|(_rev_i, v)| {
+                v[j].iter()
+                    .enumerate()
+                    .map(|(path, score)| (score, path))
+                    .max()
+                    .unwrap()
+                    .1
+            })
             .collect();
         for i in 1..m.len() - 1 {
             let forw_path = forw_paths[i];

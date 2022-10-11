@@ -235,9 +235,9 @@ pub unsafe fn exec_simd(
         }
         if m[*p][read.len() - 1] > best_result {
             best_result = m[*p][read.len() - 1];
+            last_row = *p
         }
     }
-
     if seq_name.1 != 0 {
         let gaf_struct = gaf_output::gaf_of_global_abpoa_simd(
             &path,
