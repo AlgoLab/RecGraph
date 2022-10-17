@@ -1,18 +1,18 @@
 use clap::Parser;
 
 #[derive(Parser, Debug)]
-#[clap(author = "Davide Monti <d.monti11@campus.unimib.it>", version, about = "POA in rust", long_about = None)]
+#[clap(author = "Davide Monti <d.monti11@campus.unimib.it>", version, about = "RecGraph", long_about = None)]
 struct Args {
     #[clap(
         help_heading = "I/O",
-        help = "Sequences to align file path",
-        default_value = "sequences.fa"
+        help = "Input sequences (in .fasta format)",
+        required = true
     )]
     sequence_path: String,
     #[clap(
         help_heading = "I/O",
-        help = "Graph file path",
-        default_value = "prova.gfa"
+        help = "Input graph (in .gfa format)",
+	required = true
     )]
     graph_path: String,
 
@@ -21,7 +21,7 @@ struct Args {
         short = 'o',
         long = "out_file",
         default_value = "standard output",
-        help = "Specifies the output file, if not indicated prints in standard output"
+        help = "Output alignment file"
     )]
     out_file: String,
 
@@ -31,7 +31,7 @@ struct Args {
         short = 'm',
         long = "aln-mode",
         default_value_t = 0,
-        help = "0: global, 1: local, 2: affine gap, 3: local gap, 4: pathwise alignment[DEMO]"
+        help = "0: global POA, 1: local POA, 2: affine gap POA, 3: local gap POA,\n4: global pathwise alignment, 5: semiglobal pathwise alignment,\n6: global pathwise alignment with affine gap (EXPERIMENTAL),\n7: semiglobal pathwise alignment with affine gap (EXPERIMENTAL),\n8: global recombination alignment, 9: semiglobal recombination alignment"
     )]
     alignment_mode: i32,
 
@@ -61,7 +61,7 @@ struct Args {
         short = 't',
         long = "matrix",
         default_value = "none",
-        help = "Scoring matrix file, if '-t' is used '-M' and '-X' are not used, you should set gap penalties in this case"
+        help = "Scoring matrix file, if '-t' is used, '-M' and '-X' are not used and you should set gap penalties in this case"
     )]
     matrix: String,
 
@@ -101,7 +101,7 @@ struct Args {
         short = 'R',
         long = "base-rec-cost",
         default_value_t = 4,
-        help = "Recombination cost, determined with -r as R + r(displacement)"
+        help = "Recombination cost, determined with -r as R + r*(displacement_length)"
     )]
     base_rec_cost: i32,
 
@@ -111,7 +111,7 @@ struct Args {
         short = 'B',
         long = "rec-band-width",
         default_value_t = 1.0,
-        help = "Recombinatio band width"
+        help = "Recombination band width"
     )]
     rec_band_width: f32,
 
@@ -122,7 +122,7 @@ struct Args {
         default_value = "false",
         short = 's',
         long = "amb-strand",
-        help = "Ambigous strand mode, try reverse complement if alignment score is too low"
+        help = "Ambigous strand mode (experimental): try reverse complement if alignment score is too low"
     )]
     amb_strand: String,
 
