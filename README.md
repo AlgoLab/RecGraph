@@ -1,58 +1,55 @@
-# rspoa
-POA in Rust
+# RecGraph
+RecGraph is a sequence-to-graph aligner written in Rust. Differently from most aligners, RecGraph is an exact approach that implements a dynamic programming algorithm for computing an **optimal** alignment between a string and a variation graph. Moreover, RecGraph can allow recombinations in the alignment in a controlled (i.e., non heuristic) way - in other words, it can perform optimal alignment to path not included in the input graphs. This follows directly from the observation that a pangenome graph includes a set of related individuals that are represented as paths of the graph.
+
+## Installation
+Install [`rust`](https://doc.rust-lang.org/cargo/getting-started/installation.html), then clone and install RecGraph:
+```
+git clone https://github.com/AlgoLab/RecGraph.git
+cd RecGraph
+cargo +nightly build --release
+```
+
 ## Usage
-After cloning the repository from GitHub, move to its main directory and compile the package with
+RecGraph requires as input a variation graph in `.gfa` format and a set of sequences (reads) in `.fasta` format and computes the alignment in `.gaf` format. To run RecGraph, run:
 ```
-cargo build --release
+cargo run --release <reads.fa> <graph.gfa> > <alignments.gaf>
 ```
-To use rspoa you need a .gfa file and a .fasta file containing the reads you want to align to the graph. In order to run rspoa:
+#### Example
 ```
-cargo run --release <reads.fa> <graph.gfa>
-```
-You can set different parameters and choose between different alignment types:
-```
-OPTIONS:
-    -h, --help       Print help information
-    -V, --version    Print version information
-
-I/O:
-    <SEQUENCE_PATH>          Sequences to align file path 
-    <GRAPH_PATH>             Graph file path 
-     -o, --out_file <OUT_FILE>    Specifies the output file, if not indicated prints in standard
-                                 output [default: "standard output"]
-
-Alignment:
-    -m, --aln-mode <ALIGNMENT_MODE>    0: global, 1: local, 2: affine gap, 3: local gap, 
-                                       4: pathwise alignment[DEMO], 
-    -M, --match <MATCH_SCORE>          Match score [default: 2]
-    -X, --mismatch <MISMATCH_SCORE>    Mismatch penalty [default: 4]
-    -O, --gap-open <GAP_OPEN>          Gap opening penalty [default: 4]
-    -E, --gap-ext <GAP_EXTENSION>      Gap extension penalty [default: 2]
-    -s, --amb-strand <AMB_STRAND>      Ambigous strand mode, try reverse complement if
-                                       alignment score is too low [default: false] [possible values:
-                                       true, false]
-    -t, --matrix <MATRIX>              Scoring matrix file, if '-t' is used '-M' and '-X' are not
-                                       used. You should set appropriate gap penalties if aln-mode is 
-                                       2 or 3[default: none]
-
-Adaptive banded:
-    -b, --extra-b <EXTRA_B>    First adaptive banding parameter, set < 0 to disable adaptive banded
-                               [default: 1]
-    -f, --extra-f <EXTRA_F>    Second adaptive banding parameter, number of basis added to both side of
-                               the band = b+f*L, l = length of the sequence [default: 0.01]
+cargo +nightly run --release -- -m 9 example/reads.fa example/graph.gfa > align.gaf
 ```
 
-The output is in .gaf format, in reference to the graph in input.
+### Alignment modes
+RecGraph can be run in several different modes (`-m` flag):
+* `-m [0,1,2,3]` performs the classical POA (global, local, affine gap, and local gap)
+* `-m [4,5]` performs global/semiglobal alignment in pathwise mode (i.e., following the paths of the graph)
+* `-m [8,9]` performs global/semiglobal alignment in recombination mode (i.e., allowing weighted recombinations)
 
+`-m 6` and `-m 7` are experimental and are not fully tested yet. They perform global/semiglobal alignment with affine gap in pathwise mode.
+
+### Other parameters
+RecGraph also allows to set multiple parameters to tweak the dynamic programming alignment procedure. Here the list of parameters (please check also `--help`): 
 ```
->read1	50	0	50	+	>1>3>5>6>8>9>11>12>13>15>16>18>19	50	0	11	49	*	*	8M,1M,1M,3M,1M,4M,5M,2M,8M,1M,4M,1M,11M
+    -M, --match <MATCH_SCORE>                Match score [default: 2]
+    -X, --mismatch <MISMATCH_SCORE>          Mismatch penalty [default: 4]
+    -O, --gap-open <GAP_OPEN>                Gap opening penalty [default: 4]
+    -E, --gap-ext <GAP_EXTENSION>            Gap extension penalty [default: 2]
+    -R, --base-rec-cost <BASE_REC_COST>      Recombination cost,
+                                             determined with -r as R + r*(displacement_length) [default: 4]
+    -r, --multi-rec-cost <MULTI_REC_COST>    Displacement multiplier [default: 0.1]
+    -B, --rec-band-width <REC_BAND_WIDTH>    Recombination band width [default: 1]
+    -b, --extra-b <EXTRA_B>                  First adaptive banding par,
+                                             set < 0 to disable adaptive banded [default: 1]
+    -f, --extra-f <EXTRA_F>                  Second adaptive banding par, number of basis added to both side of
+                                             the band = b+f*L, l = length of the sequence [default: 0.01]
+    -t, --matrix <MATRIX>                    Scoring matrix file, if '-t' is used, '-M' and '-X' are not used
+                                             and you should set gap penalties in this case [default: none]
 ```
+
 ### Library
-rsPOA can also be used as a library for your project. 
-In order to do so add to your Cargo.toml file:
+rsPOA can also be used as a library for your project. To do so, add these lines to your `Cargo.toml`:
 ```
 [dependencies]
 rspoa= { git = "https://github.com/AlgoLab/rspoa" }
 ```
-In this case you can use the functions inside the api.rs file, they need only the read as a string and the graph as an HashGraph, other parameters can be set or left by default.
-You can use them by adding ```use rspoa::api::*``` in your file.
+You can use the functions defined in the [`api.rs`](https://github.com/AlgoLab/RecGraph/blob/1b513973c1145015ed626abc975e276970d2a60e/src/api.rs) file (e.g., by adding `use rspoa::api::*` to your file). All the functions require just a read (as a string) and the graph (as an HashGraph). Other parameters are optional.
