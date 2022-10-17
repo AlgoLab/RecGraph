@@ -47,9 +47,9 @@ RecGraph also allows to set multiple parameters to tweak the dynamic programming
 ```
 
 ### Library
-rsPOA can also be used as a library for your project. To do so, add these lines to your `Cargo.toml`:
+RecGraph can also be used as a library for your project. To do so, add these lines to your `Cargo.toml`:
 ```
 [dependencies]
-rspoa= { git = "https://github.com/AlgoLab/rspoa" }
+RecGraph = { git = "https://github.com/AlgoLab/RecGraph" }
 ```
-You can use the functions defined in the [`api.rs`](https://github.com/AlgoLab/RecGraph/blob/1b513973c1145015ed626abc975e276970d2a60e/src/api.rs) file (e.g., by adding `use rspoa::api::*` to your file). All the functions require just a read (as a string) and the graph (as an HashGraph). Other parameters are optional.
+You can use the functions defined in the [`api.rs`](https://github.com/AlgoLab/RecGraph/blob/1b513973c1145015ed626abc975e276970d2a60e/src/api.rs) file (e.g., by adding `use RecGraph::api::*` to your file). All the functions require just a read (as a string) and the graph (as an HashGraph). Other parameters are optional.
