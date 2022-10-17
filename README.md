@@ -12,7 +12,7 @@ cargo +nightly build --release
 ## Usage
 RecGraph requires as input a variation graph in `.gfa` format and a set of sequences (reads) in `.fasta` format and computes the alignment in `.gaf` format. To run RecGraph, run:
 ```
-cargo run --release <reads.fa> <graph.gfa> > <alignments.gaf>
+cargo +nightly run --release <reads.fa> <graph.gfa> > <alignments.gaf>
 ```
 #### Example
 ```
