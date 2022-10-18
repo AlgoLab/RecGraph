@@ -326,11 +326,11 @@ fn main() {
     match now.elapsed() {
 	Ok(elapsed) => {
             // it prints '2'
-            println!("Done in {} ;)", elapsed.as_secs());
+            eprintln!("Done in {}.", elapsed.as_secs());
 	}
 	Err(e) => {
             // an error occurred!
-            println!("Error: {e:?}");
+            eprintln!("Error: {e:?}");
 	}
     }
 }
