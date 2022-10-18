@@ -19,5 +19,5 @@ pbr = "*"
 criterion = "0.3"
 
 [[bench]]
-name = "rspoa_benchmark"
+name = "recgraph_benchmark"
 harness = false
