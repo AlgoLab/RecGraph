@@ -1,8 +1,8 @@
 [package]
-name = "rspoa"
-version = "0.1.0"
+name = "recgraph"
+version = "1.0.0"
 authors = ["Davide Monti <d.monti11@campus.unimib.it>"]
-description = "A POA implementation in Rust"
+description = "An exact sequence-to-graph aligner with controlled recombinations"
 license = "MIT"
 edition = "2021"
 

@@ -1,7 +1,7 @@
-//! rsPOA is an implementation of the POA algorithm, used to align a sequence to a pangenome graph.   
-//! More information at [rsPOA](https://github.com/AlgoLab/rspoa)
+//! RecGraph is an exact sequence to variation graph aligner that allows controlled recombinations.
+//! More information at [rsPOA](https://github.com/AlgoLab/recgraph)
 
-/// Application program interface of rsPOA
+/// Application program interface of recgraph
 pub mod api;
 /// Command Line Interface
 pub mod args_parser;

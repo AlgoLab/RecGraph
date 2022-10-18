@@ -17,7 +17,7 @@ pub fn create_f32_scores_matrix() -> HashMap<(char, char), f32> {
 }
 
 /// Returned score matrix can be set by match/mismatch score or by a .mtx file (currently only HOXD70 and HOXD55).
-/// This function is meant to be used by rspoa directly, if you want to create a score matrix use the functions defined in api.rs
+/// This function is meant to be used by recgraph directly, if you want to create a score matrix use the functions defined in api.rs
 pub fn create_score_matrix() -> HashMap<(char, char), i32> {
     let matrix_type = args_parser::get_matrix_type();
     match matrix_type.as_str() {
