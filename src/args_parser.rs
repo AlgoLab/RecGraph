@@ -12,7 +12,7 @@ struct Args {
     #[clap(
         help_heading = "I/O",
         help = "Input graph (in .gfa format)",
-	required = true
+        required = true
     )]
     graph_path: String,
 

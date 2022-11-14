@@ -60,28 +60,32 @@ pub fn exec(
         if forw_best_path == rev_best_path {
             gaf = recombination_output::gaf_output_global_no_rec(
                 &forward_matrix,
-                &graph,
+                &graph.lnz,
                 &sequence,
                 &score_matrix,
                 forw_best_path,
+                &graph.pred_hash,
+                &graph.nwp,
+                &graph.nodes_id_pos,
             );
         } else {
             gaf = recombination_output::gaf_output_global_rec(
                 &forward_matrix,
                 &reverse_matrix,
+                &graph.lnz,
                 &sequence,
                 &score_matrix,
                 forw_best_path,
                 rev_best_path,
-                forw_ending_node,
-                rev_starting_node,
-                recombination_col,
-                &graph.lnz,
                 &graph.pred_hash,
                 &rev_graph.pred_hash,
                 &graph.nwp,
                 &rev_graph.nwp,
                 &graph.nodes_id_pos,
+                forw_ending_node,
+                rev_starting_node,
+                recombination_col,
+                score,
             );
         }
     } else {

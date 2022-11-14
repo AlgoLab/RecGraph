@@ -16,8 +16,8 @@ use recgraph::sequences;
 use recgraph::utils;
 use std::collections::HashMap;
 
-use std::io::stderr;
 use pbr::ProgressBar;
+use std::io::stderr;
 use std::time::SystemTime;
 
 fn main() {
@@ -54,7 +54,7 @@ fn main() {
                 graph_struct.lnz.len(),
             );
             for (i, seq) in sequences.iter().enumerate() {
-		pb.inc();
+                pb.inc();
                 let bases_to_add = (b + f * seq.len() as f32) as usize;
                 let alignment = if is_x86_feature_detected!("avx2") {
                     unsafe {
@@ -108,7 +108,7 @@ fn main() {
         //local alignment
         1 => {
             for (i, seq) in sequences.iter().enumerate() {
-		pb.inc();
+                pb.inc();
                 let alignment = if is_x86_feature_detected!("avx2") {
                     unsafe {
                         let temp_score = local_poa::exec_simd(
@@ -174,7 +174,7 @@ fn main() {
             let (g_open, g_ext) = args_parser::get_gap_open_gap_ext();
 
             for (i, seq) in sequences.iter().enumerate() {
-		pb.inc();
+                pb.inc();
                 let bases_to_add = (b + f * seq.len() as f32) as usize;
                 let alignment = gap_global_abpoa::exec(
                     seq,
@@ -219,7 +219,7 @@ fn main() {
         3 => {
             let (g_open, g_ext) = args_parser::get_gap_open_gap_ext();
             for (i, seq) in sequences.iter().enumerate() {
-		pb.inc();
+                pb.inc();
                 let alignment = gap_local_poa::exec(
                     seq,
                     (&seq_names[i], i + 1),
@@ -259,7 +259,7 @@ fn main() {
         4 => {
             let graph = pathwise_graph::read_graph_w_path(&graph_path, false);
             for (i, seq) in sequences.iter().enumerate() {
-		pb.inc();
+                pb.inc();
                 let mut gaf = pathwise_alignment::exec(seq, &graph, &score_matrix);
                 gaf.query_name = seq_names[i].clone();
                 utils::write_gaf(&gaf.to_string(), i);
@@ -268,7 +268,7 @@ fn main() {
         5 => {
             let graph = pathwise_graph::read_graph_w_path(&graph_path, false);
             for (i, seq) in sequences.iter().enumerate() {
-		pb.inc();
+                pb.inc();
                 let mut gaf = pathwise_alignment_semiglobal::exec(seq, &graph, &score_matrix);
                 gaf.query_name = seq_names[i].clone();
                 utils::write_gaf(&gaf.to_string(), i);
@@ -301,7 +301,7 @@ fn main() {
             let rbw = args_parser::get_recombination_band_width();
 
             for (i, seq) in sequences.iter().enumerate() {
-		pb.inc();
+                pb.inc();
                 let mut gaf = pathwise_alignment_recombination::exec(
                     align_mode,
                     seq,
@@ -324,13 +324,13 @@ fn main() {
         }
     }
     match now.elapsed() {
-	Ok(elapsed) => {
+        Ok(elapsed) => {
             // it prints '2'
             eprintln!("Done in {}.", elapsed.as_secs());
-	}
-	Err(e) => {
+        }
+        Err(e) => {
             // an error occurred!
             eprintln!("Error: {e:?}");
-	}
+        }
     }
 }
