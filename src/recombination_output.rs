@@ -161,7 +161,7 @@ pub fn gaf_output_semiglobal_rec(
         temp_cigar.push('L');
         j -= 1;
     }
-
+    let rec_edge = temp_path_sequence.len() - 1;
     temp_cigar.reverse();
     temp_cigar.append(&mut cigar);
 
@@ -202,7 +202,7 @@ pub fn gaf_output_semiglobal_rec(
         let fen_offset = get_node_offset(handles_nodes_id, forward_ending_node);
         let rsn_offset = get_node_offset(handles_nodes_id, reverse_starting_node);
         format!(
-            "recombination path {} {}, nodes {}[{}] {}[{}], score: {}, displacement: {}\t{}",
+            "recombination path {} {}, nodes {}[{}] {}[{}], score: {}, displacement: {}\t{}\t{}",
             best_path,
             rev_best_path,
             handles_nodes_id[forward_ending_node],
@@ -211,7 +211,8 @@ pub fn gaf_output_semiglobal_rec(
             rsn_offset,
             best_score.0,
             best_score.1,
-            path_sequence_string
+            path_sequence_string,
+            rec_edge
         )
     };
     let comments = format!("{}, {}", build_cigar(&temp_cigar), recombination);
@@ -554,7 +555,7 @@ pub fn gaf_output_global_rec(
         };
         path_length += 1;
     }
-
+    let rec_edge = temp_path_sequence.len() - 1;
     temp_cigar.reverse();
     temp_cigar.append(&mut cigar);
 
@@ -595,7 +596,7 @@ pub fn gaf_output_global_rec(
         let fen_offset = get_node_offset(handles_nodes_id, forward_ending_node);
         let rsn_offset = get_node_offset(handles_nodes_id, reverse_starting_node);
         format!(
-            "recombination path {} {}, nodes {}[{}] {}[{}], score: {}, displacement: {}\t{}",
+            "recombination path {} {}, nodes {}[{}] {}[{}], score: {}, displacement: {}\t{}\t{}",
             best_path,
             rev_best_path,
             handles_nodes_id[forward_ending_node],
@@ -604,7 +605,8 @@ pub fn gaf_output_global_rec(
             rsn_offset,
             best_score.0,
             best_score.1,
-            path_sequence_string
+            path_sequence_string,
+            rec_edge
         )
     };
     let comments = format!("{}, {}", build_cigar(&temp_cigar), recombination);
