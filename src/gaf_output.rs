@@ -1,4 +1,4 @@
-use crate::bitfield_path as bf;
+use crate::{bitfield_path as bf, pathwise_alignment_output};
 use bitvec::prelude::*;
 use std::collections::HashMap;
 
@@ -758,24 +758,21 @@ pub fn gaf_of_global_abpoa_simd(
     last_col: usize,
     amb_mode: bool,
     hofp: &HashMap<usize, String>,
+    lnz: &Vec<char>,
+    best_score: f32
 ) -> GAFStruct {
     let mut col = last_col;
     let mut row = last_row;
 
     let mut handle_id_alignment = Vec::new();
 
-    let mut cigars = Vec::new();
-    let mut cigar = String::new();
+    let mut cigar = Vec::new();
 
-    let mut count_m = 0;
-    let mut count_i = 0;
-    let mut count_d = 0;
-
-    let mut curr_handle = "";
-    let mut last_dir = -1;
     let mut path_length = 0;
     let mut residue_matching = 0;
     let mut out_ok = true;
+
+    let mut path_sequence = Vec::new();
     while path[row][col] != 0.0 {
         let val = path[row][col];
         if val == -1f32 {
@@ -787,42 +784,29 @@ pub fn gaf_of_global_abpoa_simd(
         let pred = pred_dir[0].parse::<usize>().unwrap();
         let dir = pred_dir[1].parse::<i32>().unwrap();
 
-        if hofp.get(&row).unwrap() != curr_handle {
-            cigar = set_cigar_substring(count_m, count_i, count_d, cigar);
-            cigars.insert(0, cigar);
-
-            cigar = String::new();
-
-            count_m = 0;
-            count_i = 0;
-            count_d = 0;
-        }
-        curr_handle = hofp.get(&row).unwrap();
-        if dir != last_dir {
-            cigar = set_cigar_substring(count_m, count_i, count_d, cigar);
-            count_m = 0;
-            count_i = 0;
-            count_d = 0;
-        }
-        last_dir = dir;
         match dir {
             1 => {
                 handle_id_alignment.push(hofp.get(&row).unwrap());
                 row = pred;
                 col -= 1;
-                count_m += 1;
+                if lnz[row] == sequence[col] {
+                    cigar.push('D');
+                } else {
+                    cigar.push('d')
+                }
+                path_sequence.push(lnz[row]);
                 path_length += 1;
                 residue_matching += 1;
             }
             3 => {
                 col -= 1;
-                count_d += 1;
+                cigar.push('L');
             }
             2 => {
                 handle_id_alignment.push(hofp.get(&row).unwrap());
-
+                path_sequence.push(lnz[row]);
                 row = pred;
-                count_i += 1;
+                cigar.push('U');
                 path_length += 1;
             }
             _ => {
@@ -831,8 +815,12 @@ pub fn gaf_of_global_abpoa_simd(
         }
     }
     if out_ok {
-        cigar = set_cigar_substring(count_m, count_i, count_d, cigar);
-        cigars.insert(0, cigar);
+        cigar.reverse();
+        let cigar_out = pathwise_alignment_output::build_cigar(&cigar);
+
+        path_sequence.reverse();
+        path_sequence.remove(0);
+        let path_sequence_string: String = path_sequence.into_iter().collect();
 
         handle_id_alignment.dedup();
         handle_id_alignment.reverse();
@@ -851,7 +839,7 @@ pub fn gaf_of_global_abpoa_simd(
         let number_residue = residue_matching; // to set
         let align_block_length = "*"; // to set
         let mapping_quality = "*"; // to set
-        let comments = cigars[..cigars.len() - 1].join(",");
+        let comments = format!("{}, score: {}\t{}", cigar_out, best_score, path_sequence_string);
         GAFStruct::build_gaf_struct(
             String::from(seq_name.0),
             seq_length,
