@@ -773,6 +773,7 @@ pub fn gaf_of_global_abpoa_simd(
     let mut out_ok = true;
 
     let mut path_sequence = Vec::new();
+
     while path[row][col] != 0.0 {
         let val = path[row][col];
         if val == -1f32 {
@@ -787,6 +788,7 @@ pub fn gaf_of_global_abpoa_simd(
         match dir {
             1 => {
                 handle_id_alignment.push(hofp.get(&row).unwrap());
+                path_sequence.push(lnz[row]);
                 row = pred;
                 col -= 1;
                 if lnz[row] == sequence[col] {
@@ -794,7 +796,6 @@ pub fn gaf_of_global_abpoa_simd(
                 } else {
                     cigar.push('d')
                 }
-                path_sequence.push(lnz[row]);
                 path_length += 1;
                 residue_matching += 1;
             }
@@ -819,7 +820,6 @@ pub fn gaf_of_global_abpoa_simd(
         let cigar_out = pathwise_alignment_output::build_cigar(&cigar);
 
         path_sequence.reverse();
-        path_sequence.remove(0);
         let path_sequence_string: String = path_sequence.into_iter().collect();
 
         handle_id_alignment.dedup();
