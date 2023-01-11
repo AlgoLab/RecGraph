@@ -248,7 +248,7 @@ pub unsafe fn exec_simd(
             amb_mode,
             hofp,
             &graph.lnz,
-            best_result
+            best_result,
         );
         (best_result as i32, Some(gaf_struct))
     } else {

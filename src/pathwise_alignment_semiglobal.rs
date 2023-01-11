@@ -1,5 +1,5 @@
 use crate::gaf_output::GAFStruct;
-use crate::pathwise_alignment_output::build_alignment_semiglobal;
+use crate::pathwise_alignment_output::build_alignment;
 use crate::pathwise_graph::PathGraph;
 use std::collections::HashMap;
 
@@ -225,7 +225,7 @@ pub fn exec(
     }
     let (final_node, best_path) = best_ending_node(&dpm, graph);
 
-    let gaf = build_alignment_semiglobal(
+    let gaf = build_alignment(
         &dpm,
         lnz,
         sequence,
@@ -236,6 +236,7 @@ pub fn exec(
         &nodes_with_pred,
         &graph.nodes_id_pos,
         final_node,
+        false,
     );
     gaf
 }

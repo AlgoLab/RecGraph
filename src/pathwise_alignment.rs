@@ -302,16 +302,18 @@ pub fn exec(
             }
         }
     }
+    let mut ending_nodes = vec![0; path_number];
     let mut results = vec![0; path_number];
     for (pred, paths) in pred_hash.get_preds_and_paths(lnz.len() - 1) {
         for (path, is_in) in paths.iter().enumerate() {
             if is_in {
                 if path == alphas[pred] {
-                    results[path] = dpm[pred][dpm[pred].len() - 1][path]
+                    results[path] = dpm[pred][dpm[pred].len() - 1][path];
                 } else {
                     results[path] = dpm[pred][dpm[pred].len() - 1][path]
                         + dpm[pred][dpm[pred].len() - 1][alphas[pred]]
                 }
+                ending_nodes[path] = pred;
             }
         }
     }
@@ -320,7 +322,20 @@ pub fn exec(
         .enumerate()
         .map(|(path, score)| (score, path))
         .max();
-    let gaf = build_alignment(&dpm, &graph, &sequence, &score_matrix, best_path.unwrap().1);
+    let final_node = ending_nodes[best_path.unwrap().1];
+    let gaf = build_alignment(
+        &dpm,
+        lnz,
+        sequence,
+        score_matrix,
+        &alphas,
+        best_path.unwrap().1,
+        &pred_hash,
+        &nodes_with_pred,
+        &graph.nodes_id_pos,
+        final_node,
+        true,
+    );
     gaf
 }
 /*

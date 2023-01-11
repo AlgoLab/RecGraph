@@ -759,7 +759,7 @@ pub fn gaf_of_global_abpoa_simd(
     amb_mode: bool,
     hofp: &HashMap<usize, String>,
     lnz: &Vec<char>,
-    best_score: f32
+    best_score: f32,
 ) -> GAFStruct {
     let mut col = last_col;
     let mut row = last_row;
@@ -839,7 +839,10 @@ pub fn gaf_of_global_abpoa_simd(
         let number_residue = residue_matching; // to set
         let align_block_length = "*"; // to set
         let mapping_quality = "*"; // to set
-        let comments = format!("{}, score: {}\t{}", cigar_out, best_score, path_sequence_string);
+        let comments = format!(
+            "{}, score: {}\t{}",
+            cigar_out, best_score, path_sequence_string
+        );
         GAFStruct::build_gaf_struct(
             String::from(seq_name.0),
             seq_length,
