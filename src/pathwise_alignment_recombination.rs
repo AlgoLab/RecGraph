@@ -807,8 +807,7 @@ fn best_alignment(
     for j in out_of_band as usize..m[0].len() - out_of_band as usize {
         let forw_paths: Vec<usize> = m
             .iter()
-            .enumerate()
-            .map(|(_i, v)| {
+            .map(|v| {
                 v[j].iter()
                     .enumerate()
                     .map(|(path, score)| (score, path))
@@ -819,8 +818,7 @@ fn best_alignment(
             .collect();
         let rev_paths: Vec<usize> = w
             .iter()
-            .enumerate()
-            .map(|(_rev_i, v)| {
+            .map(|v| {
                 v[j].iter()
                     .enumerate()
                     .map(|(path, score)| (score, path))
@@ -831,12 +829,14 @@ fn best_alignment(
             .collect();
         for i in 1..m.len() - 1 {
             let forw_path = forw_paths[i];
+            if ! nodes_path[i][forw_path] {
+                continue
+            }
             for rev_i in 1..m.len() - 1 {
                 if nodes_id_pos[i] != nodes_id_pos[rev_i] {
                     let rev_path = rev_paths[rev_i];
-                    if nodes_path[i][forw_path]
+                    if forw_path != rev_path
                         && nodes_path[rev_i][rev_path]
-                        && forw_path != rev_path
                     {
                         let penalty = brc as f32 + (mrc * dms[i][rev_i] as f32);
 

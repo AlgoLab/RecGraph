@@ -20,6 +20,13 @@ use pbr::ProgressBar;
 use std::io::stderr;
 use std::time::SystemTime;
 
+#[cfg(not(target_env = "msvc"))]
+use tikv_jemallocator::Jemalloc;
+
+#[cfg(not(target_env = "msvc"))]
+#[global_allocator]
+static GLOBAL: Jemalloc = Jemalloc;
+
 fn main() {
     let now = SystemTime::now();
 
