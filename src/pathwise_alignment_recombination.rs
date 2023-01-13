@@ -801,6 +801,7 @@ fn best_alignment(
     let mut curr_best_score = max.unwrap() as f32;
     let mut forw_best_path = best_path.unwrap();
     let mut rev_best_path = best_path.unwrap();
+    let mut onedge = false;
     let out_of_band = cmp::max((m[0].len() as f32 * (1.0 - rbw) / 2.0) as i32, 1);
 
     let mut rec_penalty = 0;
@@ -829,22 +830,26 @@ fn best_alignment(
             .collect();
         for i in 1..m.len() - 1 {
             let forw_path = forw_paths[i];
-            if ! nodes_path[i][forw_path] {
-                continue
+            if !nodes_path[i][forw_path] {
+                continue;
             }
             for rev_i in 1..m.len() - 1 {
                 if nodes_id_pos[i] != nodes_id_pos[rev_i] {
                     let rev_path = rev_paths[rev_i];
-                    if forw_path != rev_path
-                        && nodes_path[rev_i][rev_path]
-                    {
+                    if forw_path != rev_path && nodes_path[rev_i][rev_path] {
                         let penalty = brc as f32 + (mrc * dms[i][rev_i] as f32);
+                        let new_score =
+                            (m[i][j][forw_path] + w[rev_i][j][rev_path]) as f32 - penalty;
 
-                        if (m[i][j][forw_path] + w[rev_i][j][rev_path]) as f32 - penalty
-                            > curr_best_score
+                        if new_score > curr_best_score
+                            || (new_score == curr_best_score
+                                && !onedge
+                                && (i + 1 == m.len() || nodes_id_pos[i] != nodes_id_pos[i + 1])
+                                && nodes_id_pos[rev_i] != nodes_id_pos[rev_i - 1])
                         {
-                            curr_best_score =
-                                (m[i][j][forw_path] + w[rev_i][j][rev_path]) as f32 - penalty;
+                            onedge = (i + 1 == m.len() || nodes_id_pos[i] != nodes_id_pos[i + 1])
+                                && nodes_id_pos[rev_i] != nodes_id_pos[rev_i - 1];
+                            curr_best_score = new_score;
                             forw_ending_node = i;
                             rev_starting_node = rev_i;
                             forw_best_path = forw_path;
