@@ -6,17 +6,17 @@ Install [`rust`](https://doc.rust-lang.org/cargo/getting-started/installation.ht
 ```
 git clone https://github.com/AlgoLab/RecGraph.git
 cd RecGraph
-cargo +nightly build --release
+cargo build --release
 ```
 
 ## Usage
 RecGraph requires as input a variation graph in `.gfa` format and a set of sequences (reads) in `.fasta` format and computes the alignment in `.gaf` format. To run RecGraph, run:
 ```
-cargo +nightly run --release <reads.fa> <graph.gfa> > <alignments.gaf>
+cargo run --release <reads.fa> <graph.gfa> > <alignments.gaf>
 ```
 #### Example
 ```
-cargo +nightly run --release -- -m 9 example/reads.fa example/graph.gfa > align.gaf
+cargo run --release -- -m 9 example/reads.fa example/graph.gfa > align.gaf
 ```
 
 ### Alignment modes
