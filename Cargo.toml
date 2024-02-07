@@ -16,7 +16,7 @@ bit-vec = "0.6"
 bitvec = "1"
 pbr = "*"
 
-[target.'cfg(not(target_env = "msvc"))'.dependencies]
+[target.'cfg(target_os="linux")'.dependencies]
 tikv-jemallocator = "0.5"
 
 [dev-dependencies]
