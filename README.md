@@ -2,6 +2,16 @@
 RecGraph is a sequence-to-graph aligner written in Rust. Differently from most aligners, RecGraph is an exact approach that implements a dynamic programming algorithm for computing an **optimal** alignment between a string and a variation graph. Moreover, RecGraph can allow recombinations in the alignment in a controlled (i.e., non heuristic) way - in other words, it can perform optimal alignment to path not included in the input graphs. This follows directly from the observation that a pangenome graph includes a set of related individuals that are represented as paths of the graph.
 
 ## Installation
+We support 4 different ways to obtain and use RecGraph:
+* [downloading static binaries](#static-binaries)
+* [building via cargo](#compilation)
+* [installing via conda](#installation-from-conda)
+* [getting a docker image](#docker-image)
+
+#### Static binaries
+For user convenience, we provide static binaries for x86_64 linux and windows systems (see [Releases](https://github.com/AlgoLab/RecGraph/releases)).
+
+#### Compilation
 Install [`rust`](https://doc.rust-lang.org/cargo/getting-started/installation.html), then clone and install RecGraph:
 ```
 git clone https://github.com/AlgoLab/RecGraph.git
@@ -9,14 +19,38 @@ cd RecGraph
 cargo build --release
 ```
 
+#### Installation from conda
+RecGraph is available on bioconda:
+```
+conda create -n recgraph -c conda-forge -c bioconda recgraph
+```
+
+#### Docker image
+We provide a docker image, hosted on [docker.hub](https://hub.docker.com/r/algolab/recgraph):
+```
+docker pull algolab/recgraph
+docker run algolab/recgraph --help
+```
+
 ## Usage
 RecGraph requires as input a variation graph in `.gfa` format and a set of sequences (reads) in `.fasta` format and computes the alignment in `.gaf` format. To run RecGraph, run:
 ```
 cargo run --release <reads.fa> <graph.gfa> > <alignments.gaf>
 ```
+
 #### Example
 ```
-cargo run --release -- -m 9 example/reads.fa example/graph.gfa > align.gaf
+# if you built with cargo, from the root of this repo
+cargo run --release -- -m 1 example/reads.fa example/graph.gfa > align.gaf
+
+# if you have the precompiled binary
+./recgraph_linux_x86-64 -m 1 example/reads.fa example/graph.gfa > align.gaf
+
+# if you have the conda version, within the correct environment
+recgraph -m 1 example/reads.fa example/graph.gfa > align.gaf
+
+# if you use docker, please bind the volume into the container (-v)
+docker run -v $(pwd)/example:/data algolab/recgraph -m1 reads.fa graph.gfa > align.gaf
 ```
 
 ### Alignment modes
