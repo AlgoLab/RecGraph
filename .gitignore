@@ -14,4 +14,4 @@ odgi
 *massif*
 *.gaf
 /tests/
-perf.data*
+perf*

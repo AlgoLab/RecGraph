@@ -1,168 +1,38 @@
-use std::{
-    cmp::{self, Ordering},
-    collections::HashMap,
-    fs::{File, OpenOptions},
-};
+use std::
+    fs::{File, OpenOptions}
+;
+use ahash::AHashMap as HashMap;
 
 use bit_vec::BitVec;
 use handlegraph::{handle::Handle, handlegraph::HandleGraph, hashgraph::HashGraph};
 
-use crate::args_parser;
 use std::io::{prelude::*, BufWriter};
 use std::path::Path;
 
+use crate::dp_matrix::{DpDeltas, DpMatrix};
+
+const SIZE: usize = 6;
+
 #[inline]
-/// Needed for adaptive band settings, set the leftmost and rightmost position for each row of the dp matrix   
-/// The algorithm used is the same as abPOA
-pub fn set_ampl_for_row(
-    i: usize,
-    p_arr: &[usize],
-    r_val: usize,
-    best_scoring_pos: &[usize],
-    seq_len: usize,
-    bta: usize,
-    simd_version: bool,
-) -> (usize, usize) {
-    let ms;
-    let me;
-    if i == 0 {
-        ms = 0;
-        me = 0;
-    } else if p_arr.is_empty() {
-        let pl = best_scoring_pos[i - 1];
-        ms = pl + 1;
-        me = pl + 1;
-    } else {
-        let mut pl = 0;
-        let mut pr = 0;
-        let mut first = true;
-        for p in p_arr.iter() {
-            let current_best = best_scoring_pos[*p];
-            if first {
-                pl = current_best;
-                pr = current_best;
-                first = false;
-            }
-            if current_best < pl {
-                pl = current_best;
-            }
-            if current_best > pr {
-                pr = current_best;
-            }
-        }
-        ms = pl + 1;
-        me = pr + 1;
+fn char_to_index(c: u8) -> usize {
+    match c {
+        b'A' => 0,
+        b'C' => 1,
+        b'G' => 2,
+        b'T' => 3,
+        b'-' => 4,
+        b'N' => 5,
+        _ => panic!("Carattere non valido {}", c as char),
     }
-    let tmp_bs = cmp::min(ms as i32, (seq_len as i32 - r_val as i32) - bta as i32);
-    let band_start = if tmp_bs < 0 {
-        0
-    } else {
-        cmp::max(0, tmp_bs as usize)
-    };
-    let band_end = if seq_len > r_val {
-        cmp::min(seq_len, cmp::max(me, seq_len - r_val) + bta)
-    } else {
-        cmp::min(seq_len, me + bta)
-    };
-    if simd_version {
-        set_left_right_x64(band_start, band_end, seq_len)
-    } else {
-        (band_start, band_end)
-    }
-}
-
-fn set_left_right_x64(left: usize, right: usize, seq_len: usize) -> (usize, usize) {
-    let mut new_right = right;
-    let mut new_left = left;
-    while (new_right - new_left) % 8 != 0 {
-        if (new_right - new_left) % 2 == 0 && new_right < seq_len {
-            new_right += 1;
-        } else if new_left > 0 {
-            new_left -= 1;
-        } else {
-            break;
-        }
-    }
-    if new_left == 0 {
-        while (new_right - 1) % 8 != 0 && new_right < seq_len {
-            new_right += 1;
-        }
-    }
-    if new_right == seq_len {
-        while (new_right - new_left) % 8 != 0 && new_left > 1 {
-            new_left -= 1
-        }
-    }
-
-    (new_left, new_right)
-}
-
-/// Set R score for each node of the graph, this is done before the dp algorithm.   
-/// R represent the most likely distance of each node to the last node of the graph and is used
-/// in order to compute the band size for this node in the DP matrix   
-pub fn set_r_values(
-    nwp: &bit_vec::BitVec,
-    pred_hash: &HashMap<usize, Vec<usize>>,
-    lnz_len: usize,
-) -> Vec<usize> {
-    let mut r_values: Vec<isize> = vec![-1; lnz_len];
-    r_values[lnz_len - 1] = 0;
-    for p in pred_hash.get(&(lnz_len - 1)).unwrap() {
-        r_values[*p] = 0;
-    }
-    for i in (1..lnz_len - 1).rev() {
-        if r_values[i] == -1 || r_values[i] > r_values[i + 1] + 1 {
-            r_values[i] = r_values[i + 1] + 1;
-        }
-        if nwp[i] {
-            for p in pred_hash.get(&i).unwrap() {
-                if r_values[*p] == -1 || r_values[*p] > r_values[i] + 1 {
-                    r_values[*p] = r_values[i] + 1;
-                }
-            }
-        }
-    }
-    r_values.iter().map(|x| *x as usize).collect()
 }
 
 #[inline]
-pub fn get_max_d_u_l(d: i32, u: i32, l: i32) -> (i32, char) {
-    match d.cmp(&u) {
-        Ordering::Less => match u.cmp(&l) {
-            Ordering::Less => (l, 'L'),
-            _ => (u, 'U'),
-        },
-        _ => match d.cmp(&l) {
-            Ordering::Less => (l, 'L'),
-            _ => (d, 'D'),
-        },
-    }
+pub fn idx(c1: u8, c2: u8) -> usize {
+    char_to_index(c1) * SIZE + char_to_index(c2)
 }
 
 /// Set for each node of the LnzGraph the handle id in the .gfa file,
 /// this enable the creation of the gaf output with same nodes as the original .gfa file
-pub fn create_handle_pos_in_lnz(
-    nwp: &BitVec,
-    file_path: &str,
-    amb_mode: bool,
-) -> HashMap<usize, String> {
-    let sorted_handles = crate::graph::get_sorted_handles(file_path, amb_mode);
-    let mut curr_handle_idx = 0;
-    let mut handle_of_lnz_pos = HashMap::new();
-    for i in 1..nwp.len() - 1 {
-        if nwp[i] {
-            curr_handle_idx += 1;
-        }
-        handle_of_lnz_pos.insert(
-            i,
-            sorted_handles[(curr_handle_idx - 1) as usize]
-                .id()
-                .to_string(),
-        );
-    }
-    handle_of_lnz_pos.insert(0, String::from("-1"));
-    handle_of_lnz_pos
-}
 
 /// Same as create_handle_pos_in_lnz, but works with an HashGraph and a LnzGraph instead of
 /// a .gfa file
@@ -197,8 +67,7 @@ pub fn handle_pos_in_lnz_from_hashgraph(
     handle_of_lnz_pos
 }
 
-pub fn write_gaf(gaf_out: &str, number: usize) {
-    let out_file = args_parser::get_out_file();
+pub fn write_gaf(gaf_out: &str, number: usize, out_file: &str) {
     if out_file == "standard output" {
         println!("{}", gaf_out)
     } else {
@@ -219,7 +88,7 @@ pub fn write_gaf(gaf_out: &str, number: usize) {
 }
 
 pub fn get_path_len_start_end(
-    handles_nodes_id: &Vec<u64>,
+    handles_nodes_id: &[u64],
     start: usize,
     end: usize,
     path_len: usize,
@@ -254,7 +123,7 @@ pub fn get_path_len_start_end(
 }
 
 pub fn get_rec_path_len_start_end(
-    handles_nodes_id: &Vec<u64>,
+    handles_nodes_id: &[u64],
     fen: usize,
     rsn: usize,
     start: usize,
@@ -320,4 +189,22 @@ pub fn get_rec_path_len_start_end(
     let path_len = forw_path_len + rev_path_len;
 
     (path_len, path_start, path_end)
+}
+
+#[inline]
+pub fn get_abs_val(
+    i: usize,
+    j: usize,
+    alphas: &[usize],
+    path: usize,
+    dpm: &DpMatrix,
+    deltas: &DpDeltas,
+) -> i32 {
+    let is_alpha = alphas[i] == path;
+    if is_alpha {
+        dpm.get(i, j)
+    } else {
+        let update = deltas.get_val(i, j, path);
+        dpm.get(i, j) + update
+    }
 }

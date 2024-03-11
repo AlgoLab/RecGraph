@@ -1,20 +1,19 @@
 [package]
 name = "recgraph"
-version = "1.0.0"
-authors = ["Davide Monti <d.monti11@campus.unimib.it>"]
-description = "An exact sequence-to-graph aligner with controlled recombinations"
-license = "MIT"
+version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
-clap = { version = "3.1.5", features = ["derive"] }
-project-root = "0.2.2"
-gfa = "0.8.0"
-handlegraph = "0.5.0"
-bit-vec = "0.6"
-bitvec = "1"
+clap = { version = "4.5", features = ["derive"] }
+needletail = "0.5"
+bit-vec = "0.6" # TODO: remove this
+gfa = "0.8" # newer versions not working
+handlegraph = "0.5"
+bstr = "1.9.1"
 pbr = "*"
+rayon = "1.5"
+ahash = "0.8.11"
 
 [target.'cfg(target_os="linux")'.dependencies]
 tikv-jemallocator = "0.5"
@@ -22,9 +21,9 @@ tikv-jemallocator = "0.5"
 [dev-dependencies]
 criterion = "0.3"
 
-[[bench]]
-name = "recgraph_benchmark"
-harness = false
-
 [profile.release]
 lto = "thin"
+
+[profile.release-with-debug]
+inherits = "release"
+debug = true
