@@ -84,4 +84,3 @@ pub fn build_cigar(cigar: &Vec<char>) -> String {
     }
     output_string
 }
-

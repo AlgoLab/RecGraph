@@ -8,9 +8,9 @@ pub mod args_parser;
 /// .gaf file creation
 pub mod gaf_output;
 
+pub mod build_cigar;
 /// Dynamic programming matrix
 pub mod dp_matrix;
-pub mod build_cigar;
 
 pub mod pathwise_alignment_recombination;
 /// Pathwise graph creation

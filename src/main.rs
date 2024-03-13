@@ -6,9 +6,6 @@ use recgraph::score_matrix;
 use recgraph::sequences;
 use recgraph::utils;
 
-use rayon::prelude::*;
-use std::sync::Arc;
-use std::sync::Mutex;
 use std::time::SystemTime;
 
 #[cfg(target_os = "linux")]
@@ -31,9 +28,9 @@ fn main() {
 
     let (base_rec_cost, multi_rec_cost) = (args.base_rec_cost, args.multi_rec_cost);
     let is_local = args.alignment_mode;
-    let gafs = Arc::new(Mutex::new(Vec::new()));
+    let mut gafs = Vec::new();
 
-    sequences.par_iter().enumerate().for_each(|(i, seq)| {
+    sequences.iter().enumerate().for_each(|(i, seq)| {
         let mut gaf = pathwise_alignment_recombination::exec(
             is_local,
             seq,
@@ -43,12 +40,11 @@ fn main() {
             base_rec_cost,
             multi_rec_cost,
             &displ_matrix,
+            args.rec_number,
         );
         gaf.query_name = ids[i].to_string();
-        gafs.lock().unwrap().push(gaf.to_string());
+        gafs.push(gaf.to_string());
     });
-
-    let gafs = gafs.lock().unwrap().clone(); // Cloning gafs for multiple readers
 
     for (i, gaf) in gafs.iter().enumerate() {
         utils::write_gaf(gaf, i, args.out_file.as_str());
@@ -63,5 +59,4 @@ fn main() {
             eprintln!("Error: {e:?}");
         }
     }
-    
 }

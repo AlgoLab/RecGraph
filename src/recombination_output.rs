@@ -2,20 +2,16 @@ use bit_vec::BitVec;
 use bstr::BString;
 
 use crate::{
+    build_cigar::build_cigar,
     dp_matrix::{DpDeltas, DpMatrix},
     gaf_output::GAFStruct,
-    build_cigar::build_cigar,
-    pathwise_alignment_recombination::{get_node_offset, get_rev_sequence},
+    pathwise_alignment_recombination::{get_node_offset, get_rev_sequence, BestAlignStruct},
     pathwise_graph::PathGraph,
     utils::{self, get_abs_val, idx},
 };
 
 pub fn build_alignment_path_rec(
-    forw_ending_node: usize,
-    rev_starting_node: usize,
-    forw_best_path: usize,
-    rev_best_path: usize,
-    recombination_col: usize,
+    res: &BestAlignStruct,
     forw_dpm: &DpMatrix,
     forw_deltas: &DpDeltas,
     rev_dpm: &DpMatrix,
@@ -24,7 +20,6 @@ pub fn build_alignment_path_rec(
     graph: &PathGraph,
     rev_graph: &PathGraph,
     seq: &BString,
-    best_score: (f32, i32),
     is_local: bool,
 ) -> GAFStruct {
     let seq_len = seq.len();
@@ -36,14 +31,21 @@ pub fn build_alignment_path_rec(
 
     let mut cigar = Vec::new();
     let mut rev_path_length: usize = 0;
-    let mut i = rev_starting_node;
-    let mut j = recombination_col;
+    let mut i = res.rev_starting_node;
+    let mut j = res.recombination_col;
     let mut handle_id_alignment = Vec::new();
     let mut rev_ending_node = i;
     let mut path_sequence = Vec::new();
 
     while i > 0 && i < rev_graph.lnz.len() - 1 && j < seq.len() - 1 {
-        let curr_score = get_abs_val(i, j, &rev_graph.alphas, rev_best_path, rev_dpm, rev_deltas);
+        let curr_score = get_abs_val(
+            i,
+            j,
+            &rev_graph.alphas,
+            res.rev_best_path,
+            rev_dpm,
+            rev_deltas,
+        );
 
         let (d, u, l) = if rev_graph.nwp[i] {
             let l_val_pos = (
@@ -51,7 +53,7 @@ pub fn build_alignment_path_rec(
                     i,
                     j + 1,
                     &rev_graph.alphas,
-                    rev_best_path,
+                    res.rev_best_path,
                     rev_dpm,
                     rev_deltas,
                 ) + scores[idx(b'-', r_seq[j])],
@@ -60,13 +62,13 @@ pub fn build_alignment_path_rec(
             let mut u_val_pos = (0, (0, 0));
             let mut d_val_pos = (0, (0, 0));
             for (pred, paths) in rev_graph.pred_hash.get_preds_and_paths(i) {
-                if paths[rev_best_path] {
+                if paths[res.rev_best_path] {
                     u_val_pos = (
                         get_abs_val(
                             pred,
                             j,
                             &rev_graph.alphas,
-                            rev_best_path,
+                            res.rev_best_path,
                             rev_dpm,
                             rev_deltas,
                         ) + scores[idx(b'-', rev_graph.lnz[i])],
@@ -77,7 +79,7 @@ pub fn build_alignment_path_rec(
                             pred,
                             j + 1,
                             &rev_graph.alphas,
-                            rev_best_path,
+                            res.rev_best_path,
                             rev_dpm,
                             rev_deltas,
                         ) + scores[idx(r_seq[j], rev_graph.lnz[i])],
@@ -92,7 +94,7 @@ pub fn build_alignment_path_rec(
                     i + 1,
                     j,
                     &rev_graph.alphas,
-                    rev_best_path,
+                    res.rev_best_path,
                     rev_dpm,
                     rev_deltas,
                 ) + scores[idx(b'-', rev_graph.lnz[i])],
@@ -103,7 +105,7 @@ pub fn build_alignment_path_rec(
                     i + 1,
                     j + 1,
                     &rev_graph.alphas,
-                    rev_best_path,
+                    res.rev_best_path,
                     rev_dpm,
                     rev_deltas,
                 ) + scores[idx(r_seq[j], rev_graph.lnz[i])],
@@ -114,7 +116,7 @@ pub fn build_alignment_path_rec(
                     i,
                     j + 1,
                     &rev_graph.alphas,
-                    rev_best_path,
+                    res.rev_best_path,
                     rev_dpm,
                     rev_deltas,
                 ) + scores[idx(b'-', r_seq[j])],
@@ -156,7 +158,7 @@ pub fn build_alignment_path_rec(
             if rev_graph.nwp[i] {
                 let preds = rev_graph.pred_hash.get_preds_and_paths(i);
                 for (pred, paths) in preds.iter() {
-                    if paths[rev_best_path] {
+                    if paths[res.rev_best_path] {
                         predecessor = Some(*pred);
                     }
                 }
@@ -177,11 +179,18 @@ pub fn build_alignment_path_rec(
     let mut temp_handle_id_alignment = Vec::new();
     let mut temp_path_sequence = Vec::new();
 
-    i = forw_ending_node;
-    j = recombination_col;
+    i = res.forw_ending_node;
+    j = res.recombination_col;
 
     while i > 0 && j > 0 {
-        let curr_score = get_abs_val(i, j, &graph.alphas, forw_best_path, forw_dpm, forw_deltas);
+        let curr_score = get_abs_val(
+            i,
+            j,
+            &graph.alphas,
+            res.forw_best_path,
+            forw_dpm,
+            forw_deltas,
+        );
 
         let (d, u, l) = if graph.nwp[i] {
             let l_val_pos = (
@@ -189,7 +198,7 @@ pub fn build_alignment_path_rec(
                     i,
                     j - 1,
                     &graph.alphas,
-                    forw_best_path,
+                    res.forw_best_path,
                     forw_dpm,
                     forw_deltas,
                 ) + scores[idx(b'-', seq[j])],
@@ -198,13 +207,13 @@ pub fn build_alignment_path_rec(
             let mut u_val_pos = (0, (0, 0));
             let mut d_val_pos = (0, (0, 0));
             for (pred, paths) in graph.pred_hash.get_preds_and_paths(i) {
-                if paths[forw_best_path] {
+                if paths[res.forw_best_path] {
                     u_val_pos = (
                         get_abs_val(
                             pred,
                             j,
                             &graph.alphas,
-                            forw_best_path,
+                            res.forw_best_path,
                             forw_dpm,
                             forw_deltas,
                         ) + scores[idx(b'-', graph.lnz[i])],
@@ -215,7 +224,7 @@ pub fn build_alignment_path_rec(
                             pred,
                             j - 1,
                             &graph.alphas,
-                            forw_best_path,
+                            res.forw_best_path,
                             forw_dpm,
                             forw_deltas,
                         ) + scores[idx(seq[j], graph.lnz[i])],
@@ -230,7 +239,7 @@ pub fn build_alignment_path_rec(
                     i - 1,
                     j,
                     &graph.alphas,
-                    forw_best_path,
+                    res.forw_best_path,
                     forw_dpm,
                     forw_deltas,
                 ) + scores[idx(b'-', graph.lnz[i])],
@@ -241,7 +250,7 @@ pub fn build_alignment_path_rec(
                     i - 1,
                     j - 1,
                     &graph.alphas,
-                    forw_best_path,
+                    res.forw_best_path,
                     forw_dpm,
                     forw_deltas,
                 ) + scores[idx(seq[j], graph.lnz[i])],
@@ -252,7 +261,7 @@ pub fn build_alignment_path_rec(
                     i,
                     j - 1,
                     &graph.alphas,
-                    forw_best_path,
+                    res.forw_best_path,
                     forw_dpm,
                     forw_deltas,
                 ) + scores[idx(b'-', seq[j])],
@@ -291,7 +300,7 @@ pub fn build_alignment_path_rec(
             if graph.nwp[i] {
                 let preds = graph.pred_hash.get_preds_and_paths(i);
                 for (pred, paths) in preds.iter() {
-                    if paths[forw_best_path] {
+                    if paths[res.forw_best_path] {
                         predecessor = Some(*pred);
                     }
                 }
@@ -332,8 +341,8 @@ pub fn build_alignment_path_rec(
     let end = rev_ending_node;
     let (path_len, path_start, path_end) = utils::get_rec_path_len_start_end(
         &graph.nodes_id_pos,
-        forw_ending_node,
-        rev_starting_node,
+        res.forw_ending_node,
+        res.rev_starting_node,
         start,
         end,
         path_length,
@@ -341,28 +350,27 @@ pub fn build_alignment_path_rec(
     );
     let align_block_length = "*"; // to set
     let mapping_quality = "*"; // to set
-    let recombination = if forw_best_path == rev_best_path {
-        format!("No recombination, best path: {}", forw_best_path)
+    let recombination = if res.forw_best_path == res.rev_best_path {
+        format!("No recombination, best path: {}", res.forw_best_path)
     } else {
-        let fen_offset = get_node_offset(&graph.nodes_id_pos, forw_ending_node);
-        let rsn_offset = get_node_offset(&graph.nodes_id_pos, rev_starting_node);
+        let fen_offset = get_node_offset(&graph.nodes_id_pos, res.forw_ending_node);
+        let rsn_offset = get_node_offset(&graph.nodes_id_pos, res.rev_starting_node);
         format!(
             "recombination path {} {}, nodes {}[{}] {}[{}], score: {}, displacement: {}\t{}\t{}",
-            forw_best_path,
-            rev_best_path,
-            graph.nodes_id_pos[forw_ending_node],
+            res.forw_best_path,
+            res.rev_best_path,
+            graph.nodes_id_pos[res.forw_ending_node],
             fen_offset,
-            graph.nodes_id_pos[rev_starting_node],
+            graph.nodes_id_pos[res.rev_starting_node],
             rsn_offset,
-            best_score.0,
-            best_score.1,
+            res.curr_best_score,
+            res.rec_penalty,
             path_sequence_string,
             rec_edge
         )
     };
     let comments = format!("{}, {}", build_cigar(&temp_cigar), recombination);
 
-    
     GAFStruct::build_gaf_struct(
         query_name,
         seq_length,
@@ -575,7 +583,7 @@ pub fn build_alignment_path_no_rec(
         best_score.0,
         path_sequence_string
     );
-    
+
     GAFStruct::build_gaf_struct(
         query_name,
         seq_length,

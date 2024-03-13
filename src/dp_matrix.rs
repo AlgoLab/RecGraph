@@ -50,6 +50,13 @@ impl DpMatrix {
         }
     }
 
+    pub fn empty_new() -> DpMatrix {
+        DpMatrix {
+            rows: 0,
+            cols: 0,
+            dpm: Vec::new(),
+        }
+    }
     pub fn get(&self, i: usize, j: usize) -> i32 {
         self.dpm[i * self.cols + j]
     }
@@ -72,6 +79,14 @@ impl DpDeltas {
             rows,
             cols,
             deltas: vec![DeltaScore::new(); rows * cols],
+        }
+    }
+
+    pub fn empty_new() -> DpDeltas {
+        DpDeltas {
+            rows: 0,
+            cols: 0,
+            deltas: Vec::new(),
         }
     }
 

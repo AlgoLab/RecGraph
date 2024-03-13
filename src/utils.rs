@@ -1,7 +1,5 @@
-use std::
-    fs::{File, OpenOptions}
-;
 use ahash::AHashMap as HashMap;
+use std::fs::{File, OpenOptions};
 
 use bit_vec::BitVec;
 use handlegraph::{handle::Handle, handlegraph::HandleGraph, hashgraph::HashGraph};
