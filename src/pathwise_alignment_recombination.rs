@@ -1,5 +1,8 @@
+use std::sync::{Arc, Mutex};
+
 use bit_vec::BitVec;
 use bstr::BString;
+use rayon::prelude::*;
 
 use crate::{
     dp_matrix::{DpDeltas, DpMatrix},
@@ -551,12 +554,14 @@ fn best_alignment(
         }
     }
 
-    let mut result = BestAlignStruct::new();
+    let results = Arc::new(Mutex::new(Vec::new()));
+    
+    (0..seq_len).into_par_iter().for_each(|j| {
+        let mut result = BestAlignStruct::new();
         result.curr_best_score = max.unwrap() as f32;
         result.forw_best_path = best_path.unwrap();
         result.rev_best_path = best_path.unwrap();
 
-    for j in 0..seq_len {
         // check recomb only if score increment is possible
         let forw_is = &m[j * lnz_len + 1..(j + 1) * lnz_len - 1];
         let rev_is = &w[j * lnz_len + 1..(j + 1) * lnz_len - 1];
@@ -588,8 +593,10 @@ fn best_alignment(
                 }
             }
         }
-    }
-    result
+        results.lock().unwrap().push(result);
+    });
+    let results = Arc::try_unwrap(results).unwrap().into_inner().unwrap();
+    results.iter().max_by(|a, b| a.curr_best_score.partial_cmp(&b.curr_best_score).unwrap()).unwrap().clone()
 }
 
 pub fn get_rev_sequence(seq: &BString) -> BString {
@@ -635,7 +642,7 @@ fn best_alignment_no_rec(
     (max.unwrap(), best_path.unwrap())
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BestAlignStruct {
     pub forw_ending_node: usize,
     pub rev_starting_node: usize,

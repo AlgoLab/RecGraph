@@ -15,3 +15,4 @@ odgi
 *.gaf
 /tests/
 perf*
+/example/L-3139*
