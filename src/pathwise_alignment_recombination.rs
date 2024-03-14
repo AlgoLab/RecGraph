@@ -554,8 +554,8 @@ fn best_alignment(
         }
     }
 
-    let results = Arc::new(Mutex::new(Vec::new()));
-    
+    let results = Arc::new(Mutex::new(Vec::with_capacity(seq_len)));
+
     (0..seq_len).into_par_iter().for_each(|j| {
         let mut result = BestAlignStruct::new();
         result.curr_best_score = max.unwrap() as f32;
@@ -565,10 +565,18 @@ fn best_alignment(
         // check recomb only if score increment is possible
         let forw_is = &m[j * lnz_len + 1..(j + 1) * lnz_len - 1];
         let rev_is = &w[j * lnz_len + 1..(j + 1) * lnz_len - 1];
-        let forw_i_max = forw_is.iter().max_by(|a, b| a.1.partial_cmp(&b.1).unwrap()).unwrap().1;
-        let rev_i_max = rev_is.iter().max_by(|a, b| a.1.partial_cmp(&b.1).unwrap()).unwrap().1;
+        let forw_i_max = forw_is
+            .iter()
+            .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
+            .unwrap()
+            .1;
+        let rev_i_max = rev_is
+            .iter()
+            .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
+            .unwrap()
+            .1;
 
-        if (forw_i_max  + rev_i_max  - brc) as f32> result.curr_best_score {
+        if (forw_i_max + rev_i_max - brc) as f32 > result.curr_best_score {
             for (forw_idx, (forw_path, forw_score)) in forw_is.iter().enumerate() {
                 let i = forw_idx + 1;
                 for (rev_idx, (rev_path, rev_score)) in rev_is.iter().enumerate() {
@@ -577,18 +585,20 @@ fn best_alignment(
                         let penalty = brc as f32 + (mrc * dms[i][rev_i] as f32);
                         let new_score = (forw_score + rev_score) as f32 - penalty;
                         {
-                        if new_score > result.curr_best_score
-                            || (new_score == result.curr_best_score
-                                && !result.onedge
-                                && (i + 1 == m.len() || nodes_id_pos[i] != nodes_id_pos[i + 1])
-                                && nodes_id_pos[rev_i] != nodes_id_pos[rev_i - 1])
-                        {
-                            let onedge = (i + 1 == m.len() || nodes_id_pos[i] != nodes_id_pos[i + 1])
-                                && nodes_id_pos[rev_i] != nodes_id_pos[rev_i - 1];
-                            result.update(new_score, i, rev_i, forw_path, rev_path, j, penalty, onedge);
+                            if new_score > result.curr_best_score
+                                || (new_score == result.curr_best_score
+                                    && !result.onedge
+                                    && (i + 1 == m.len() || nodes_id_pos[i] != nodes_id_pos[i + 1])
+                                    && nodes_id_pos[rev_i] != nodes_id_pos[rev_i - 1])
+                            {
+                                let onedge = (i + 1 == m.len()
+                                    || nodes_id_pos[i] != nodes_id_pos[i + 1])
+                                    && nodes_id_pos[rev_i] != nodes_id_pos[rev_i - 1];
+                                result.update(
+                                    new_score, i, rev_i, forw_path, rev_path, j, penalty, onedge,
+                                );
+                            }
                         }
-                        }
-                        
                     }
                 }
             }
@@ -596,7 +606,11 @@ fn best_alignment(
         results.lock().unwrap().push(result);
     });
     let results = Arc::try_unwrap(results).unwrap().into_inner().unwrap();
-    results.iter().max_by(|a, b| a.curr_best_score.partial_cmp(&b.curr_best_score).unwrap()).unwrap().clone()
+    results
+        .iter()
+        .max_by(|a, b| a.curr_best_score.partial_cmp(&b.curr_best_score).unwrap())
+        .unwrap()
+        .clone()
 }
 
 pub fn get_rev_sequence(seq: &BString) -> BString {

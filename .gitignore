@@ -16,3 +16,5 @@ odgi
 /tests/
 perf*
 /example/L-3139*
+*.sh
+heaptrack*
