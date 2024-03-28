@@ -1,18 +1,12 @@
-use std::{
-    sync::{Arc, Mutex},
-    time::Instant,
-};
+use std::sync::{Arc, Mutex};
+
 
 use bit_vec::BitVec;
 use bstr::BString;
 use rayon::prelude::*;
 
 use crate::{
-    dp_matrix::{DpDeltas, DpMatrix},
-    gaf_output::GAFStruct,
-    pathwise_graph::{PathGraph, PredHash},
-    recombination_output,
-    utils::{get_abs_val, idx},
+    dp_matrix::{DpDeltas, DpMatrix}, gaf_output::GAFStruct, node_displacement::DisplacementMatrix, pathwise_graph::{PathGraph, PredHash}, recombination_output, utils::{get_abs_val, idx}
 };
 
 pub fn get_node_offset(nodes_handles: &Vec<u64>, curr_node: usize) -> i32 {
@@ -37,10 +31,9 @@ pub fn exec(
     score_matrix: &Vec<i32>,
     base_rec_cost: i32,
     multi_rec_cost: f32,
-    displacement_matrix: &Vec<Vec<i32>>,
+    displacement_matrix: &DisplacementMatrix,
     rec_number: i32,
 ) -> GAFStruct {
-    let start = Instant::now();
     let (forw_dpm, forw_deltas) = align(is_local, sequence, graph, score_matrix);
 
     let mut rev_dpm = DpMatrix::empty_new();
@@ -50,8 +43,6 @@ pub fn exec(
     if rec_number > 0 {
         let rev_sequence = get_rev_sequence(sequence);
         (rev_dpm, rev_deltas) = rev_align(is_local, &rev_sequence, rev_graph, score_matrix);
-        println!("Alignment time: {:?}", start.elapsed());
-        let start = Instant::now();
         res = best_alignment(
             &forw_dpm,
             &forw_deltas,
@@ -67,7 +58,6 @@ pub fn exec(
             &graph.pred_hash,
             &graph.nodes_id_pos,
         );
-        println!("Recombination time: {:?}", start.elapsed());
     }
 
     if rec_number > 0 && res.forw_best_path != res.rev_best_path {
@@ -530,7 +520,7 @@ fn best_alignment(
     alphas: &Vec<usize>,
     paths_nodes: &Vec<BitVec>,
     nodes_handles: &Vec<u64>,
-    dms: &Vec<Vec<i32>>,
+    dms: &DisplacementMatrix,
     brc: i32,
     mrc: f32,
     is_local: bool,
@@ -590,7 +580,7 @@ fn best_alignment(
                 for (rev_idx, (rev_path, rev_score)) in rev_is.iter().enumerate() {
                     let rev_i = rev_idx + 1;
                     if nodes_id_pos[i] != nodes_id_pos[rev_i] && forw_path != rev_path {
-                        let penalty = brc as f32 + (mrc * dms[i][rev_i] as f32);
+                        let penalty = brc as f32 + (mrc * dms.get_displ(i, rev_i) as f32);
                         let new_score = (forw_score + rev_score) as f32 - penalty;
                         {
                             if new_score > result.curr_best_score

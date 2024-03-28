@@ -22,3 +22,5 @@ pub mod score_matrix;
 pub mod sequences;
 /// Various and miscellaneous
 pub mod utils;
+
+pub mod node_displacement;

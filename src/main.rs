@@ -1,7 +1,8 @@
 use recgraph::args_parser::ClArgs;
+use recgraph::node_displacement::DisplacementMatrix;
 use recgraph::pathwise_alignment_recombination;
 use recgraph::pathwise_graph;
-use recgraph::pathwise_graph::nodes_displacement_matrix;
+
 use recgraph::score_matrix;
 use recgraph::sequences;
 use recgraph::utils;
@@ -21,7 +22,7 @@ fn main() {
     let graph = pathwise_graph::read_graph_w_path(&args.graph_path, false);
     let rev_graph = pathwise_graph::create_reverse_path_graph(&graph);
 
-    let displ_matrix = nodes_displacement_matrix(&graph, &rev_graph);
+    let displ_matrix = DisplacementMatrix::new(&graph, &rev_graph);
 
     let score_matrix =
         score_matrix::create_score_matrix(args.match_score, args.mismatch_score, args.gap_ext);
