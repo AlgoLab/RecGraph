@@ -49,6 +49,7 @@ fn main() {
     for (i, gaf) in gafs.iter().enumerate() {
         utils::write_gaf(gaf, i, args.out_file.as_str());
     }
+
     match now.elapsed() {
         Ok(elapsed) => {
             // it prints '2'

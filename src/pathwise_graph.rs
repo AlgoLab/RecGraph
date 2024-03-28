@@ -191,10 +191,13 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
         paths[*id as usize] = path
     }
 
-    //let paths = &graph.paths;
+    
     let paths_number = paths_set.keys().len();
+
+    let max_node_id: u64 = graph.handles_iter().max().unwrap().id().try_into().unwrap();
+    let paths_node_size = max_node_id as usize + 1;
     let mut alphas = vec![paths_number + 1; linearization.len()];
-    let mut paths_nodes = vec![BitVec::from_elem(paths_number, false); linearization.len()];
+    let mut paths_nodes = vec![BitVec::from_elem(paths_number, false); paths_node_size];
 
     paths_nodes[0] = BitVec::from_elem(paths_number, true);
     alphas[0] = 0;
@@ -210,9 +213,11 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
             let (handle_start, handle_end) = handles_id_position.get(&handle.id()).unwrap();
             let handle_start = *handle_start as usize;
             let handle_end = *handle_end as usize;
+            
+            let handle_id: u64 = handle.id().into(); 
+            paths_nodes[handle_id as usize].set(path_id, true);
 
             for idx in handle_start..=handle_end {
-                paths_nodes[idx].set(path_id, true);
                 if alphas[idx] == paths_number + 1 {
                     alphas[idx] = path_id;
                 }
@@ -248,7 +253,7 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
         }
     }
     nodes_with_pred.set(linearization.len() - 1, true);
-    paths_nodes[linearization.len() - 1] = BitVec::from_elem(paths_number, true);
+    paths_nodes.push(BitVec::from_elem(paths_number, true));
 
     PathGraph::build(
         BString::new(linearization),
@@ -296,7 +301,7 @@ pub fn create_reverse_path_graph(forward_graph: &PathGraph) -> PathGraph {
 }
 
 pub fn nodes_displacement_matrix(graph: &PathGraph, rev_graph: &PathGraph) -> Vec<Vec<i32>> {
-    let paths = &graph.paths_nodes;
+    let paths = &graph.lnz;
 
     let dfe = get_distance_from_end(graph);
 

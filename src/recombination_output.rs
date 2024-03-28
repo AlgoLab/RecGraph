@@ -418,6 +418,7 @@ pub fn build_alignment_path_no_rec(
             forw_deltas,
             forw_best_path,
             &graph.paths_nodes,
+            &graph.nodes_id_pos,
             seq_len,
             graph,
         );
@@ -646,13 +647,15 @@ fn ending_node(
     deltas: &DpDeltas,
     best_path: usize,
     paths_nodes: &Vec<BitVec>,
+    nodes_id_pos: &Vec<u64>,
     seq_len: usize,
     graph: &PathGraph,
 ) -> usize {
     let mut best_score = None;
     let mut best_node = 0;
     for i in 1..graph.lnz.len() - 1 {
-        if paths_nodes[i][best_path] {
+        let i_handle = nodes_id_pos[i] as usize;
+        if paths_nodes[i_handle][best_path] {
             let score = get_abs_val(i, seq_len - 1, &graph.alphas, best_path, dpm, deltas);
             if best_score.is_none() || score > best_score.unwrap() {
                 best_score = Some(score);
