@@ -18,3 +18,4 @@ perf*
 /example/L-3139*
 *.sh
 heaptrack*
+/example/modified

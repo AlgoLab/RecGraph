@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::{cmp::Ordering, collections::BinaryHeap, sync::{Arc, Mutex}};
 
 
 use bit_vec::BitVec;
@@ -552,13 +552,17 @@ fn best_alignment(
         }
     }
 
-    let results = Arc::new(Mutex::new(Vec::with_capacity(seq_len)));
+    let results = Arc::new(Mutex::new(BinaryHeap::with_capacity(seq_len+1)));
+
+    // initial best alignment with no recombinations
+    let mut ref_result = BestAlignStruct::new();
+    ref_result.curr_best_score = max.unwrap() as f32;
+    ref_result.forw_best_path = best_path.unwrap();
+    ref_result.rev_best_path = best_path.unwrap();
+    results.lock().unwrap().push(ref_result);
 
     (0..seq_len).into_par_iter().for_each(|j| {
-        let mut result = BestAlignStruct::new();
-        result.curr_best_score = max.unwrap() as f32;
-        result.forw_best_path = best_path.unwrap();
-        result.rev_best_path = best_path.unwrap();
+        let mut result = results.lock().unwrap().peek().unwrap().clone();
 
         // check recomb only if score increment is possible
         let forw_is = &m[j * lnz_len + 1..(j + 1) * lnz_len - 1];
@@ -574,7 +578,7 @@ fn best_alignment(
             .unwrap()
             .1;
 
-        if (forw_i_max + rev_i_max - brc) as f32 > result.curr_best_score {
+        if ((forw_i_max + rev_i_max)-brc) as f32 > result.curr_best_score {
             for (forw_idx, (forw_path, forw_score)) in forw_is.iter().enumerate() {
                 let i = forw_idx + 1;
                 for (rev_idx, (rev_path, rev_score)) in rev_is.iter().enumerate() {
@@ -604,11 +608,7 @@ fn best_alignment(
         results.lock().unwrap().push(result);
     });
     let results = Arc::try_unwrap(results).unwrap().into_inner().unwrap();
-    results
-        .iter()
-        .max_by(|a, b| a.curr_best_score.partial_cmp(&b.curr_best_score).unwrap())
-        .unwrap()
-        .clone()
+    results.peek().unwrap().clone()
 }
 
 pub fn get_rev_sequence(seq: &BString) -> BString {
@@ -702,3 +702,24 @@ impl BestAlignStruct {
         self.onedge = onedge;
     }
 }
+
+impl Ord for BestAlignStruct {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Ordinamento basato sul campo curr_best_score
+        self.curr_best_score.partial_cmp(&other.curr_best_score).unwrap_or(Ordering::Equal)
+    }
+}
+
+impl PartialOrd for BestAlignStruct {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for BestAlignStruct {
+    fn eq(&self, other: &Self) -> bool {
+        self.curr_best_score == other.curr_best_score
+    }
+}
+
+impl Eq for BestAlignStruct {}
