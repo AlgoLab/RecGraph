@@ -8,9 +8,9 @@ pub struct DisplacementMatrix {
 
 impl DisplacementMatrix {
     pub fn new(graph: &PathGraph, rev_graph: &PathGraph) -> Self {
-        DisplacementMatrix{
+        DisplacementMatrix {
             dfs: get_distance_from_start(rev_graph),
-            dfe: get_distance_from_end(graph)
+            dfe: get_distance_from_end(graph),
         }
     }
 
@@ -18,8 +18,9 @@ impl DisplacementMatrix {
         return if node_i == node_j {
             0
         } else {
-            ((self.dfs[node_i] - self.dfs[node_j]).abs() + (self.dfe[node_i] - self.dfe[node_j]).abs()) as i32
-        }
+            ((self.dfs[node_i] - self.dfs[node_j]).abs()
+                + (self.dfe[node_i] - self.dfe[node_j]).abs()) as i32
+        };
     }
 }
 

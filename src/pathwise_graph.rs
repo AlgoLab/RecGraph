@@ -191,7 +191,6 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
         paths[*id as usize] = path
     }
 
-    
     let paths_number = paths_set.keys().len();
 
     let max_node_id: u64 = graph.handles_iter().max().unwrap().id().try_into().unwrap();
@@ -213,8 +212,8 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
             let (handle_start, handle_end) = handles_id_position.get(&handle.id()).unwrap();
             let handle_start = *handle_start as usize;
             let handle_end = *handle_end as usize;
-            
-            let handle_id: u64 = handle.id().into(); 
+
+            let handle_id: u64 = handle.id().into();
             paths_nodes[handle_id as usize].set(path_id, true);
 
             for idx in handle_start..=handle_end {

@@ -1,12 +1,21 @@
-use std::{cmp::Ordering, collections::BinaryHeap, sync::{Arc, Mutex}};
-
+use std::{
+    cmp::Ordering,
+    collections::BinaryHeap,
+    sync::{Arc, Mutex},
+    time::Instant,
+};
 
 use bit_vec::BitVec;
 use bstr::BString;
 use rayon::prelude::*;
 
 use crate::{
-    dp_matrix::{DpDeltas, DpMatrix}, gaf_output::GAFStruct, node_displacement::DisplacementMatrix, pathwise_graph::{PathGraph, PredHash}, recombination_output, utils::{get_abs_val, idx}
+    dp_matrix::{DpDeltas, DpMatrix},
+    gaf_output::GAFStruct,
+    node_displacement::DisplacementMatrix,
+    pathwise_graph::{PathGraph, PredHash},
+    recombination_output,
+    utils::{get_abs_val, idx},
 };
 
 pub fn get_node_offset(nodes_handles: &Vec<u64>, curr_node: usize) -> i32 {
@@ -34,15 +43,19 @@ pub fn exec(
     displacement_matrix: &DisplacementMatrix,
     rec_number: i32,
 ) -> GAFStruct {
+    let start = Instant::now();
     let (forw_dpm, forw_deltas) = align(is_local, sequence, graph, score_matrix);
 
     let mut rev_dpm = DpMatrix::empty_new();
     let mut rev_deltas = DpDeltas::empty_new();
     let mut res = BestAlignStruct::new();
-
+    println!("Forw Align {:?}", start.elapsed());
     if rec_number > 0 {
+        let start = Instant::now();
         let rev_sequence = get_rev_sequence(sequence);
         (rev_dpm, rev_deltas) = rev_align(is_local, &rev_sequence, rev_graph, score_matrix);
+        println!("Reve Align {:?}", start.elapsed());
+        let start = Instant::now();
         res = best_alignment(
             &forw_dpm,
             &forw_deltas,
@@ -58,6 +71,7 @@ pub fn exec(
             &graph.pred_hash,
             &graph.nodes_id_pos,
         );
+        println!("Rec search {:?}", start.elapsed());
     }
 
     if rec_number > 0 && res.forw_best_path != res.rev_best_path {
@@ -305,178 +319,182 @@ fn align(
     let mut dpm = DpMatrix::new(lnz.len(), sequence.len());
     let mut deltas = DpDeltas::new(lnz.len(), sequence.len());
 
-    for i in 0..lnz.len() - 1 {
+    //base cases
+    dpm.set(0, 0, 0);
+    deltas.set_vals(0, 0, vec![0; path_number]);
+
+    // first row
+    for j in 1..sequence.len() {
+        let value = dpm.get(0, j - 1) + score_matrix[idx(sequence[j], b'-')];
+        dpm.set(0, j, value);
+        deltas.set_coord(0, j, (0, 0));
+    }
+
+    // first column
+    for i in 1..lnz.len() - 1 {
         let i_handle = graph.nodes_id_pos[i] as usize;
-        for j in 0..sequence.len() {
-            if i == 0 && j == 0 {
-                dpm.set(i, j, 0);
-                deltas.set_vals(i, j, vec![0; path_number]);
-            } else if j == 0 {
-                if is_local {
-                    dpm.set(i, j, 0);
-                    deltas.set_coord(i, j, (0, 0));
-                } else if !nodes_with_pred[i] {
-                    dpm.set(i, j, dpm.get(i - 1, j) + score_matrix[idx(lnz[i], b'-')]);
-                    deltas.set_coord(i, j, deltas.get_pred_coord(i - 1, j));
-                } else {
-                    let mut absolute_scores = vec![0; path_number];
 
-                    for (p, p_paths) in pred_hash.get_preds_and_paths(i) {
-                        let mut common_paths = path_node[i_handle].clone();
-                        common_paths.and(&p_paths);
+        if is_local {
+            dpm.set(i, 0, 0);
+            deltas.set_coord(i, 0, (0, 0));
+        } else if !nodes_with_pred[i] {
+            dpm.set(i, 0, dpm.get(i - 1, 0) + score_matrix[idx(lnz[i], b'-')]);
+            deltas.set_coord(i, 0, deltas.get_pred_coord(i - 1, 0));
+        } else {
+            let mut absolute_scores = vec![0; path_number];
 
-                        if common_paths[alphas[p]] {
-                            absolute_scores[alphas[p]] =
-                                dpm.get(p, j) + score_matrix[idx(b'-', lnz[i])];
+            for (p, p_paths) in pred_hash.get_preds_and_paths(i) {
+                let mut common_paths = path_node[i_handle].clone();
+                common_paths.and(&p_paths);
 
-                            for (path, is_in) in common_paths.iter().enumerate() {
-                                if is_in && path != alphas[p] {
-                                    absolute_scores[path] =
-                                        get_abs_val(p, j, alphas, path, &dpm, &deltas)
-                                            + score_matrix[idx(b'-', lnz[i])];
-                                }
-                            }
-                        } else {
-                            //set new alpha
+                if common_paths[alphas[p]] {
+                    absolute_scores[alphas[p]] = dpm.get(p, 0) + score_matrix[idx(b'-', lnz[i])];
 
-                            let temp_alpha = if common_paths[alphas[i]] {
-                                alphas[i]
-                            } else {
-                                common_paths.iter().position(|is_in| is_in).unwrap()
-                            };
-
-                            absolute_scores[temp_alpha] =
-                                get_abs_val(p, j, alphas, temp_alpha, &dpm, &deltas)
-                                    + score_matrix[idx(b'-', lnz[i])];
-
-                            for (path, is_in) in common_paths.iter().enumerate() {
-                                if is_in && path != temp_alpha {
-                                    absolute_scores[path] =
-                                        get_abs_val(p, j, alphas, path, &dpm, &deltas)
-                                            + score_matrix[idx(b'-', lnz[i])];
-                                }
-                            }
-                        }
-                    }
-                    // restore scores
-                    dpm.set(i, j, absolute_scores[alphas[i]]);
-                    for (path, is_in) in path_node[i_handle].iter().enumerate() {
-                        if is_in && path != alphas[i] {
-                            absolute_scores[path] -= absolute_scores[alphas[i]];
-                        }
-                    }
-                    absolute_scores[alphas[i]] = 0;
-
-                    deltas.set_vals(i, j, absolute_scores);
-                }
-            } else if i == 0 {
-                let value = dpm.get(i, j - 1) + score_matrix[idx(sequence[j], b'-')];
-                dpm.set(i, j, value);
-                deltas.set_coord(i, j, (0, 0));
-            } else {
-                if !nodes_with_pred[i] {
-                    let u = dpm.get(i - 1, j) + score_matrix[idx(b'-', lnz[i])];
-
-                    let d = dpm.get(i - 1, j - 1) + score_matrix[idx(sequence[j], lnz[i])];
-
-                    let l = dpm.get(i, j - 1) + score_matrix[idx(b'-', sequence[j])];
-
-                    let max = *[d, u, l].iter().max().unwrap();
-                    dpm.set(i, j, max);
-
-                    let coord = if max == d {
-                        deltas.get_pred_coord(i - 1, j - 1)
-                    } else if max == u {
-                        deltas.get_pred_coord(i - 1, j)
-                    } else {
-                        deltas.get_pred_coord(i, j - 1)
-                    };
-                    deltas.set_coord(i, j, coord);
-                } else {
-                    // multiple alphas possible
-                    let mut absolute_scores = vec![0; path_number];
-
-                    for (p, p_paths) in pred_hash.get_preds_and_paths(i) {
-                        let mut common_paths = path_node[i_handle].clone();
-                        common_paths.and(&p_paths);
-
-                        if common_paths[alphas[p]] {
-                            let u = dpm.get(p, j) + score_matrix[idx(b'-', lnz[i])];
-
-                            let d = dpm.get(p, j - 1) + score_matrix[idx(sequence[j], lnz[i])];
-
-                            let l = get_abs_val(i, j - 1, alphas, alphas[p], &dpm, &deltas)
-                                + score_matrix[idx(b'-', sequence[j])];
-
-                            let max = *[d, u, l].iter().max().unwrap();
-
-                            absolute_scores[alphas[p]] = max;
-                            for (path, is_in) in common_paths.iter().enumerate() {
-                                if is_in && path != alphas[p] {
-                                    if max == d {
-                                        absolute_scores[path] =
-                                            get_abs_val(p, j - 1, alphas, path, &dpm, &deltas)
-                                                + score_matrix[idx(sequence[j], lnz[i])];
-                                    } else if max == u {
-                                        absolute_scores[path] =
-                                            get_abs_val(p, j, alphas, path, &dpm, &deltas)
-                                                + score_matrix[idx(b'-', lnz[i])];
-                                    } else {
-                                        absolute_scores[path] =
-                                            get_abs_val(i, j - 1, alphas, path, &dpm, &deltas)
-                                                + score_matrix[idx(b'-', sequence[j])];
-                                    }
-                                }
-                            }
-                        } else {
-                            //set new alpha
-                            let temp_alpha = if common_paths[alphas[i]] {
-                                alphas[i]
-                            } else {
-                                common_paths.iter().position(|is_in| is_in).unwrap()
-                            };
-
-                            let u = get_abs_val(p, j, alphas, temp_alpha, &dpm, &deltas)
+                    for (path, is_in) in common_paths.iter().enumerate() {
+                        if is_in && path != alphas[p] {
+                            absolute_scores[path] = get_abs_val(p, 0, alphas, path, &dpm, &deltas)
                                 + score_matrix[idx(b'-', lnz[i])];
+                        }
+                    }
+                } else {
+                    //set new alpha
 
-                            let d = get_abs_val(p, j - 1, alphas, temp_alpha, &dpm, &deltas)
-                                + score_matrix[idx(sequence[j], lnz[i])];
+                    let temp_alpha = if common_paths[alphas[i]] {
+                        alphas[i]
+                    } else {
+                        common_paths.iter().position(|is_in| is_in).unwrap()
+                    };
 
-                            let l = get_abs_val(i, j - 1, alphas, temp_alpha, &dpm, &deltas)
-                                + score_matrix[idx(b'-', sequence[j])];
+                    absolute_scores[temp_alpha] =
+                        get_abs_val(p, 0, alphas, temp_alpha, &dpm, &deltas)
+                            + score_matrix[idx(b'-', lnz[i])];
 
-                            let max = *[d, u, l].iter().max().unwrap();
-                            absolute_scores[temp_alpha] = max;
+                    for (path, is_in) in common_paths.iter().enumerate() {
+                        if is_in && path != temp_alpha {
+                            absolute_scores[path] = get_abs_val(p, 0, alphas, path, &dpm, &deltas)
+                                + score_matrix[idx(b'-', lnz[i])];
+                        }
+                    }
+                }
+            }
+            // restore scores
+            dpm.set(i, 0, absolute_scores[alphas[i]]);
+            for (path, is_in) in path_node[i_handle].iter().enumerate() {
+                if is_in && path != alphas[i] {
+                    absolute_scores[path] -= absolute_scores[alphas[i]];
+                }
+            }
+            absolute_scores[alphas[i]] = 0;
 
-                            for (path, is_in) in common_paths.iter().enumerate() {
-                                if path != temp_alpha && is_in {
-                                    if max == d {
-                                        absolute_scores[path] =
-                                            get_abs_val(p, j - 1, alphas, path, &dpm, &deltas)
-                                                + score_matrix[idx(sequence[j], lnz[i])];
-                                    } else if max == u {
-                                        absolute_scores[path] =
-                                            get_abs_val(p, j, alphas, path, &dpm, &deltas)
-                                                + score_matrix[idx(b'-', lnz[i])];
-                                    } else {
-                                        absolute_scores[path] =
-                                            get_abs_val(i, j - 1, alphas, path, &dpm, &deltas)
-                                                + score_matrix[idx(b'-', sequence[j])];
-                                    }
+            deltas.set_vals(i, 0, absolute_scores);
+        }
+    }
+
+    for i in 1..lnz.len() - 1 {
+        let i_handle = graph.nodes_id_pos[i] as usize;
+        for j in 1..sequence.len() {
+            if !nodes_with_pred[i] {
+                let u = dpm.get(i - 1, j) + score_matrix[idx(b'-', lnz[i])];
+
+                let d = dpm.get(i - 1, j - 1) + score_matrix[idx(sequence[j], lnz[i])];
+
+                let l = dpm.get(i, j - 1) + score_matrix[idx(b'-', sequence[j])];
+
+                let max = *[d, u, l].iter().max().unwrap();
+                dpm.set(i, j, max);
+
+                let coord = if max == d {
+                    deltas.get_pred_coord(i - 1, j - 1)
+                } else if max == u {
+                    deltas.get_pred_coord(i - 1, j)
+                } else {
+                    deltas.get_pred_coord(i, j - 1)
+                };
+                deltas.set_coord(i, j, coord);
+            } else {
+                // multiple alphas possible
+                let mut absolute_scores = vec![0; path_number];
+
+                for (p, p_paths) in pred_hash.get_preds_and_paths(i) {
+                    let mut common_paths = path_node[i_handle].clone();
+                    common_paths.and(&p_paths);
+
+                    if common_paths[alphas[p]] {
+                        let u = dpm.get(p, j) + score_matrix[idx(b'-', lnz[i])];
+
+                        let d = dpm.get(p, j - 1) + score_matrix[idx(sequence[j], lnz[i])];
+
+                        let l = get_abs_val(i, j - 1, alphas, alphas[p], &dpm, &deltas)
+                            + score_matrix[idx(b'-', sequence[j])];
+
+                        let max = *[d, u, l].iter().max().unwrap();
+
+                        absolute_scores[alphas[p]] = max;
+                        for (path, is_in) in common_paths.iter().enumerate() {
+                            if is_in && path != alphas[p] {
+                                if max == d {
+                                    absolute_scores[path] =
+                                        get_abs_val(p, j - 1, alphas, path, &dpm, &deltas)
+                                            + score_matrix[idx(sequence[j], lnz[i])];
+                                } else if max == u {
+                                    absolute_scores[path] =
+                                        get_abs_val(p, j, alphas, path, &dpm, &deltas)
+                                            + score_matrix[idx(b'-', lnz[i])];
+                                } else {
+                                    absolute_scores[path] =
+                                        get_abs_val(i, j - 1, alphas, path, &dpm, &deltas)
+                                            + score_matrix[idx(b'-', sequence[j])];
+                                }
+                            }
+                        }
+                    } else {
+                        //set new alpha
+                        let temp_alpha = if common_paths[alphas[i]] {
+                            alphas[i]
+                        } else {
+                            common_paths.iter().position(|is_in| is_in).unwrap()
+                        };
+
+                        let u = get_abs_val(p, j, alphas, temp_alpha, &dpm, &deltas)
+                            + score_matrix[idx(b'-', lnz[i])];
+
+                        let d = get_abs_val(p, j - 1, alphas, temp_alpha, &dpm, &deltas)
+                            + score_matrix[idx(sequence[j], lnz[i])];
+
+                        let l = get_abs_val(i, j - 1, alphas, temp_alpha, &dpm, &deltas)
+                            + score_matrix[idx(b'-', sequence[j])];
+
+                        let max = *[d, u, l].iter().max().unwrap();
+                        absolute_scores[temp_alpha] = max;
+
+                        for (path, is_in) in common_paths.iter().enumerate() {
+                            if path != temp_alpha && is_in {
+                                if max == d {
+                                    absolute_scores[path] =
+                                        get_abs_val(p, j - 1, alphas, path, &dpm, &deltas)
+                                            + score_matrix[idx(sequence[j], lnz[i])];
+                                } else if max == u {
+                                    absolute_scores[path] =
+                                        get_abs_val(p, j, alphas, path, &dpm, &deltas)
+                                            + score_matrix[idx(b'-', lnz[i])];
+                                } else {
+                                    absolute_scores[path] =
+                                        get_abs_val(i, j - 1, alphas, path, &dpm, &deltas)
+                                            + score_matrix[idx(b'-', sequence[j])];
                                 }
                             }
                         }
                     }
-                    // restore scores
-                    dpm.set(i, j, absolute_scores[alphas[i]]);
-                    for (path, is_in) in path_node[i_handle].iter().enumerate() {
-                        if is_in && path != alphas[i] {
-                            absolute_scores[path] -= absolute_scores[alphas[i]];
-                        }
-                    }
-                    absolute_scores[alphas[i]] = 0;
-                    deltas.set_vals(i, j, absolute_scores);
                 }
+                // restore scores
+                dpm.set(i, j, absolute_scores[alphas[i]]);
+                for (path, is_in) in path_node[i_handle].iter().enumerate() {
+                    if is_in && path != alphas[i] {
+                        absolute_scores[path] -= absolute_scores[alphas[i]];
+                    }
+                }
+                absolute_scores[alphas[i]] = 0;
+                deltas.set_vals(i, j, absolute_scores);
             }
         }
     }
@@ -552,14 +570,12 @@ fn best_alignment(
         }
     }
 
-    let results = Arc::new(Mutex::new(BinaryHeap::with_capacity(seq_len+1)));
-
     // initial best alignment with no recombinations
     let mut ref_result = BestAlignStruct::new();
     ref_result.curr_best_score = max.unwrap() as f32;
     ref_result.forw_best_path = best_path.unwrap();
     ref_result.rev_best_path = best_path.unwrap();
-    results.lock().unwrap().push(ref_result);
+    let results = Arc::new(Mutex::new(BinaryHeap::from([ref_result])));
 
     (0..seq_len).into_par_iter().for_each(|j| {
         let mut result = results.lock().unwrap().peek().unwrap().clone();
@@ -578,27 +594,31 @@ fn best_alignment(
             .unwrap()
             .1;
 
-        if ((forw_i_max + rev_i_max)-brc) as f32 > result.curr_best_score {
+        if ((forw_i_max + rev_i_max) - brc) as f32 > result.curr_best_score {
             for (forw_idx, (forw_path, forw_score)) in forw_is.iter().enumerate() {
                 let i = forw_idx + 1;
-                for (rev_idx, (rev_path, rev_score)) in rev_is.iter().enumerate() {
-                    let rev_i = rev_idx + 1;
-                    if nodes_id_pos[i] != nodes_id_pos[rev_i] && forw_path != rev_path {
-                        let penalty = brc as f32 + (mrc * dms.get_displ(i, rev_i) as f32);
-                        let new_score = (forw_score + rev_score) as f32 - penalty;
-                        {
-                            if new_score > result.curr_best_score
-                                || (new_score == result.curr_best_score
-                                    && !result.onedge
-                                    && (i + 1 == m.len() || nodes_id_pos[i] != nodes_id_pos[i + 1])
-                                    && nodes_id_pos[rev_i] != nodes_id_pos[rev_i - 1])
+                if ((forw_score + rev_i_max) - brc) as f32 > result.curr_best_score {
+                    for (rev_idx, (rev_path, rev_score)) in rev_is.iter().enumerate() {
+                        let rev_i = rev_idx + 1;
+                        if nodes_id_pos[i] != nodes_id_pos[rev_i] && forw_path != rev_path {
+                            let penalty = brc as f32 + (mrc * dms.get_displ(i, rev_i) as f32);
+                            let new_score = (forw_score + rev_score) as f32 - penalty;
                             {
-                                let onedge = (i + 1 == m.len()
-                                    || nodes_id_pos[i] != nodes_id_pos[i + 1])
-                                    && nodes_id_pos[rev_i] != nodes_id_pos[rev_i - 1];
-                                result.update(
-                                    new_score, i, rev_i, forw_path, rev_path, j, penalty, onedge,
-                                );
+                                if new_score > result.curr_best_score
+                                    || (new_score == result.curr_best_score
+                                        && !result.onedge
+                                        && (i + 1 == m.len()
+                                            || nodes_id_pos[i] != nodes_id_pos[i + 1])
+                                        && nodes_id_pos[rev_i] != nodes_id_pos[rev_i - 1])
+                                {
+                                    let onedge = (i + 1 == m.len()
+                                        || nodes_id_pos[i] != nodes_id_pos[i + 1])
+                                        && nodes_id_pos[rev_i] != nodes_id_pos[rev_i - 1];
+                                    result.update(
+                                        new_score, i, rev_i, forw_path, rev_path, j, penalty,
+                                        onedge,
+                                    );
+                                }
                             }
                         }
                     }
@@ -706,7 +726,9 @@ impl BestAlignStruct {
 impl Ord for BestAlignStruct {
     fn cmp(&self, other: &Self) -> Ordering {
         // Ordinamento basato sul campo curr_best_score
-        self.curr_best_score.partial_cmp(&other.curr_best_score).unwrap_or(Ordering::Equal)
+        self.curr_best_score
+            .partial_cmp(&other.curr_best_score)
+            .unwrap_or(Ordering::Equal)
     }
 }
 
