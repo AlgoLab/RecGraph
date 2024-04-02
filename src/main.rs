@@ -1,3 +1,4 @@
+use recgraph::a_star_demo;
 use recgraph::args_parser::ClArgs;
 use recgraph::node_displacement::DisplacementMatrix;
 use recgraph::pathwise_alignment_recombination;
@@ -31,6 +32,7 @@ fn main() {
     let is_local = args.alignment_mode;
     let mut gafs = Vec::new();
 
+    //a_star_demo::fm_index_demo(&sequences[0]);
     sequences.iter().enumerate().for_each(|(i, seq)| {
         let mut gaf = pathwise_alignment_recombination::exec(
             is_local,

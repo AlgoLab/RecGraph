@@ -24,3 +24,5 @@ pub mod sequences;
 pub mod utils;
 
 pub mod node_displacement;
+
+pub mod a_star_demo;

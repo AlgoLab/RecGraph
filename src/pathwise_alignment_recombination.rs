@@ -2,7 +2,6 @@ use std::{
     cmp::Ordering,
     collections::BinaryHeap,
     sync::{Arc, Mutex},
-    time::Instant,
 };
 
 use bit_vec::BitVec;
@@ -18,20 +17,7 @@ use crate::{
     utils::{get_abs_val, idx},
 };
 
-pub fn get_node_offset(nodes_handles: &Vec<u64>, curr_node: usize) -> i32 {
-    let handle = nodes_handles[curr_node];
-    if handle == 0 {
-        0
-    } else {
-        let mut counter = curr_node;
-        let mut offset = 0;
-        while nodes_handles[counter - 1] == handle {
-            counter -= 1;
-            offset += 1;
-        }
-        offset
-    }
-}
+
 pub fn exec(
     is_local: bool,
     sequence: &BString,
@@ -43,19 +29,13 @@ pub fn exec(
     displacement_matrix: &DisplacementMatrix,
     rec_number: i32,
 ) -> GAFStruct {
-    let start = Instant::now();
-    let (forw_dpm, forw_deltas) = align(is_local, sequence, graph, score_matrix);
+    let rev_sequence = get_rev_sequence(sequence);
+    let ((forw_dpm, forw_deltas), (rev_dpm, rev_deltas)) = rayon::join(
+        || align(is_local, sequence, graph, score_matrix), 
+        || rev_align(is_local, &rev_sequence, rev_graph, score_matrix));
 
-    let mut rev_dpm = DpMatrix::empty_new();
-    let mut rev_deltas = DpDeltas::empty_new();
     let mut res = BestAlignStruct::new();
-    println!("Forw Align {:?}", start.elapsed());
     if rec_number > 0 {
-        let start = Instant::now();
-        let rev_sequence = get_rev_sequence(sequence);
-        (rev_dpm, rev_deltas) = rev_align(is_local, &rev_sequence, rev_graph, score_matrix);
-        println!("Reve Align {:?}", start.elapsed());
-        let start = Instant::now();
         res = best_alignment(
             &forw_dpm,
             &forw_deltas,
@@ -71,9 +51,8 @@ pub fn exec(
             &graph.pred_hash,
             &graph.nodes_id_pos,
         );
-        println!("Rec search {:?}", start.elapsed());
     }
-
+    
     if rec_number > 0 && res.forw_best_path != res.rev_best_path {
         recombination_output::build_alignment_path_rec(
             &res,

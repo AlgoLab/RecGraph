@@ -5,7 +5,7 @@ use crate::{
     build_cigar::build_cigar,
     dp_matrix::{DpDeltas, DpMatrix},
     gaf_output::GAFStruct,
-    pathwise_alignment_recombination::{get_node_offset, get_rev_sequence, BestAlignStruct},
+    pathwise_alignment_recombination::{get_rev_sequence, BestAlignStruct},
     pathwise_graph::PathGraph,
     utils::{self, get_abs_val, idx},
 };
@@ -664,4 +664,19 @@ fn ending_node(
         }
     }
     best_node
+}
+
+pub fn get_node_offset(nodes_handles: &Vec<u64>, curr_node: usize) -> i32 {
+    let handle = nodes_handles[curr_node];
+    if handle == 0 {
+        0
+    } else {
+        let mut counter = curr_node;
+        let mut offset = 0;
+        while nodes_handles[counter - 1] == handle {
+            counter -= 1;
+            offset += 1;
+        }
+        offset
+    }
 }
