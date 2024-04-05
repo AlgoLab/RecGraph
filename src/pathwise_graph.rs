@@ -12,7 +12,9 @@ use ahash::AHashMap as HashMap;
 pub struct PathGraph {
     pub lnz: BString,
     pub nwp: BitVec,
+    pub nwp_rev: BitVec,
     pub pred_hash: PredHash,
+    pub pred_hash_rev: PredHash,
     pub paths_nodes: Vec<BitVec>,
     pub alphas: Vec<usize>,
     pub paths_number: usize,
@@ -30,7 +32,9 @@ impl PathGraph {
         PathGraph {
             lnz: BString::new(vec![]),
             nwp: BitVec::new(),
+            nwp_rev: BitVec::new(),
             pred_hash: PredHash::new(),
+            pred_hash_rev: PredHash::new(),
             paths_nodes: vec![],
             alphas: vec![],
             paths_number: 0,
@@ -38,7 +42,8 @@ impl PathGraph {
         }
     }
 
-    pub fn build(
+    pub fn update_forw(
+        &mut self,
         lnz: BString,
         nwp: BitVec,
         pred_hash: PredHash,
@@ -46,16 +51,39 @@ impl PathGraph {
         alphas: Vec<usize>,
         paths_number: usize,
         nodes_id_pos: Vec<u64>,
-    ) -> PathGraph {
-        PathGraph {
-            lnz,
-            nwp,
-            pred_hash,
-            paths_nodes,
-            alphas,
-            paths_number,
-            nodes_id_pos,
+    ) {
+        self.lnz = lnz;
+        self.nwp = nwp;
+        self.pred_hash = pred_hash;
+        self.paths_nodes = paths_nodes;
+        self.alphas = alphas;
+        self.paths_number = paths_number;
+        self.nodes_id_pos = nodes_id_pos;
+    }
+
+    pub fn update_rev(&mut self) {
+        let mut nodes_with_pred_rev = BitVec::from_elem(self.lnz.len(), false);
+        let mut pred_hash_struct_rev = PredHash::new();
+
+        for (node, predecessors) in self.pred_hash.predecessor.iter() {
+            for (pred, paths) in predecessors.iter() {
+                if !nodes_with_pred_rev[*pred] {
+                    nodes_with_pred_rev.set(*pred, true);
+                }
+                for (path_id, path) in paths.iter().enumerate() {
+                    if path {
+                        pred_hash_struct_rev.set_preds_and_paths(
+                            *pred,
+                            *node,
+                            path_id,
+                            self.paths_number,
+                        );
+                    }
+                }
+            }
         }
+        self.nwp_rev = nodes_with_pred_rev;
+        self.pred_hash_rev = pred_hash_struct_rev;
     }
 
     pub fn to_string(self) {
@@ -254,7 +282,9 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
     nodes_with_pred.set(linearization.len() - 1, true);
     paths_nodes.push(BitVec::from_elem(paths_number, true));
 
-    PathGraph::build(
+    // revere edges
+    let mut graph = PathGraph::new();
+    graph.update_forw(
         BString::new(linearization),
         nodes_with_pred,
         pred_hash_struct,
@@ -262,39 +292,7 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
         alphas,
         paths_number,
         nodes_id_pos,
-    )
-}
-
-pub fn create_reverse_path_graph(forward_graph: &PathGraph) -> PathGraph {
-    // create reverse predecessor
-    let mut nodes_with_pred_rev = BitVec::from_elem(forward_graph.lnz.len(), false);
-    let mut pred_hash_struct_rev = PredHash::new();
-
-    for (node, predecessors) in forward_graph.pred_hash.predecessor.iter() {
-        for (pred, paths) in predecessors.iter() {
-            if !nodes_with_pred_rev[*pred] {
-                nodes_with_pred_rev.set(*pred, true);
-            }
-            for (path_id, path) in paths.iter().enumerate() {
-                if path {
-                    pred_hash_struct_rev.set_preds_and_paths(
-                        *pred,
-                        *node,
-                        path_id,
-                        forward_graph.paths_number,
-                    );
-                }
-            }
-        }
-    }
-
-    PathGraph::build(
-        forward_graph.lnz.clone(),
-        nodes_with_pred_rev,
-        pred_hash_struct_rev,
-        forward_graph.paths_nodes.clone(),
-        forward_graph.alphas.clone(),
-        forward_graph.paths_number,
-        forward_graph.nodes_id_pos.clone(),
-    )
+    );
+    graph.update_rev();
+    graph
 }

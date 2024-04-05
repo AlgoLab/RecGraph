@@ -18,7 +18,6 @@ pub fn build_alignment_path_rec(
     rev_deltas: &DpDeltas,
     scores: &Vec<i32>,
     graph: &PathGraph,
-    rev_graph: &PathGraph,
     seq: &BString,
     is_local: bool,
 ) -> GAFStruct {
@@ -37,22 +36,15 @@ pub fn build_alignment_path_rec(
     let mut rev_ending_node = i;
     let mut path_sequence = Vec::new();
 
-    while i > 0 && i < rev_graph.lnz.len() - 1 && j < seq.len() - 1 {
-        let curr_score = get_abs_val(
-            i,
-            j,
-            &rev_graph.alphas,
-            res.rev_best_path,
-            rev_dpm,
-            rev_deltas,
-        );
+    while i > 0 && i < graph.lnz.len() - 1 && j < seq.len() - 1 {
+        let curr_score = get_abs_val(i, j, &graph.alphas, res.rev_best_path, rev_dpm, rev_deltas);
 
-        let (d, u, l) = if rev_graph.nwp[i] {
+        let (d, u, l) = if graph.nwp_rev[i] {
             let l_val_pos = (
                 get_abs_val(
                     i,
                     j + 1,
-                    &rev_graph.alphas,
+                    &graph.alphas,
                     res.rev_best_path,
                     rev_dpm,
                     rev_deltas,
@@ -61,28 +53,28 @@ pub fn build_alignment_path_rec(
             );
             let mut u_val_pos = (0, (0, 0));
             let mut d_val_pos = (0, (0, 0));
-            for (pred, paths) in rev_graph.pred_hash.get_preds_and_paths(i) {
+            for (pred, paths) in graph.pred_hash_rev.get_preds_and_paths(i) {
                 if paths[res.rev_best_path] {
                     u_val_pos = (
                         get_abs_val(
                             pred,
                             j,
-                            &rev_graph.alphas,
+                            &graph.alphas,
                             res.rev_best_path,
                             rev_dpm,
                             rev_deltas,
-                        ) + scores[idx(b'-', rev_graph.lnz[i])],
+                        ) + scores[idx(b'-', graph.lnz[i])],
                         (pred, j),
                     );
                     d_val_pos = (
                         get_abs_val(
                             pred,
                             j + 1,
-                            &rev_graph.alphas,
+                            &graph.alphas,
                             res.rev_best_path,
                             rev_dpm,
                             rev_deltas,
-                        ) + scores[idx(r_seq[j], rev_graph.lnz[i])],
+                        ) + scores[idx(r_seq[j], graph.lnz[i])],
                         (pred, j + 1),
                     );
                 }
@@ -93,29 +85,29 @@ pub fn build_alignment_path_rec(
                 get_abs_val(
                     i + 1,
                     j,
-                    &rev_graph.alphas,
+                    &graph.alphas,
                     res.rev_best_path,
                     rev_dpm,
                     rev_deltas,
-                ) + scores[idx(b'-', rev_graph.lnz[i])],
+                ) + scores[idx(b'-', graph.lnz[i])],
                 (i + 1, j),
             );
             let d_val_pos = (
                 get_abs_val(
                     i + 1,
                     j + 1,
-                    &rev_graph.alphas,
+                    &graph.alphas,
                     res.rev_best_path,
                     rev_dpm,
                     rev_deltas,
-                ) + scores[idx(r_seq[j], rev_graph.lnz[i])],
+                ) + scores[idx(r_seq[j], graph.lnz[i])],
                 (i + 1, j + 1),
             );
             let l_val_pos = (
                 get_abs_val(
                     i,
                     j + 1,
-                    &rev_graph.alphas,
+                    &graph.alphas,
                     res.rev_best_path,
                     rev_dpm,
                     rev_deltas,
@@ -134,7 +126,7 @@ pub fn build_alignment_path_rec(
             d,
             u,
             l,
-            rev_graph,
+            graph,
             r_seq,
             &mut cigar,
             rev_path_length,
@@ -152,11 +144,11 @@ pub fn build_alignment_path_rec(
     if !is_local {
         while i < lnz_len - 1 {
             cigar.push('U');
-            handle_id_alignment.push(rev_graph.nodes_id_pos[i]);
-            path_sequence.push(rev_graph.lnz[i]);
+            handle_id_alignment.push(graph.nodes_id_pos[i]);
+            path_sequence.push(graph.lnz[i]);
             let mut predecessor = None;
-            if rev_graph.nwp[i] {
-                let preds = rev_graph.pred_hash.get_preds_and_paths(i);
+            if graph.nwp[i] {
+                let preds = graph.pred_hash.get_preds_and_paths(i);
                 for (pred, paths) in preds.iter() {
                     if paths[res.rev_best_path] {
                         predecessor = Some(*pred);

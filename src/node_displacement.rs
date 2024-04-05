@@ -7,9 +7,9 @@ pub struct DisplacementMatrix {
 }
 
 impl DisplacementMatrix {
-    pub fn new(graph: &PathGraph, rev_graph: &PathGraph) -> Self {
+    pub fn new(graph: &PathGraph) -> Self {
         DisplacementMatrix {
-            dfs: get_distance_from_start(rev_graph),
+            dfs: get_distance_from_start(graph),
             dfe: get_distance_from_end(graph),
         }
     }
@@ -25,8 +25,8 @@ impl DisplacementMatrix {
 }
 
 fn get_distance_from_start(graph: &PathGraph) -> Vec<isize> {
-    let nwp = &graph.nwp;
-    let pred_hash = &graph.pred_hash;
+    let nwp = &graph.nwp_rev;
+    let pred_hash = &graph.pred_hash_rev;
     let lnz_len = graph.lnz.len();
     let mut r_values: Vec<isize> = vec![-1; lnz_len];
     r_values[0] = 0;

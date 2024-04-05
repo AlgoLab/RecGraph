@@ -17,12 +17,10 @@ use crate::{
     utils::{get_abs_val, idx},
 };
 
-
 pub fn exec(
     is_local: bool,
     sequence: &BString,
     graph: &PathGraph,
-    rev_graph: &PathGraph,
     score_matrix: &Vec<i32>,
     base_rec_cost: i32,
     multi_rec_cost: f32,
@@ -31,8 +29,9 @@ pub fn exec(
 ) -> GAFStruct {
     let rev_sequence = get_rev_sequence(sequence);
     let ((forw_dpm, forw_deltas), (rev_dpm, rev_deltas)) = rayon::join(
-        || align(is_local, sequence, graph, score_matrix), 
-        || rev_align(is_local, &rev_sequence, rev_graph, score_matrix));
+        || align(is_local, sequence, graph, score_matrix),
+        || rev_align(is_local, &rev_sequence, graph, score_matrix),
+    );
 
     let mut res = BestAlignStruct::new();
     if rec_number > 0 {
@@ -52,7 +51,7 @@ pub fn exec(
             &graph.nodes_id_pos,
         );
     }
-    
+
     if rec_number > 0 && res.forw_best_path != res.rev_best_path {
         recombination_output::build_alignment_path_rec(
             &res,
@@ -62,7 +61,6 @@ pub fn exec(
             &rev_deltas,
             score_matrix,
             graph,
-            rev_graph,
             sequence,
             is_local,
         )
@@ -96,8 +94,8 @@ fn rev_align(
     score_matrix: &Vec<i32>,
 ) -> (DpMatrix, DpDeltas) {
     let lnz = &graph.lnz;
-    let nodes_with_pred = &graph.nwp;
-    let pred_hash = &graph.pred_hash;
+    let nodes_with_pred = &graph.nwp_rev;
+    let pred_hash = &graph.pred_hash_rev;
     let path_number = graph.paths_number;
     let path_node = &graph.paths_nodes;
 
@@ -106,11 +104,12 @@ fn rev_align(
     let alphas = &graph.alphas;
 
     let last_node_pos = lnz.len() - 1;
-    let last_char_pos = sequence.len() - 1;
+    let last_char_pos = sequence.len()-1;
 
-    for i in (1..last_node_pos + 1).rev() {
+    for i in (1..last_node_pos+1).rev() {
+        
         let i_handle = graph.nodes_id_pos[i] as usize;
-        for j in (0..=last_char_pos).rev() {
+        for j in (1..=last_char_pos).rev() {
             if i == last_node_pos && j == last_char_pos {
                 dpm.set(i, j, 0);
                 deltas.set_vals(i, j, vec![0; path_number]);
@@ -527,8 +526,10 @@ fn best_alignment(
     let seq_len = dpm.cols;
     let lnz_len = dpm.rows;
 
-    let m = best_scores(dpm, deltas, alphas, paths_nodes, nodes_handles);
-    let w = best_scores(rev_dpm, rev_deltas, alphas, paths_nodes, nodes_handles);
+    let (m, w) = rayon::join(
+        || best_scores(dpm, deltas, alphas, paths_nodes, nodes_handles),
+        || best_scores(rev_dpm, rev_deltas, alphas, paths_nodes, nodes_handles),
+    );
 
     let mut max = None;
     let mut best_path = None;
@@ -724,3 +725,97 @@ impl PartialEq for BestAlignStruct {
 }
 
 impl Eq for BestAlignStruct {}
+
+/*
+fn base_cases(
+    dpm: &mut DpMatrix,
+    deltas: &mut DpDeltas,
+    sequence: &BString,
+    graph: &PathGraph,
+    is_local: bool,
+    is_forw: bool,
+    base_i: usize,
+    base_j: usize,
+    gap_pen: i32
+) {
+    let (nodes_with_pred, pred_hash) = if is_forw {
+        (graph.nwp, graph.pred_hash)
+    } else {
+        (graph.nwp, graph.pred_hash)
+    };
+
+    //base cases
+    dpm.set(base_i, base_j, 0);
+    deltas.set_vals(base_i, base_j, vec![0; graph.paths_number]);
+
+    // first row
+
+    for j in 1..sequence.len() {
+        let value = dpm.get(base_i, j - 1) + gap_pen;
+        dpm.set(0, j, value);
+        deltas.set_coord(0, j, (0, 0));
+    }
+
+    // first column
+   
+    for i in 1..lnz.len() - 1 {
+        let i_handle = graph.nodes_id_pos[i] as usize;
+
+        if is_local {
+            dpm.set(i, 0, 0);
+            deltas.set_coord(i, 0, (0, 0));
+        } else if !nodes_with_pred[i] {
+            dpm.set(i, 0, dpm.get(i - 1, 0) + score_matrix[idx(lnz[i], b'-')]);
+            deltas.set_coord(i, 0, deltas.get_pred_coord(i - 1, 0));
+        } else {
+            let mut absolute_scores = vec![0; path_number];
+
+            for (p, p_paths) in pred_hash.get_preds_and_paths(i) {
+                let mut common_paths = path_node[i_handle].clone();
+                common_paths.and(&p_paths);
+
+                if common_paths[alphas[p]] {
+                    absolute_scores[alphas[p]] = dpm.get(p, 0) + score_matrix[idx(b'-', lnz[i])];
+
+                    for (path, is_in) in common_paths.iter().enumerate() {
+                        if is_in && path != alphas[p] {
+                            absolute_scores[path] = get_abs_val(p, 0, alphas, path, &dpm, &deltas)
+                                + score_matrix[idx(b'-', lnz[i])];
+                        }
+                    }
+                } else {
+                    //set new alpha
+
+                    let temp_alpha = if common_paths[alphas[i]] {
+                        alphas[i]
+                    } else {
+                        common_paths.iter().position(|is_in| is_in).unwrap()
+                    };
+
+                    absolute_scores[temp_alpha] =
+                        get_abs_val(p, 0, alphas, temp_alpha, &dpm, &deltas)
+                            + score_matrix[idx(b'-', lnz[i])];
+
+                    for (path, is_in) in common_paths.iter().enumerate() {
+                        if is_in && path != temp_alpha {
+                            absolute_scores[path] = get_abs_val(p, 0, alphas, path, &dpm, &deltas)
+                                + score_matrix[idx(b'-', lnz[i])];
+                        }
+                    }
+                }
+            }
+            // restore scores
+            dpm.set(i, 0, absolute_scores[alphas[i]]);
+            for (path, is_in) in path_node[i_handle].iter().enumerate() {
+                if is_in && path != alphas[i] {
+                    absolute_scores[path] -= absolute_scores[alphas[i]];
+                }
+            }
+            absolute_scores[alphas[i]] = 0;
+
+            deltas.set_vals(i, 0, absolute_scores);
+        }
+    }
+}
+
+*/

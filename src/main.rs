@@ -8,6 +8,8 @@ use recgraph::score_matrix;
 use recgraph::sequences;
 use recgraph::utils;
 
+use std::time::Duration;
+use std::time::Instant;
 use std::time::SystemTime;
 
 #[cfg(target_os = "linux")]
@@ -21,9 +23,8 @@ fn main() {
 
     let (sequences, ids) = sequences::get_sequences(args.sequence_path);
     let graph = pathwise_graph::read_graph_w_path(&args.graph_path, false);
-    let rev_graph = pathwise_graph::create_reverse_path_graph(&graph);
 
-    let displ_matrix = DisplacementMatrix::new(&graph, &rev_graph);
+    let displ_matrix = DisplacementMatrix::new(&graph);
 
     let score_matrix =
         score_matrix::create_score_matrix(args.match_score, args.mismatch_score, args.gap_ext);
@@ -32,13 +33,13 @@ fn main() {
     let is_local = args.alignment_mode;
     let mut gafs = Vec::new();
 
-    //a_star_demo::fm_index_demo(&sequences[0]);
+    let mut ress = Vec::new();
     sequences.iter().enumerate().for_each(|(i, seq)| {
+        let res = a_star_demo::a_star_demo(&seq);
         let mut gaf = pathwise_alignment_recombination::exec(
             is_local,
             seq,
             &graph,
-            &rev_graph,
             &score_matrix,
             base_rec_cost,
             multi_rec_cost,
@@ -47,12 +48,15 @@ fn main() {
         );
         gaf.query_name = ids[i].to_string();
         gafs.push(gaf.to_string());
+        ress.push(res);
     });
 
     for (i, gaf) in gafs.iter().enumerate() {
         utils::write_gaf(gaf, i, args.out_file.as_str());
+        println!("{:?}",ress[i]);
+        println!();
+        println!()
     }
-
     match now.elapsed() {
         Ok(elapsed) => {
             // it prints '2'
@@ -63,4 +67,5 @@ fn main() {
             eprintln!("Error: {e:?}");
         }
     }
+   
 }
