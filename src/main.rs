@@ -1,4 +1,4 @@
-use recgraph::a_star_demo;
+use recgraph::a_star::a_star_demo;
 use recgraph::args_parser::ClArgs;
 use recgraph::node_displacement::DisplacementMatrix;
 use recgraph::pathwise_alignment_recombination;
@@ -8,8 +8,7 @@ use recgraph::score_matrix;
 use recgraph::sequences;
 use recgraph::utils;
 
-use std::time::Duration;
-use std::time::Instant;
+
 use std::time::SystemTime;
 
 #[cfg(target_os = "linux")]
@@ -31,9 +30,15 @@ fn main() {
 
     let (base_rec_cost, multi_rec_cost) = (args.base_rec_cost, args.multi_rec_cost);
     let is_local = args.alignment_mode;
+    sequences.iter().enumerate().for_each(|(i, seq)| {
+        a_star_demo::a_star_demo(&seq);
+        
+    });
+    /*
     let mut gafs = Vec::new();
 
     let mut ress = Vec::new();
+    
     sequences.iter().enumerate().for_each(|(i, seq)| {
         let res = a_star_demo::a_star_demo(&seq);
         let mut gaf = pathwise_alignment_recombination::exec(
@@ -57,6 +62,8 @@ fn main() {
         println!();
         println!()
     }
+     
+     */
     match now.elapsed() {
         Ok(elapsed) => {
             // it prints '2'
