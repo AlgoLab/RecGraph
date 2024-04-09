@@ -121,6 +121,17 @@ struct Args {
         help = "Maximum displacement allowed between the two recombination extremities.[NOT YET IMPLEMENTED]"
     )]
     max_displacement: i32,
+
+     //Seed length
+     #[clap(
+        help_heading = "A-Star",
+        short = 's',
+        long = "seed-len",
+        default_value_t = 2,
+        help = "Seed length"
+    )]
+    seed_len: i32,
+
 }
 
 pub struct ClArgs {
@@ -136,6 +147,7 @@ pub struct ClArgs {
     pub base_rec_cost: i32,
     pub max_displacement: i32,
     pub out_file: String,
+    pub seed_len: i32,
 }
 
 impl ClArgs {
@@ -154,6 +166,7 @@ impl ClArgs {
             base_rec_cost: args.base_rec_cost,
             max_displacement: args.max_displacement,
             out_file: args.out_file,
+            seed_len: args.seed_len,
         }
     }
 }

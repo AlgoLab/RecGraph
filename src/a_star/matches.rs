@@ -1,9 +1,8 @@
 use bstr::BString;
 use handlegraph::{handlegraph::HandleGraph, hashgraph::{HashGraph, Path}};
 use lt_fm_index::{LtFmIndex, LtFmIndexBuilder};
-use rayon::prelude::*;
+use rayon::{prelude::*, vec};
 
-const CHUNK_SIZE: usize = 50; // change this later
 
 /// Get the FM index for each path in the graph, return Vec[(path_id, fm_index); paths_number]
 fn get_fm_index(graph: &HashGraph) -> Vec<(usize, LtFmIndex)> {
@@ -28,10 +27,10 @@ fn linearize_path(path: &Path, graph: &HashGraph)  -> Vec<u8>{
 
 /// Get the matches for each path in the graph, return Vec[Vec[bool; seeds_number]; paths_number]
 /// matches[i][j] = true if the j-th seed matches the i-th path in some position
-fn get_matches(graph: &HashGraph, query: &BString) -> Vec<Vec<bool>> {
+fn get_matches(graph: &HashGraph, query: &BString, chunk_size: usize) -> Vec<Vec<bool>> {
     let indexes = get_fm_index(graph);
     
-    let seeds: Vec<_> = query.chunks(CHUNK_SIZE).collect::<Vec<_>>();
+    let seeds: Vec<_> = query.chunks(chunk_size).collect::<Vec<_>>();
     
     let mut matches = vec![vec![false; seeds.len()]; indexes.len()];
 
@@ -46,15 +45,16 @@ fn get_matches(graph: &HashGraph, query: &BString) -> Vec<Vec<bool>> {
 
 /// Get the base heuristic for each path in the graph, return Vec[Vec[usize; query.len()]; paths_number]
 /// heuristic[i][j] = x, where x is the number of seeds after the j-th that match the i-th path 
-pub fn get_base_sh(query: &BString, graph: &HashGraph) ->  Vec<Vec<usize>>{
-    let matches = get_matches(graph, query);
-    let seeds_number = query.len()/CHUNK_SIZE;
+pub fn get_base_sh(query: &BString, graph: &HashGraph, chunk_size: usize) ->  Vec<Vec<usize>>{
+    
+    let matches = get_matches(graph, query, chunk_size);
+    let seeds_number = query.len()/chunk_size;
     let paths_number = graph.paths.len();
     let mut heuristic = vec![vec![0; query.len()];paths_number];
     heuristic.iter_mut().enumerate().for_each(|(path_id, path_heu)| {
         let path_matches = &matches[path_id];
         path_heu.iter_mut().enumerate().for_each(|(pos, val)| {
-            let idx = pos/CHUNK_SIZE;
+            let idx = pos/chunk_size;
             let potential = seeds_number - idx;
             let actual = potential -  path_matches[idx+1..].iter().filter(|&&x| x).count();
             *val = actual;
@@ -62,6 +62,98 @@ pub fn get_base_sh(query: &BString, graph: &HashGraph) ->  Vec<Vec<usize>>{
         })
     });
 
+    heuristic
+}
+
+
+/// Get the matches chains for each path in the graph, return Vec[Vec[Match]; paths_number]
+/// first get the matches for each path, then get the maximum chain of matches for each path
+fn get_matches_chains(graph: &HashGraph, query_w_prefix: &BString, chunk_size: usize) -> Vec<Vec<i32>> {
+    let query = &BString::from(&query_w_prefix[1..]);
+
+    let indexes = get_fm_index(graph);
+    
+    let seeds: Vec<_> = query.chunks(chunk_size).collect::<Vec<_>>();
+    
+    let mut matches = vec![vec![]; indexes.len()];
+
+    indexes.iter().for_each(|(path_id, index)| {
+        seeds.iter().enumerate().for_each(|(seed_id, seed)| {
+            let matches_pos = index.locate(seed);
+            matches_pos.iter().for_each(|path_pos| {
+                matches[*path_id].push(Match::init(*path_pos as usize, seed_id));
+            });
+        });
+    });
+    let match_chains = matches.iter_mut().map(|path_matches| {
+        path_matches.sort_by_key(|m| m.seed_idx);
+        get_max_chain(path_matches, chunk_size, seeds.len())
+    }).collect();
+    
+    match_chains
+}
+
+/// Get the maximum chain of matches for a path
+fn get_max_chain(matches: &Vec<Match>, chunk_size: usize, seeds_number: usize) -> Vec<i32> {
+    let mut chains = vec![(0,0); matches.len()];
+    
+    matches.iter().enumerate().for_each(|(idx,m_ref)| {
+        let m = m_ref.clone();
+        if m.seed_idx == 0 {
+            chains[idx] = (0,1);
+            
+        } else {
+            let mut max_chain_len = 0;
+            let mut max_chain_ending = 0;
+            
+            for i in (0..idx).rev() {
+                let (_, pred_chain_len) = chains[i];
+                if matches[i].seed_idx < m.seed_idx && matches[i].path_pos + chunk_size <= m.path_pos && pred_chain_len + 1 > max_chain_len {
+                    max_chain_len = pred_chain_len+1;
+                    max_chain_ending = i;
+                    break;
+                }
+            }
+            
+            if max_chain_len == 0 {
+                chains[idx] = (0,1);
+            } else {
+                chains[idx] = (max_chain_ending, max_chain_len);
+            }
+        }
+    });
+    let max_chain_ending = chains.iter().enumerate().max_by_key(|(_, (_, len))| *len).unwrap().0;
+    let mut max_chain = Vec::new();
+    let mut idx = max_chain_ending;
+    max_chain.push(matches[idx].clone());
+    let mut new_max_chain = vec![0; seeds_number];
+    new_max_chain[matches[idx].seed_idx] = 1;
+    while idx != 0 {
+        let (pred_idx, _) = chains[idx];
+        max_chain.push(matches[pred_idx].clone());
+        new_max_chain[matches[pred_idx].seed_idx] = 1;
+        idx = pred_idx;
+    }
+    new_max_chain
+}
+
+/// Get the chaining heuristic for each path in the graph, return Vec[Vec[usize; query.len()]; paths_number]
+/// heuristic[i][j] = x, where x is the number of seeds after the j-th that match the i-th path considering the max chain
+pub fn get_chaining_sh(query: &BString, graph: &HashGraph, chunk_size: usize) -> Vec<Vec<usize>>{
+    let chains = get_matches_chains(graph, query, chunk_size);
+    
+    let seeds_number = query.len()/chunk_size;
+    let paths_number = graph.paths.len();
+    let mut heuristic = vec![vec![0; query.len()];paths_number];
+    heuristic.iter_mut().enumerate().for_each(|(path_id, path_heu)| {
+        let path_chain = &chains[path_id];
+        path_heu[1..].iter_mut().enumerate().for_each(|(pos, val)| { // prefix is now used
+            let idx = pos/chunk_size; 
+            let potential = seeds_number - idx;
+            let actual = potential - path_chain[idx+1..].iter().filter(|is_match|{**is_match == 1}).count(); // Change this, only seed_id necessary
+            *val = actual;
+        })
+    });
     heuristic
 }
 
@@ -99,5 +191,25 @@ impl PathMatches {
 
     pub fn get_position(&self, pos: usize) -> bool {
         self.matches[pos]
+    }
+}
+#[derive(Debug, Clone)]
+pub struct Match {
+    pub path_pos: usize,
+    pub seed_idx: usize,
+}
+
+impl Match {
+    pub fn new() -> Self {
+        Match {
+            path_pos: 0,
+            seed_idx: 0,
+        }
+    }
+    pub fn init(path_pos: usize, seed_idx: usize) -> Self {
+        Match {
+            path_pos,
+            seed_idx,
+        }
     }
 }
