@@ -122,8 +122,8 @@ struct Args {
     )]
     max_displacement: i32,
 
-     //Seed length
-     #[clap(
+    //Seed length
+    #[clap(
         help_heading = "A-Star",
         short = 's',
         long = "seed-len",
@@ -131,7 +131,6 @@ struct Args {
         help = "Seed length"
     )]
     seed_len: i32,
-
 }
 
 pub struct ClArgs {

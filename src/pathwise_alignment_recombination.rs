@@ -104,10 +104,9 @@ fn rev_align(
     let alphas = &graph.alphas;
 
     let last_node_pos = lnz.len() - 1;
-    let last_char_pos = sequence.len()-1;
+    let last_char_pos = sequence.len() - 1;
 
-    for i in (1..last_node_pos+1).rev() {
-        
+    for i in (1..last_node_pos + 1).rev() {
         let i_handle = graph.nodes_id_pos[i] as usize;
         for j in (1..=last_char_pos).rev() {
             if i == last_node_pos && j == last_char_pos {
@@ -757,7 +756,7 @@ fn base_cases(
     }
 
     // first column
-   
+
     for i in 1..lnz.len() - 1 {
         let i_handle = graph.nodes_id_pos[i] as usize;
 

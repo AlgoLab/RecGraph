@@ -1,5 +1,6 @@
 use bstr::BStr;
 use bstr::BString;
+
 use recgraph::a_star::a_star_demo;
 use recgraph::args_parser::ClArgs;
 use recgraph::node_displacement::DisplacementMatrix;
@@ -9,7 +10,6 @@ use recgraph::pathwise_graph;
 use recgraph::score_matrix;
 use recgraph::sequences;
 use recgraph::utils;
-
 
 use std::time::Instant;
 use std::time::SystemTime;
@@ -36,23 +36,20 @@ fn main() {
     let start = Instant::now();
     sequences.iter().enumerate().for_each(|(i, seq)| {
         a_star_demo::a_star_demo(seq);
-        
     });
     println!("basic time: {:?}", start.elapsed());
 
     let start = Instant::now();
     sequences.iter().enumerate().for_each(|(i, seq)| {
         a_star_demo::a_star_demo_chain(seq);
-        
     });
     println!("chain time: {:?}", start.elapsed());
-
 
     /*
     let mut gafs = Vec::new();
 
     let mut ress = Vec::new();
-    
+
     sequences.iter().enumerate().for_each(|(i, seq)| {
         let res = a_star_demo::a_star_demo(&seq);
         let mut gaf = pathwise_alignment_recombination::exec(
@@ -76,7 +73,7 @@ fn main() {
         println!();
         println!()
     }
-     
+
      */
     match now.elapsed() {
         Ok(elapsed) => {
@@ -88,5 +85,4 @@ fn main() {
             eprintln!("Error: {e:?}");
         }
     }
-   
 }

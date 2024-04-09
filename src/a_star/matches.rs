@@ -1,37 +1,48 @@
-use bstr::BString;
-use handlegraph::{handlegraph::HandleGraph, hashgraph::{HashGraph, Path}};
-use lt_fm_index::{LtFmIndex, LtFmIndexBuilder};
-use rayon::{prelude::*, vec};
+use std::time::Instant;
 
+use bit_vec::BitVec;
+use bstr::BString;
+use handlegraph::{
+    handlegraph::HandleGraph,
+    hashgraph::{HashGraph, Path},
+};
+use lt_fm_index::{LtFmIndex, LtFmIndexBuilder};
+use rayon::prelude::*;
 
 /// Get the FM index for each path in the graph, return Vec[(path_id, fm_index); paths_number]
 fn get_fm_index(graph: &HashGraph) -> Vec<(usize, LtFmIndex)> {
-    let mut fm_indexes: Vec<(usize, LtFmIndex)>= graph.paths.par_iter().map(|(id, path)| {
-        let path_seq = linearize_path(path, graph);
-        let builder = LtFmIndexBuilder::new()
-            .text_type_is_inferred()
-            .set_lookup_table_kmer_size_to_default()
-            .set_suffix_array_sampling_ratio_to_default();
-        let fm_index = builder.build(path_seq).unwrap();
-        (*id as usize, fm_index)
-    }).collect();
-    fm_indexes.sort_by_key(|(id, _)| *id);  
+    let mut fm_indexes: Vec<(usize, LtFmIndex)> = graph
+        .paths
+        .par_iter()
+        .map(|(id, path)| {
+            let path_seq = linearize_path(path, graph);
+            let builder = LtFmIndexBuilder::new()
+                .text_type_is_inferred()
+                .set_lookup_table_kmer_size_to_default()
+                .set_suffix_array_sampling_ratio_to_default();
+            let fm_index = builder.build(path_seq).unwrap();
+            (*id as usize, fm_index)
+        })
+        .collect();
+    fm_indexes.sort_by_key(|(id, _)| *id);
     fm_indexes
 }
 
-fn linearize_path(path: &Path, graph: &HashGraph)  -> Vec<u8>{
-    path.nodes.iter().map(|node| {
-        graph.sequence(*node)
-    }).collect::<Vec<_>>().concat()
+fn linearize_path(path: &Path, graph: &HashGraph) -> Vec<u8> {
+    path.nodes
+        .iter()
+        .map(|node| graph.sequence(*node))
+        .collect::<Vec<_>>()
+        .concat()
 }
 
 /// Get the matches for each path in the graph, return Vec[Vec[bool; seeds_number]; paths_number]
 /// matches[i][j] = true if the j-th seed matches the i-th path in some position
 fn get_matches(graph: &HashGraph, query: &BString, chunk_size: usize) -> Vec<Vec<bool>> {
     let indexes = get_fm_index(graph);
-    
+
     let seeds: Vec<_> = query.chunks(chunk_size).collect::<Vec<_>>();
-    
+
     let mut matches = vec![vec![false; seeds.len()]; indexes.len()];
 
     indexes.iter().for_each(|(path_id, index)| {
@@ -44,116 +55,149 @@ fn get_matches(graph: &HashGraph, query: &BString, chunk_size: usize) -> Vec<Vec
 }
 
 /// Get the base heuristic for each path in the graph, return Vec[Vec[usize; query.len()]; paths_number]
-/// heuristic[i][j] = x, where x is the number of seeds after the j-th that match the i-th path 
-pub fn get_base_sh(query: &BString, graph: &HashGraph, chunk_size: usize) ->  Vec<Vec<usize>>{
-    
+/// heuristic[i][j] = x, where x is the number of seeds after the j-th that match the i-th path
+pub fn get_base_sh(query: &BString, graph: &HashGraph, chunk_size: usize) -> Vec<Vec<usize>> {
     let matches = get_matches(graph, query, chunk_size);
-    let seeds_number = query.len()/chunk_size;
+    let seeds_number = query.len() / chunk_size;
     let paths_number = graph.paths.len();
-    let mut heuristic = vec![vec![0; query.len()];paths_number];
-    heuristic.iter_mut().enumerate().for_each(|(path_id, path_heu)| {
-        let path_matches = &matches[path_id];
-        path_heu.iter_mut().enumerate().for_each(|(pos, val)| {
-            let idx = pos/chunk_size;
-            let potential = seeds_number - idx;
-            let actual = potential -  path_matches[idx+1..].iter().filter(|&&x| x).count();
-            *val = actual;
-
-        })
-    });
+    let mut heuristic = vec![vec![0; query.len()]; paths_number];
+    heuristic
+        .iter_mut()
+        .enumerate()
+        .for_each(|(path_id, path_heu)| {
+            let path_matches = &matches[path_id];
+            path_heu.iter_mut().enumerate().for_each(|(pos, val)| {
+                let idx = pos / chunk_size;
+                let potential = seeds_number - idx;
+                let actual = potential - path_matches[idx + 1..].iter().filter(|&&x| x).count();
+                *val = actual;
+            })
+        });
 
     heuristic
 }
 
-
 /// Get the matches chains for each path in the graph, return Vec[Vec[Match]; paths_number]
 /// first get the matches for each path, then get the maximum chain of matches for each path
-fn get_matches_chains(graph: &HashGraph, query_w_prefix: &BString, chunk_size: usize) -> Vec<Vec<i32>> {
+fn get_matches_chains(
+    graph: &HashGraph,
+    query_w_prefix: &BString,
+    chunk_size: usize,
+) -> Vec<Vec<usize>> {
     let query = &BString::from(&query_w_prefix[1..]);
 
     let indexes = get_fm_index(graph);
-    
-    let seeds: Vec<_> = query.chunks(chunk_size).collect::<Vec<_>>();
-    
-    let mut matches = vec![vec![]; indexes.len()];
 
-    indexes.iter().for_each(|(path_id, index)| {
-        seeds.iter().enumerate().for_each(|(seed_id, seed)| {
-            let matches_pos = index.locate(seed);
-            matches_pos.iter().for_each(|path_pos| {
-                matches[*path_id].push(Match::init(*path_pos as usize, seed_id));
-            });
-        });
-    });
-    let match_chains = matches.iter_mut().map(|path_matches| {
-        path_matches.sort_by_key(|m| m.seed_idx);
-        get_max_chain(path_matches, chunk_size, seeds.len())
-    }).collect();
-    
+    let seeds: Vec<_> = query.chunks(chunk_size).collect::<Vec<_>>();
+
+    let mut matches: Vec<Vec<Match>> = indexes
+        .par_iter()
+        .map(|(_, index)| {
+            seeds
+                .iter()
+                .enumerate()
+                .flat_map(|(seed_id, seed)| {
+                    let matches_pos = index.locate(seed);
+                    matches_pos
+                        .iter()
+                        .map(|path_pos| Match::init(*path_pos as usize, seed_id))
+                        .collect::<Vec<_>>()
+                })
+                .collect()
+        })
+        .collect();
+    let match_chains = matches
+        .iter_mut()
+        .map(|path_matches| {
+            // sort by path position and seed index, faster chain computation
+            path_matches.sort_by_key(|m| m.path_pos);
+            path_matches.sort_by_key(|m| m.seed_idx);
+            get_max_chain(path_matches, chunk_size, seeds.len())
+        })
+        .collect();
     match_chains
 }
 
 /// Get the maximum chain of matches for a path
-fn get_max_chain(matches: &Vec<Match>, chunk_size: usize, seeds_number: usize) -> Vec<i32> {
-    let mut chains = vec![(0,0); matches.len()];
-    
-    matches.iter().enumerate().for_each(|(idx,m_ref)| {
-        let m = m_ref.clone();
-        if m.seed_idx == 0 {
-            chains[idx] = (0,1);
-            
+fn get_max_chain(matches: &Vec<Match>, chunk_size: usize, seeds_number: usize) -> Vec<usize> {
+    let mut chains = vec![(0, 0); matches.len()];
+    matches.iter().enumerate().for_each(|(idx, m_ref)| {
+        let (path_pos, seed_idx) = (m_ref.path_pos, m_ref.seed_idx);
+        if seed_idx == 0 {
+            chains[idx] = (0, 1);
         } else {
             let mut max_chain_len = 0;
             let mut max_chain_ending = 0;
-            
+
             for i in (0..idx).rev() {
                 let (_, pred_chain_len) = chains[i];
-                if matches[i].seed_idx < m.seed_idx && matches[i].path_pos + chunk_size <= m.path_pos && pred_chain_len + 1 > max_chain_len {
-                    max_chain_len = pred_chain_len+1;
+                if matches[i].seed_idx < seed_idx
+                    && matches[i].path_pos + chunk_size <= path_pos
+                    && pred_chain_len + 1 > max_chain_len
+                {
+                    max_chain_len = pred_chain_len + 1;
                     max_chain_ending = i;
                     break;
                 }
             }
-            
+
             if max_chain_len == 0 {
-                chains[idx] = (0,1);
+                chains[idx] = (0, 1);
             } else {
                 chains[idx] = (max_chain_ending, max_chain_len);
             }
         }
     });
-    let max_chain_ending = chains.iter().enumerate().max_by_key(|(_, (_, len))| *len).unwrap().0;
-    let mut max_chain = Vec::new();
+    let max_chain_ending = chains
+        .iter()
+        .enumerate()
+        .max_by_key(|(_, (_, len))| *len)
+        .unwrap()
+        .0;
     let mut idx = max_chain_ending;
-    max_chain.push(matches[idx].clone());
-    let mut new_max_chain = vec![0; seeds_number];
-    new_max_chain[matches[idx].seed_idx] = 1;
+    let mut max_chain_seed = BitVec::from_elem(seeds_number, false);
+    max_chain_seed.set(matches[idx].seed_idx, true);
+
     while idx != 0 {
         let (pred_idx, _) = chains[idx];
-        max_chain.push(matches[pred_idx].clone());
-        new_max_chain[matches[pred_idx].seed_idx] = 1;
+        max_chain_seed.set(matches[pred_idx].seed_idx, true);
         idx = pred_idx;
     }
-    new_max_chain
+
+    let mut sum = 0;
+    let mut max_chain: Vec<usize> = max_chain_seed
+        .iter()
+        .rev()
+        .map(|is_match| {
+            sum += is_match as usize;
+            sum
+        })
+        .collect();
+    max_chain.reverse();
+    max_chain
 }
 
 /// Get the chaining heuristic for each path in the graph, return Vec[Vec[usize; query.len()]; paths_number]
 /// heuristic[i][j] = x, where x is the number of seeds after the j-th that match the i-th path considering the max chain
-pub fn get_chaining_sh(query: &BString, graph: &HashGraph, chunk_size: usize) -> Vec<Vec<usize>>{
+pub fn get_chaining_sh(query: &BString, graph: &HashGraph, chunk_size: usize) -> Vec<Vec<usize>> {
     let chains = get_matches_chains(graph, query, chunk_size);
-    
-    let seeds_number = query.len()/chunk_size;
+    let seeds_number = query.len() / chunk_size;
     let paths_number = graph.paths.len();
-    let mut heuristic = vec![vec![0; query.len()];paths_number];
-    heuristic.iter_mut().enumerate().for_each(|(path_id, path_heu)| {
-        let path_chain = &chains[path_id];
-        path_heu[1..].iter_mut().enumerate().for_each(|(pos, val)| { // prefix is now used
-            let idx = pos/chunk_size; 
-            let potential = seeds_number - idx;
-            let actual = potential - path_chain[idx+1..].iter().filter(|is_match|{**is_match == 1}).count(); // Change this, only seed_id necessary
-            *val = actual;
-        })
-    });
+    let mut heuristic = vec![vec![0; query.len()]; paths_number];
+    heuristic
+        .iter_mut()
+        .enumerate()
+        .for_each(|(path_id, path_heu)| {
+            let path_chain = &chains[path_id];
+            path_heu[1..].iter_mut().enumerate().for_each(|(pos, val)| {
+                // prefix is now used
+                let idx = pos / chunk_size;
+                let potential = seeds_number - idx;
+                let actual = potential - path_chain[idx];
+                *val = actual;
+            })
+        });
+
     heuristic
 }
 
@@ -163,7 +207,6 @@ pub struct GraphMatches {
     pub seeds: Vec<BString>,
     pub paths: Vec<usize>,
 }
-
 
 #[derive(Debug)]
 pub struct PathMatches {
@@ -179,10 +222,7 @@ impl PathMatches {
         }
     }
     pub fn init(path_id: usize, matches: Vec<bool>) -> Self {
-        PathMatches {
-            path_id,
-            matches,
-        }
+        PathMatches { path_id, matches }
     }
 
     pub fn set_position(&mut self, pos: usize) {
@@ -207,9 +247,6 @@ impl Match {
         }
     }
     pub fn init(path_pos: usize, seed_idx: usize) -> Self {
-        Match {
-            path_pos,
-            seed_idx,
-        }
+        Match { path_pos, seed_idx }
     }
 }
