@@ -52,12 +52,16 @@ pub fn a_star_demo_chain(query: &BString) -> AStarNode {
     let (end_pos, mut alignment_graph) = a_star_visit::exec(query, crumbs, &path_graph);
 
     let mut align = end_pos;
+    println!(
+        "{:?}  {} {}",
+        align, path_graph.lnz[align.node], query[align.pos]
+    );
     /*
     while  align.parent != (0,0,0) {
-        println!("{:?}  {} {}", align, path_graph.lnz[align.node], query[align.pos]);
         align = alignment_graph.remove(&(align.parent.0,align.parent.1,align.parent.2,)).unwrap();
+        println!("{:?}  {} {}", align, path_graph.lnz[align.node], query[align.pos]);
 
       }
-     */
+      */
     align
 }
