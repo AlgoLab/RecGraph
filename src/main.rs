@@ -45,7 +45,6 @@ fn main() {
     });
     println!("chain time: {:?}", start.elapsed());
 
-    /*
     let mut gafs = Vec::new();
 
     let mut ress = Vec::new();
@@ -74,7 +73,6 @@ fn main() {
         println!()
     }
 
-     */
     match now.elapsed() {
         Ok(elapsed) => {
             // it prints '2'
