@@ -19,3 +19,4 @@ perf*
 *.sh
 heaptrack*
 /example/modified
+/example/tests

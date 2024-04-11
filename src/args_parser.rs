@@ -9,7 +9,8 @@ struct Args {
         short = 'g',
         long = "graph",
         help = "Input graph (in .gfa format)",
-        required = true
+        //required = true,
+        default_value = "example/tests/simple.gfa"
     )]
     graph_path: String,
 
@@ -19,7 +20,8 @@ struct Args {
         short = 'q',
         long = "query",
         help = "Query reads (in .fasta/.fastq format)",
-        required = true
+        //required = true,
+        default_value = "example/tests/simple.fa"
     )]
     sequence_path: String,
 
@@ -127,7 +129,7 @@ struct Args {
         help_heading = "A-Star",
         short = 's',
         long = "seed-len",
-        default_value_t = 2,
+        default_value_t = 3,
         help = "Seed length"
     )]
     seed_len: i32,

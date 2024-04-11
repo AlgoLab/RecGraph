@@ -7,7 +7,7 @@ use handlegraph::{
 use longest_increasing_subsequence::lis;
 use lt_fm_index::{LtFmIndex, LtFmIndexBuilder};
 use rayon::prelude::*;
-use std::{cmp::Ordering, time::Instant};
+use std::cmp::Ordering;
 
 /// Get the FM index for each path in the graph, return Vec[(path_id, fm_index); paths_number]
 fn get_fm_index(graph: &HashGraph) -> Vec<(usize, LtFmIndex)> {

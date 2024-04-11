@@ -1,9 +1,8 @@
 use crate::pathwise_graph::PathGraph;
+use ahash::AHashMap as HashMap;
 use bstr::BString;
 use pheap::PairingHeap as FibHeap;
-use std::cmp::Ordering;
-use std::collections::HashMap;
-
+use std::{cmp::Ordering, f32::consts::E, fmt::Debug};
 pub fn exec(
     query: &BString,
     crumbs: Vec<Vec<usize>>,
@@ -12,7 +11,6 @@ pub fn exec(
     // init A* data structure, each path possible starting point
     let mut alignment_graph = HashMap::new();
     let mut open_set = FibHeap::new();
-
     for path in 0..crumbs.len() {
         let node = AStarNode::new_path(path);
         open_set.insert(node.clone(), node.g + node.h);
@@ -24,23 +22,24 @@ pub fn exec(
     while !open_set.is_empty() {
         let (current_node, _) = open_set.delete_min().unwrap();
         if current_node.pos == query.len() - 1 {
-            //println!("FOUND");
             end_pos = Some(current_node);
             break;
         }
         // add neigh of current node (EDIT ops + rec) if not outside graph
         if current_node.node + 1 < path_graph.lnz.len() && current_node.pos + 1 < query.len() {
-            let (m_x, ins, del) = if !path_graph.nwp_rev[current_node.node] {
+            if !path_graph.nwp_rev[current_node.node] {
                 let match_mis =
                     if path_graph.lnz[current_node.node + 1] == query[current_node.pos + 1] {
                         0
                     } else {
                         1
                     };
-                get_neighbours(&current_node, &crumbs, match_mis, current_node.node + 1)
+                let neigh =
+                    get_neighbours(&current_node, &crumbs, match_mis, current_node.node + 1);
+                update_open_set(&mut open_set, &mut alignment_graph, &neigh.0);
+                update_open_set(&mut open_set, &mut alignment_graph, &neigh.1);
+                update_open_set(&mut open_set, &mut alignment_graph, &neigh.2);
             } else {
-                let (mut m_x, mut ins, mut del) =
-                    (AStarNode::new(), AStarNode::new(), AStarNode::new());
                 path_graph
                     .pred_hash_rev
                     .get_preds_and_paths(current_node.node)
@@ -53,16 +52,15 @@ pub fn exec(
                             } else {
                                 1
                             };
-                            (m_x, ins, del) =
+                            let (m_x, ins, del) =
                                 get_neighbours(&current_node, &crumbs, match_mis, *succ);
+
+                            update_open_set(&mut open_set, &mut alignment_graph, &m_x);
+                            update_open_set(&mut open_set, &mut alignment_graph, &ins);
+                            update_open_set(&mut open_set, &mut alignment_graph, &del);
                         }
                     });
-                (m_x, ins, del)
             };
-
-            update_open_set(&mut open_set, &mut alignment_graph, &m_x);
-            update_open_set(&mut open_set, &mut alignment_graph, &ins);
-            update_open_set(&mut open_set, &mut alignment_graph, &del);
         }
     }
     (end_pos.unwrap(), alignment_graph)
