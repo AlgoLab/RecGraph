@@ -1,13 +1,13 @@
-use std::time::Instant;
-
 use bit_vec::BitVec;
 use bstr::BString;
 use handlegraph::{
     handlegraph::HandleGraph,
     hashgraph::{HashGraph, Path},
 };
+use longest_increasing_subsequence::lis;
 use lt_fm_index::{LtFmIndex, LtFmIndexBuilder};
 use rayon::prelude::*;
+use std::{cmp::Ordering, time::Instant};
 
 /// Get the FM index for each path in the graph, return Vec[(path_id, fm_index); paths_number]
 fn get_fm_index(graph: &HashGraph) -> Vec<(usize, LtFmIndex)> {
@@ -41,7 +41,7 @@ fn linearize_path(path: &Path, graph: &HashGraph) -> Vec<u8> {
 fn get_matches(graph: &HashGraph, query: &BString, chunk_size: usize) -> Vec<Vec<bool>> {
     let indexes = get_fm_index(graph);
 
-    let seeds: Vec<_> = query.chunks(chunk_size).collect::<Vec<_>>();
+    let seeds: Vec<_> = query.chunks_exact(chunk_size).collect::<Vec<_>>();
 
     let mut matches = vec![vec![false; seeds.len()]; indexes.len()];
 
@@ -66,17 +66,21 @@ pub fn get_base_sh(query: &BString, graph: &HashGraph, chunk_size: usize) -> Vec
         .enumerate()
         .for_each(|(path_id, path_heu)| {
             let path_matches = &matches[path_id];
-            path_heu.iter_mut().enumerate().for_each(|(pos, val)| {
-                let idx = pos / chunk_size;
-                let potential = seeds_number - idx;
-                let actual = potential - path_matches[idx + 1..].iter().filter(|&&x| x).count();
-                *val = actual;
-            })
+            path_heu[..seeds_number * chunk_size]
+                .iter_mut()
+                .enumerate()
+                .for_each(|(pos, val)| {
+                    let idx = pos / chunk_size;
+                    let potential = seeds_number - idx;
+                    let actual = potential - path_matches[idx + 1..].iter().filter(|&&x| x).count();
+                    *val = actual;
+                })
         });
 
     heuristic
 }
 
+// CHAINING
 /// Get the matches chains for each path in the graph, return Vec[Vec[Match]; paths_number]
 /// first get the matches for each path, then get the maximum chain of matches for each path
 fn get_matches_chains(
@@ -88,7 +92,7 @@ fn get_matches_chains(
 
     let indexes = get_fm_index(graph);
 
-    let seeds: Vec<_> = query.chunks(chunk_size).collect::<Vec<_>>();
+    let seeds: Vec<_> = query.chunks_exact(chunk_size).collect::<Vec<_>>();
 
     let mut matches: Vec<Vec<Match>> = indexes
         .par_iter()
@@ -120,7 +124,12 @@ fn get_matches_chains(
 
 /// Get the maximum chain of matches for a path
 fn get_max_chain(matches: &Vec<Match>, chunk_size: usize, seeds_number: usize) -> Vec<usize> {
+    let matches_in_chain = lis(matches);
+
+    /*
     let mut chains = vec![(0, 0); matches.len()];
+    // chains[i] = (pred, chain_len) : the maximum chain ending with the i-th match is of length chain_len and the predecessor is at index pred
+
     matches.iter().enumerate().for_each(|(idx, m_ref)| {
         let (path_pos, seed_idx) = (m_ref.path_pos, m_ref.seed_idx);
         if seed_idx == 0 {
@@ -137,7 +146,7 @@ fn get_max_chain(matches: &Vec<Match>, chunk_size: usize, seeds_number: usize) -
                 {
                     max_chain_len = pred_chain_len + 1;
                     max_chain_ending = i;
-                    break;
+
                 }
             }
 
@@ -174,6 +183,22 @@ fn get_max_chain(matches: &Vec<Match>, chunk_size: usize, seeds_number: usize) -
         })
         .collect();
     max_chain.reverse();
+    */
+    let mut max_chain_seed = BitVec::from_elem(seeds_number, false);
+    matches_in_chain.iter().for_each(|m| {
+        max_chain_seed.set(matches[*m].seed_idx, true);
+    });
+
+    let mut sum = 0;
+    let mut max_chain: Vec<usize> = max_chain_seed
+        .iter()
+        .rev()
+        .map(|is_match| {
+            sum += is_match as usize;
+            sum
+        })
+        .collect();
+    max_chain.reverse();
     max_chain
 }
 
@@ -189,13 +214,16 @@ pub fn get_chaining_sh(query: &BString, graph: &HashGraph, chunk_size: usize) ->
         .enumerate()
         .for_each(|(path_id, path_heu)| {
             let path_chain = &chains[path_id];
-            path_heu[1..].iter_mut().enumerate().for_each(|(pos, val)| {
-                // prefix is now used
-                let idx = pos / chunk_size;
-                let potential = seeds_number - idx;
-                let actual = potential - path_chain[idx];
-                *val = actual;
-            })
+            path_heu[1..seeds_number * chunk_size]
+                .iter_mut()
+                .enumerate()
+                .for_each(|(pos, val)| {
+                    // prefix is now used
+                    let idx = pos / chunk_size;
+                    let potential = seeds_number - idx;
+                    let actual = potential - path_chain[idx];
+                    *val = actual;
+                })
         });
 
     heuristic
@@ -250,3 +278,30 @@ impl Match {
         Match { path_pos, seed_idx }
     }
 }
+
+impl PartialOrd for Match {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        if self.path_pos < other.path_pos && self.seed_idx < other.seed_idx {
+            Some(Ordering::Less)
+        } else if self.path_pos > other.path_pos && self.seed_idx > other.seed_idx {
+            Some(Ordering::Greater)
+        } else if self.seed_idx == other.seed_idx {
+            Some(Ordering::Equal)
+        } else {
+            None
+        }
+    }
+}
+
+impl Ord for Match {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap()
+    }
+}
+impl PartialEq for Match {
+    fn eq(&self, other: &Self) -> bool {
+        self.path_pos == other.path_pos && self.seed_idx == other.seed_idx
+    }
+}
+
+impl Eq for Match {}

@@ -53,4 +53,5 @@ pub fn a_star_demo_chain(query: &BString){
     let (end_pos, mut alignment_graph) = a_star_visit::exec(query, crumbs, &path_graph);
 
     build_gaf(&mut alignment_graph, &end_pos, &path_graph, query);
+    
 }

@@ -73,6 +73,7 @@ fn main() {
         println!()
     }
 
+
     match now.elapsed() {
         Ok(elapsed) => {
             // it prints '2'
