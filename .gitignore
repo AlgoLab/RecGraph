@@ -20,3 +20,4 @@ perf*
 heaptrack*
 /example/modified
 /example/tests
+.vscode/
