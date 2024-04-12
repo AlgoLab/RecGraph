@@ -206,7 +206,7 @@ fn get_max_chain(matches: &Vec<Match>, chunk_size: usize, seeds_number: usize) -
 /// heuristic[i][j] = x, where x is the number of seeds after the j-th that match the i-th path considering the max chain
 pub fn get_chaining_sh(query: &BString, graph: &HashGraph, chunk_size: usize) -> Vec<Vec<usize>> {
     let chains = get_matches_chains(graph, query, chunk_size);
-    let seeds_number = query.len() / chunk_size;
+    let seeds_number = (query.len()-1) / chunk_size;
     let paths_number = graph.paths.len();
     let mut heuristic = vec![vec![0; query.len()]; paths_number];
     heuristic
