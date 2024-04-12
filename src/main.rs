@@ -30,21 +30,10 @@ fn main() {
 
     let (base_rec_cost, multi_rec_cost) = (args.base_rec_cost, args.multi_rec_cost);
     let is_local = args.alignment_mode;
-    let start = Instant::now();
-    sequences.iter().enumerate().for_each(|(_, seq)| {
-        a_star_demo::a_star_demo(seq);
-    });
-    println!("basic time: {:?}", start.elapsed());
+    a_star_demo::a_star_demo();
+    a_star_demo::a_star_demo_chain();
 
-    let start = Instant::now();
-    sequences.iter().enumerate().for_each(|(_, seq)| {
-        a_star_demo::a_star_demo_chain(seq);
-    });
-    println!("chain time: {:?}", start.elapsed());
-
-    /*
     let mut gafs = Vec::new();
-
 
     sequences.iter().enumerate().for_each(|(i, seq)| {
         let mut gaf = pathwise_alignment_recombination::exec(
@@ -58,13 +47,13 @@ fn main() {
             args.rec_number,
         );
         gaf.query_name = ids[i].to_string();
+        println!("{}", gaf.comments);
         gafs.push(gaf.to_string());
     });
 
     for (i, gaf) in gafs.iter().enumerate() {
-        utils::write_gaf(gaf, i, args.out_file.as_str());
+        //utils::write_gaf(gaf, i, args.out_file.as_str());
     }
-
 
     match now.elapsed() {
         Ok(elapsed) => {
@@ -76,5 +65,4 @@ fn main() {
             eprintln!("Error: {e:?}");
         }
     }
-    */
 }

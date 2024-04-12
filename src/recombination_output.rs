@@ -570,11 +570,11 @@ pub fn build_alignment_path_no_rec(
     let align_block_length = "*"; // to set
     let mapping_quality = "*"; // to set
     let comments = format!(
-        "{}, best path: {}, score: {}\t{}",
+        "{}, best path: {}, score: {}",
         build_cigar(&temp_cigar),
         forw_best_path,
         best_score.0,
-        path_sequence_string
+        //path_sequence_string
     );
 
     GAFStruct::build_gaf_struct(

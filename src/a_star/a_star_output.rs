@@ -15,7 +15,6 @@ pub fn build_gaf(
     let ed = align.g;
     let mut cigar = Vec::new();
     while (align.node, align.pos) != (0, 0) {
-        println!("{:?}", align);
         if align.parent.0 != align.node {
             if align.parent.1 < align.pos {
                 if path_graph.lnz[align.node] == query[align.pos] {

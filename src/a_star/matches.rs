@@ -10,7 +10,7 @@ use rayon::prelude::*;
 use std::cmp::Ordering;
 
 /// Get the FM index for each path in the graph, return Vec[(path_id, fm_index); paths_number]
-fn get_fm_index(graph: &HashGraph) -> Vec<(usize, LtFmIndex)> {
+pub fn get_fm_index(graph: &HashGraph) -> Vec<(usize, LtFmIndex)> {
     let mut fm_indexes: Vec<(usize, LtFmIndex)> = graph
         .paths
         .par_iter()
@@ -38,9 +38,11 @@ fn linearize_path(path: &Path, graph: &HashGraph) -> Vec<u8> {
 
 /// Get the matches for each path in the graph, return Vec[Vec[bool; seeds_number]; paths_number]
 /// matches[i][j] = true if the j-th seed matches the i-th path in some position
-fn get_matches(graph: &HashGraph, query: &BString, chunk_size: usize) -> Vec<Vec<bool>> {
-    let indexes = get_fm_index(graph);
-
+fn get_matches(
+    query: &BString,
+    chunk_size: usize,
+    indexes: &Vec<(usize, LtFmIndex)>,
+) -> Vec<Vec<bool>> {
     let seeds: Vec<_> = query.chunks_exact(chunk_size).collect::<Vec<_>>();
 
     let mut matches = vec![vec![false; seeds.len()]; indexes.len()];
@@ -56,8 +58,13 @@ fn get_matches(graph: &HashGraph, query: &BString, chunk_size: usize) -> Vec<Vec
 
 /// Get the base heuristic for each path in the graph, return Vec[Vec[usize; query.len()]; paths_number]
 /// heuristic[i][j] = x, where x is the number of seeds after the j-th that match the i-th path
-pub fn get_base_sh(query: &BString, graph: &HashGraph, chunk_size: usize) -> Vec<Vec<usize>> {
-    let matches = get_matches(graph, query, chunk_size);
+pub fn get_base_sh(
+    query: &BString,
+    graph: &HashGraph,
+    chunk_size: usize,
+    indexes: &Vec<(usize, LtFmIndex)>,
+) -> Vec<Vec<usize>> {
+    let matches = get_matches(query, chunk_size, indexes);
     let seeds_number = query.len() / chunk_size;
     let paths_number = graph.paths.len();
     let mut heuristic = vec![vec![0; query.len()]; paths_number];
@@ -87,10 +94,9 @@ fn get_matches_chains(
     graph: &HashGraph,
     query_w_prefix: &BString,
     chunk_size: usize,
+    indexes: &Vec<(usize, LtFmIndex)>,
 ) -> Vec<Vec<usize>> {
     let query = &BString::from(&query_w_prefix[1..]);
-
-    let indexes = get_fm_index(graph);
 
     let seeds: Vec<_> = query.chunks_exact(chunk_size).collect::<Vec<_>>();
 
@@ -116,74 +122,16 @@ fn get_matches_chains(
             // sort by path position and seed index, faster chain computation
             path_matches.sort_by_key(|m| m.path_pos);
             path_matches.sort_by_key(|m| m.seed_idx);
-            get_max_chain(path_matches, chunk_size, seeds.len())
+            get_max_chain(path_matches, seeds.len())
         })
         .collect();
     match_chains
 }
 
 /// Get the maximum chain of matches for a path
-fn get_max_chain(matches: &Vec<Match>, chunk_size: usize, seeds_number: usize) -> Vec<usize> {
+fn get_max_chain(matches: &Vec<Match>, seeds_number: usize) -> Vec<usize> {
     let matches_in_chain = lis(matches);
 
-    /*
-    let mut chains = vec![(0, 0); matches.len()];
-    // chains[i] = (pred, chain_len) : the maximum chain ending with the i-th match is of length chain_len and the predecessor is at index pred
-
-    matches.iter().enumerate().for_each(|(idx, m_ref)| {
-        let (path_pos, seed_idx) = (m_ref.path_pos, m_ref.seed_idx);
-        if seed_idx == 0 {
-            chains[idx] = (0, 1);
-        } else {
-            let mut max_chain_len = 0;
-            let mut max_chain_ending = 0;
-
-            for i in (0..idx).rev() {
-                let (_, pred_chain_len) = chains[i];
-                if matches[i].seed_idx < seed_idx
-                    && matches[i].path_pos + chunk_size <= path_pos
-                    && pred_chain_len + 1 > max_chain_len
-                {
-                    max_chain_len = pred_chain_len + 1;
-                    max_chain_ending = i;
-
-                }
-            }
-
-            if max_chain_len == 0 {
-                chains[idx] = (0, 1);
-            } else {
-                chains[idx] = (max_chain_ending, max_chain_len);
-            }
-        }
-    });
-    let max_chain_ending = chains
-        .iter()
-        .enumerate()
-        .max_by_key(|(_, (_, len))| *len)
-        .unwrap()
-        .0;
-    let mut idx = max_chain_ending;
-    let mut max_chain_seed = BitVec::from_elem(seeds_number, false);
-    max_chain_seed.set(matches[idx].seed_idx, true);
-
-    while idx != 0 {
-        let (pred_idx, _) = chains[idx];
-        max_chain_seed.set(matches[pred_idx].seed_idx, true);
-        idx = pred_idx;
-    }
-
-    let mut sum = 0;
-    let mut max_chain: Vec<usize> = max_chain_seed
-        .iter()
-        .rev()
-        .map(|is_match| {
-            sum += is_match as usize;
-            sum
-        })
-        .collect();
-    max_chain.reverse();
-    */
     let mut max_chain_seed = BitVec::from_elem(seeds_number, false);
     matches_in_chain.iter().for_each(|m| {
         max_chain_seed.set(matches[*m].seed_idx, true);
@@ -204,9 +152,14 @@ fn get_max_chain(matches: &Vec<Match>, chunk_size: usize, seeds_number: usize) -
 
 /// Get the chaining heuristic for each path in the graph, return Vec[Vec[usize; query.len()]; paths_number]
 /// heuristic[i][j] = x, where x is the number of seeds after the j-th that match the i-th path considering the max chain
-pub fn get_chaining_sh(query: &BString, graph: &HashGraph, chunk_size: usize) -> Vec<Vec<usize>> {
-    let chains = get_matches_chains(graph, query, chunk_size);
-    let seeds_number = (query.len()-1) / chunk_size;
+pub fn get_chaining_sh(
+    query: &BString,
+    graph: &HashGraph,
+    chunk_size: usize,
+    indexes: &Vec<(usize, LtFmIndex)>,
+) -> Vec<Vec<usize>> {
+    let chains = get_matches_chains(graph, query, chunk_size, indexes);
+    let seeds_number = (query.len() - 1) / chunk_size;
     let paths_number = graph.paths.len();
     let mut heuristic = vec![vec![0; query.len()]; paths_number];
     heuristic
