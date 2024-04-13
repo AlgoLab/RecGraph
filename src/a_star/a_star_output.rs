@@ -3,10 +3,10 @@ use bstr::BString;
 
 use crate::{build_cigar, pathwise_graph::PathGraph};
 
-use super::a_star_visit::AStarNode;
+use super::a_star_visit::{AStarNode, Coord};
 
 pub fn build_gaf(
-    alignment_graph: &mut HashMap<(usize, usize, usize), AStarNode>,
+    alignment_graph: &mut HashMap<Coord, AStarNode>,
     end_pos: &AStarNode,
     path_graph: &PathGraph,
     query: &BString,
@@ -14,10 +14,10 @@ pub fn build_gaf(
     let mut align = end_pos.clone();
     let ed = align.g;
     let mut cigar = Vec::new();
-    while (align.node, align.pos) != (0, 0) {
-        if align.parent.0 != align.node {
-            if align.parent.1 < align.pos {
-                if path_graph.lnz[align.node] == query[align.pos] {
+    while (align.coord.node, align.coord.pos) != (0, 0) {
+        if align.parent.node != align.coord.node {
+            if align.parent.pos < align.coord.pos {
+                if path_graph.lnz[align.coord.node] == query[align.coord.pos] {
                     cigar.push('D');
                 } else {
                     cigar.push('d');
@@ -28,15 +28,13 @@ pub fn build_gaf(
         } else {
             cigar.push('L');
         }
-        align = alignment_graph
-            .remove(&(align.parent.0, align.parent.1, align.parent.2))
-            .unwrap();
+        align = alignment_graph.remove(&align.parent).unwrap();
     }
     cigar.reverse();
     println!(
         "{:?}\tbest path: {}\tED {}",
         build_cigar::build_cigar(&cigar),
-        align.path,
+        align.coord.path,
         ed
     )
 }
