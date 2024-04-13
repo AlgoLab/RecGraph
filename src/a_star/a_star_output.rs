@@ -14,8 +14,16 @@ pub fn build_gaf(
     let mut align = end_pos.clone();
     let ed = align.g;
     let mut cigar = Vec::new();
+    let mut recs = Vec::new();
     while (align.coord.node, align.coord.pos) != (0, 0) {
-        if align.parent.node != align.coord.node {
+        if align.parent.path != align.coord.path {
+            recs.push(format!(
+                "REC paths {} - {}\t pos {:?}",
+                align.parent.path,
+                align.coord.path,
+                (align.coord.node, align.coord.pos)
+            ));
+        } else if align.parent.node != align.coord.node {
             if align.parent.pos < align.coord.pos {
                 if path_graph.lnz[align.coord.node] == query[align.coord.pos] {
                     cigar.push('D');
@@ -31,10 +39,12 @@ pub fn build_gaf(
         align = alignment_graph.remove(&align.parent).unwrap();
     }
     cigar.reverse();
+    let recs_out_string = recs.join("\t");
     println!(
-        "{:?}\tbest path: {}\tED {}",
+        "{:?}\tbest path: {}\tED {}\t{}",
         build_cigar::build_cigar(&cigar),
         align.coord.path,
-        ed
+        ed,
+        recs_out_string
     )
 }

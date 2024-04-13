@@ -1,7 +1,5 @@
 use std::time::Instant;
 
-use bstr::BString;
-
 use gfa::gfa::GFA;
 use gfa::parser::GFAParser;
 use handlegraph::hashgraph::HashGraph;
@@ -14,7 +12,7 @@ use super::a_star_output::build_gaf;
 use super::a_star_visit;
 use super::matches;
 use super::matches::get_base_sh;
-use super::matches::get_chaining_sh;
+use super::seeding_heurisitc::get_chaining_sh;
 
 pub fn a_star_demo() {
     let start = Instant::now();
@@ -37,7 +35,7 @@ pub fn a_star_demo() {
 
         build_gaf(&mut alignment_graph, &end_pos, &path_graph, seq);
     });
-    println!("chain time: {:?}", start.elapsed());
+    println!("base time: {:?}", start.elapsed());
 }
 
 pub fn a_star_demo_chain() {

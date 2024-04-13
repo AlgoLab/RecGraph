@@ -9,6 +9,7 @@ use handlegraph::{
 };
 
 use ahash::AHashMap as HashMap;
+#[derive(Debug)]
 pub struct PathGraph {
     pub lnz: BString,
     pub nwp: BitVec,
@@ -177,7 +178,6 @@ pub fn read_graph_w_path(file_path: &str, is_reversed: bool) -> PathGraph {
 pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
     let mut sorted_handles = graph.handles_iter().collect::<Vec<Handle>>();
     sorted_handles.sort();
-
     if is_reversed {
         sorted_handles.reverse();
         sorted_handles = sorted_handles
@@ -185,31 +185,42 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
             .map(|h| h.flip())
             .collect::<Vec<Handle>>();
     }
+
     //create graph linearization
     let mut last_index = 1;
-    let mut visited_node: HashMap<NodeId, i32> = HashMap::new();
+    let mut visited_node = HashMap::new();
     let mut linearization: Vec<u8> = vec![b'$'];
     let mut handles_id_position = HashMap::new();
     let mut nodes_id_pos = Vec::new();
     nodes_id_pos.push(0);
     for handle in sorted_handles.iter() {
+        // ADD FORW HANDLE
         let start_position = last_index;
         for ch in graph.sequence(*handle) {
             linearization.push(ch);
-            nodes_id_pos.push(handle.id().into());
+            nodes_id_pos.push(handle.0.into());
             last_index += 1;
         }
         let end_position = last_index - 1;
-        visited_node.insert(handle.id(), end_position);
-        handles_id_position.insert(handle.id(), (start_position, end_position));
+        visited_node.insert(handle.0, end_position);
+        handles_id_position.insert(handle.0, (start_position, end_position));
+
+        // ADD REV HANDLE
+        let start_position = last_index;
+        let rev_handle = handle.flip();
+        for ch in graph.sequence(rev_handle) {
+            linearization.push(ch);
+            nodes_id_pos.push(handle.0.into());
+            last_index += 1;
+        }
+        let end_position = last_index - 1;
+        visited_node.insert(rev_handle.0, end_position);
+        handles_id_position.insert(rev_handle.0, (start_position, end_position));
     }
     linearization.push(b'F');
     nodes_id_pos.push(0);
 
     //create nwp, pred_hash,nodes paths and
-    let mut nodes_with_pred = BitVec::from_elem(linearization.len(), false);
-    let mut pred_hash_struct = PredHash::new();
-
     let paths_set = &graph.paths;
     let mut paths = Vec::new();
     for (_id, path) in paths_set.iter() {
@@ -221,10 +232,12 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
 
     let paths_number = paths_set.keys().len();
 
-    let max_node_id: u64 = graph.handles_iter().max().unwrap().id().try_into().unwrap();
+    let max_node_id: u64 = graph.handles_iter().max().unwrap().0.try_into().unwrap();
     let paths_node_size = max_node_id as usize + 1;
     let mut alphas = vec![paths_number + 1; linearization.len()];
     let mut paths_nodes = vec![BitVec::from_elem(paths_number, false); paths_node_size];
+    let mut nodes_with_pred = BitVec::from_elem(linearization.len(), false);
+    let mut pred_hash_struct = PredHash::new();
 
     paths_nodes[0] = BitVec::from_elem(paths_number, true);
     alphas[0] = 0;
@@ -237,11 +250,11 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
         };
 
         for (pos, handle) in path_nodes.iter().enumerate() {
-            let (handle_start, handle_end) = handles_id_position.get(&handle.id()).unwrap();
+            let (handle_start, handle_end) = handles_id_position.get(&handle.0).unwrap();
             let handle_start = *handle_start as usize;
             let handle_end = *handle_end as usize;
 
-            let handle_id: u64 = handle.id().into();
+            let handle_id: u64 = handle.0.into();
             paths_nodes[handle_id as usize].set(path_id, true);
 
             for idx in handle_start..=handle_end {
@@ -259,7 +272,7 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
             } else {
                 //ricava handle id pos prima, ricava suo handle end e aggiorna hash
                 let pred = path_nodes[pos - 1];
-                let pred_end = handles_id_position.get(&pred.id()).unwrap().1;
+                let pred_end = handles_id_position.get(&pred.0).unwrap().1;
                 pred_hash_struct.set_preds_and_paths(
                     handle_start,
                     pred_end as usize,
@@ -293,6 +306,7 @@ pub fn create_path_graph(graph: &HashGraph, is_reversed: bool) -> PathGraph {
         paths_number,
         nodes_id_pos,
     );
+
     graph.update_rev();
     graph
 }

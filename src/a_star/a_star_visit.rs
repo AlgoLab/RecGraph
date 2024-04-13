@@ -1,3 +1,4 @@
+use crate::args_parser::ClArgs;
 use crate::pathwise_graph::PathGraph;
 use ahash::AHashMap as HashMap;
 use bstr::BString;
@@ -15,7 +16,7 @@ pub fn exec(
     let mut best_score_per_position = HashMap::new();
     let mut open_set = FibHeap::new();
     for path in 0..crumbs.len() {
-        let node = AStarNode::new_path(path);
+        let node = AStarNode::new_path(path, &crumbs);
         open_set.insert(node.clone(), node.g + node.h);
         best_score_per_position.insert((node.coord.node, node.coord.pos), (node.g, path));
         alignment_graph.insert(node.coord, node);
@@ -73,8 +74,12 @@ pub fn exec(
                         }
                     });
             };
-            let rec_node = add_recombination(&current_node, &mut best_score_per_position);
-            if let Some(rec_node) = rec_node {
+            if let Some(rec_node) =
+                add_recombination(&current_node, &mut best_score_per_position, &crumbs)
+            {
+                if rec_node.g == 0 {
+                    println!("rec {:?}", rec_node);
+                }
                 update_open_set(&mut open_set, &mut alignment_graph, &rec_node);
             }
         }
@@ -139,18 +144,19 @@ fn update_open_set(
 fn add_recombination(
     current_node: &AStarNode,
     best_score_per_position: &mut HashMap<(usize, usize), (usize, usize)>,
+    crumbs: &Vec<Vec<usize>>,
 ) -> Option<AStarNode> {
+    let rec_cost = ClArgs::parse().base_rec_cost as usize;
     if let Some((score, path)) =
         best_score_per_position.get(&(current_node.coord.node, current_node.coord.pos))
     {
-        if score < &current_node.g {
+        if score + rec_cost < current_node.g {
             let rec_node = AStarNode::init(
                 current_node.coord,
-                *score,         // change +1 to rec
-                current_node.h, // set h to whaty?? h of the pos in new node!
+                *score + rec_cost, // change +1 to rec
+                crumbs[*path][current_node.coord.pos],
                 &Coord::init(current_node.coord.node, current_node.coord.pos, *path),
             );
-            println!("rec {:?}", rec_node);
             Some(rec_node)
         } else {
             if score > &current_node.g {
@@ -226,9 +232,10 @@ impl AStarNode {
         }
     }
 
-    pub fn new_path(path: usize) -> Self {
+    pub fn new_path(path: usize, heu: &Vec<Vec<usize>>) -> Self {
         let mut node = AStarNode::new();
         node.coord.path = path;
+        node.h = heu[path][0];
         node
     }
 
