@@ -20,7 +20,7 @@ fn get_matches_chains(
 
     let mut matches: Vec<Vec<Match>> = indexes
         .par_iter()
-        .map(|(_, index)| {
+        .map(|(path_id, index)| {
             seeds
                 .iter()
                 .enumerate()
@@ -28,7 +28,7 @@ fn get_matches_chains(
                     let matches_pos = index.locate(seed);
                     matches_pos
                         .iter()
-                        .map(|path_pos| Match::init(*path_pos as usize, seed_id))
+                        .map(|path_pos| Match::init(*path_pos as usize, seed_id, *path_id))
                         .collect::<Vec<_>>()
                 })
                 .collect()
@@ -68,6 +68,18 @@ fn get_max_chain(matches: &Vec<Match>, seeds_number: usize) -> Vec<usize> {
     max_chain
 }
 
+
+fn get_rec_chain(matches: &Vec<Match>) {
+    let mut chains = Vec::new();
+    chains.push(matches[0].clone());
+    for i in 1..matches.len() {
+        let mut max_len = 0;
+        for j in 0..i {
+            
+        }
+        
+    }
+}
 /// Get the chaining heuristic for each path in the graph, return Vec[Vec[usize; query.len()]; paths_number]
 /// heuristic[i][j] = x, where x is the number of seeds after the j-th that match the i-th path considering the max chain
 pub fn get_chaining_sh(
@@ -85,14 +97,14 @@ pub fn get_chaining_sh(
         .enumerate()
         .for_each(|(path_id, path_heu)| {
             let path_chain = &chains[path_id];
-            path_heu[1..seeds_number * chunk_size]
+            path_heu[1..(seeds_number-1) * chunk_size]
                 .iter_mut()
                 .enumerate()
                 .for_each(|(pos, val)| {
                     // prefix is now used
                     let idx = pos / chunk_size;
-                    let potential = seeds_number - idx;
-                    let actual = potential - path_chain[idx];
+                    let potential = seeds_number - idx - 1;
+                    let actual = potential - path_chain[idx+1];
                     *val = actual;
                 });
             path_heu[0] = path_heu[1];
@@ -105,6 +117,7 @@ pub fn get_chaining_sh(
 pub struct Match {
     pub path_pos: usize,
     pub seed_idx: usize,
+    pub path_id: usize,
 }
 
 impl Match {
@@ -112,10 +125,11 @@ impl Match {
         Match {
             path_pos: 0,
             seed_idx: 0,
+            path_id: 0,
         }
     }
-    pub fn init(path_pos: usize, seed_idx: usize) -> Self {
-        Match { path_pos, seed_idx }
+    pub fn init(path_pos: usize, seed_idx: usize, path_id: usize) -> Self {
+        Match { path_pos, seed_idx, path_id}
     }
 }
 

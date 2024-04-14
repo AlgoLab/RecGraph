@@ -55,6 +55,9 @@ pub fn a_star_demo_chain() {
 
     sequences.iter().for_each(|seq| {
         let crumbs = get_chaining_sh(seq, &graph, chunk_size as usize, &indexes);
+        crumbs.iter().enumerate().for_each(|(path, crumb)| {
+            println!("{path} {:?}", crumb);
+        });
         let (end_pos, mut alignment_graph) = a_star_visit::exec(seq, crumbs, &path_graph);
 
         build_gaf(&mut alignment_graph, &end_pos, &path_graph, seq);

@@ -77,9 +77,6 @@ pub fn exec(
             if let Some(rec_node) =
                 add_recombination(&current_node, &mut best_score_per_position, &crumbs)
             {
-                if rec_node.g == 0 {
-                    println!("rec {:?}", rec_node);
-                }
                 update_open_set(&mut open_set, &mut alignment_graph, &rec_node);
             }
         }
@@ -176,6 +173,50 @@ fn add_recombination(
     }
 }
 
+fn add_multi_recs(   
+    current_node: &AStarNode,
+    best_score_per_position: &mut HashMap<(usize, usize), (usize, usize)>,
+    crumbs: &Vec<Vec<usize>>,
+    paths_number: usize,
+    open_set: &mut FibHeap<AStarNode, usize>,
+    alignment_graph: &mut HashMap<Coord, AStarNode>,
+) {
+    let rec_cost = ClArgs::parse().base_rec_cost as usize;
+    if let Some((score, path)) =
+        best_score_per_position.get(&(current_node.coord.node, current_node.coord.pos))
+    {
+        if score + rec_cost < current_node.g {
+            let rec_node = AStarNode::init(
+                current_node.coord,
+                *score + rec_cost, // change +1 to rec
+                crumbs[*path][current_node.coord.pos],
+                &Coord::init(current_node.coord.node, current_node.coord.pos, *path),
+            );
+            update_open_set(open_set, alignment_graph, &rec_node);
+        } else {
+            if score > &current_node.g {
+                best_score_per_position.insert(
+                    (current_node.coord.node, current_node.coord.pos),
+                    (current_node.g, current_node.coord.path),
+                );
+            }
+        }
+    } else {
+        best_score_per_position.insert(
+            (current_node.coord.node, current_node.coord.pos),
+            (current_node.g, current_node.coord.path),
+        );
+        for path in 0..paths_number {
+            let rec_node = AStarNode::init(
+                current_node.coord,
+                current_node.g + rec_cost,
+                crumbs[path][current_node.coord.pos],
+                &Coord::init(current_node.coord.node, current_node.coord.pos, path),
+            );
+            update_open_set(open_set, alignment_graph, &rec_node);
+        }
+    }
+}
 #[derive(Debug, Clone)]
 pub struct Coord {
     pub node: usize,
