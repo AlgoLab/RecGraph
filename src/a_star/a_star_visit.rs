@@ -74,11 +74,16 @@ pub fn exec(
                         }
                     });
             };
+            /* 
             if let Some(rec_node) =
                 add_recombination(&current_node, &mut best_score_per_position, &crumbs)
             {
                 update_open_set(&mut open_set, &mut alignment_graph, &rec_node);
             }
+            
+            */
+            add_multi_recs(&current_node, &mut best_score_per_position, &crumbs, path_graph.paths_number, &mut open_set, &mut alignment_graph)
+            
         }
     }
     (end_pos.unwrap(), alignment_graph)
@@ -187,10 +192,10 @@ fn add_multi_recs(
     {
         if score + rec_cost < current_node.g {
             let rec_node = AStarNode::init(
-                current_node.coord,
+                Coord::init(current_node.coord.node, current_node.coord.pos, *path),
                 *score + rec_cost, // change +1 to rec
                 crumbs[*path][current_node.coord.pos],
-                &Coord::init(current_node.coord.node, current_node.coord.pos, *path),
+                &current_node.coord,
             );
             update_open_set(open_set, alignment_graph, &rec_node);
         } else {
@@ -208,10 +213,10 @@ fn add_multi_recs(
         );
         for path in 0..paths_number {
             let rec_node = AStarNode::init(
-                current_node.coord,
+                Coord::init(current_node.coord.node, current_node.coord.pos, path),
                 current_node.g + rec_cost,
                 crumbs[path][current_node.coord.pos],
-                &Coord::init(current_node.coord.node, current_node.coord.pos, path),
+                &current_node.coord,
             );
             update_open_set(open_set, alignment_graph, &rec_node);
         }
