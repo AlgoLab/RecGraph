@@ -74,16 +74,22 @@ pub fn exec(
                         }
                     });
             };
-            /* 
+            /*
             if let Some(rec_node) =
                 add_recombination(&current_node, &mut best_score_per_position, &crumbs)
             {
                 update_open_set(&mut open_set, &mut alignment_graph, &rec_node);
             }
-            
+
             */
-            add_multi_recs(&current_node, &mut best_score_per_position, &crumbs, path_graph.paths_number, &mut open_set, &mut alignment_graph)
-            
+            add_multi_recs(
+                &current_node,
+                &mut best_score_per_position,
+                &crumbs,
+                path_graph.paths_number,
+                &mut open_set,
+                &mut alignment_graph,
+            )
         }
     }
     (end_pos.unwrap(), alignment_graph)
@@ -178,7 +184,7 @@ fn add_recombination(
     }
 }
 
-fn add_multi_recs(   
+fn add_multi_recs(
     current_node: &AStarNode,
     best_score_per_position: &mut HashMap<(usize, usize), (usize, usize)>,
     crumbs: &Vec<Vec<usize>>,

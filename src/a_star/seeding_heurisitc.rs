@@ -5,7 +5,7 @@ use bstr::BString;
 use handlegraph::hashgraph::HashGraph;
 use longest_increasing_subsequence::lis;
 use lt_fm_index::LtFmIndex;
-use rayon::prelude::*;
+use rayon::{prelude::*, vec};
 // CHAINING
 /// Get the matches chains for each path in the graph, return Vec[Vec[Match]; paths_number]
 /// first get the matches for each path, then get the maximum chain of matches for each path
@@ -43,6 +43,11 @@ fn get_matches_chains(
             get_max_chain(path_matches, seeds.len())
         })
         .collect();
+    let mut flat_matches = matches.iter().flatten().collect::<Vec<_>>();
+    flat_matches.sort_by_key(|m| m.path_pos);
+    flat_matches.sort_by_key(|m| m.seed_idx);
+    let rec_chain = get_rec_chain(&flat_matches, chunk_size, 1, seeds.len());
+    println!("{:?}", rec_chain);
     match_chains
 }
 
@@ -68,16 +73,99 @@ fn get_max_chain(matches: &Vec<Match>, seeds_number: usize) -> Vec<usize> {
     max_chain
 }
 
-
-fn get_rec_chain(matches: &Vec<Match>) {
-    let mut chains = Vec::new();
-    chains.push(matches[0].clone());
-    for i in 1..matches.len() {
-        let mut max_len = 0;
+fn get_rec_chain(
+    matches: &Vec<&Match>,
+    match_len: usize,
+    rec_cost: usize,
+    seeds_number: usize,
+) -> Vec<usize> {
+    let mut chains = vec![Link::new(); matches.len()];
+    for i in 0..matches.len() {
+        chains[i] = Link::init(1, i, match_len);
         for j in 0..i {
-            
+            if matches[j].path_pos < matches[i].path_pos
+                && matches[j].seed_idx < matches[i].seed_idx
+            {
+                let new_len = chains[j].len + 1;
+                let gap_cost = (matches[i].path_pos - matches[j].path_pos)
+                    .abs_diff((matches[i].seed_idx - matches[j].seed_idx) * match_len);
+                if gap_cost > match_len {
+                    continue;
+                }
+                let new_score = if matches[j].path_id == matches[i].path_id {
+                    chains[j].score + match_len - gap_cost
+                } else {
+                    chains[j].score - rec_cost + match_len - gap_cost
+                };
+
+                if new_score > chains[i].score {
+                    chains[i] = Link::init(new_len, j, new_score);
+                }
+            }
         }
-        
+    }
+
+    let max_chain_ending_pos = chains
+        .iter()
+        .enumerate()
+        .max_by_key(|x| x.1.score)
+        .unwrap()
+        .0;
+    let mut max_chain = Vec::new();
+    let mut current = max_chain_ending_pos;
+    while chains[current].pred != current {
+        println!("{:?}", chains[current]);
+        max_chain.push(matches[current].clone());
+        current = chains[current].pred;
+    }
+    println!("{:?}", chains[current]);
+    max_chain.push(matches[current].clone());
+    max_chain.reverse();
+    let mut max_chain_seed = vec![None; seeds_number];
+    max_chain.iter().for_each(|m| {
+        max_chain_seed[m.seed_idx] = Some(m);
+    });
+    println!("{:?}", max_chain_seed);
+    let mut sum = 0;
+    let mut current_path = max_chain[max_chain.len() - 1].path_id;
+    let mut rec_chain: Vec<usize> = max_chain_seed
+        .iter()
+        .rev()
+        .map(|is_match| {
+            let update = if is_match.is_none() {
+                1
+            } else if is_match.as_ref().unwrap().path_id == current_path {
+                0
+            } else {
+                current_path = is_match.as_ref().unwrap().path_id;
+                rec_cost
+            };
+            sum += update;
+            sum
+        })
+        .collect();
+    rec_chain.reverse();
+    // TODO consider also for wich path rec_chain is valid
+    rec_chain
+}
+
+#[derive(Debug, Clone)]
+pub struct Link {
+    pub len: usize,
+    pub pred: usize,
+    pub score: usize,
+}
+
+impl Link {
+    pub fn new() -> Self {
+        Link {
+            len: 0,
+            pred: 0,
+            score: 0,
+        }
+    }
+    pub fn init(len: usize, pred: usize, score: usize) -> Self {
+        Link { len, pred, score }
     }
 }
 /// Get the chaining heuristic for each path in the graph, return Vec[Vec[usize; query.len()]; paths_number]
@@ -97,14 +185,14 @@ pub fn get_chaining_sh(
         .enumerate()
         .for_each(|(path_id, path_heu)| {
             let path_chain = &chains[path_id];
-            path_heu[1..(seeds_number-1) * chunk_size]
+            path_heu[1..(seeds_number - 1) * chunk_size]
                 .iter_mut()
                 .enumerate()
                 .for_each(|(pos, val)| {
                     // prefix is now used
                     let idx = pos / chunk_size;
                     let potential = seeds_number - idx - 1;
-                    let actual = potential - path_chain[idx+1];
+                    let actual = potential - path_chain[idx + 1];
                     *val = actual;
                 });
             path_heu[0] = path_heu[1];
@@ -129,7 +217,11 @@ impl Match {
         }
     }
     pub fn init(path_pos: usize, seed_idx: usize, path_id: usize) -> Self {
-        Match { path_pos, seed_idx, path_id}
+        Match {
+            path_pos,
+            seed_idx,
+            path_id,
+        }
     }
 }
 
