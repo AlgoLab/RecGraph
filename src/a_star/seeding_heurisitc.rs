@@ -46,7 +46,7 @@ fn get_matches_chains(
     let mut flat_matches = matches.iter().flatten().collect::<Vec<_>>();
     flat_matches.sort_by_key(|m| m.path_pos);
     flat_matches.sort_by_key(|m| m.seed_idx);
-    let rec_chain = get_rec_chain(&flat_matches, chunk_size, 1, seeds.len());
+    let rec_chain = get_rec_chain(&flat_matches, chunk_size, 1, seeds.len(), query.len());
     (match_chains, rec_chain)
 }
 
@@ -77,6 +77,7 @@ fn get_rec_chain(
     match_len: usize,
     rec_cost: usize,
     seeds_number: usize,
+    query_len: usize,
 ) -> Vec<(usize, usize)> {
     let mut chains = vec![Link::new(); matches.len()];
     for i in 0..matches.len() {
@@ -113,7 +114,6 @@ fn get_rec_chain(
     let mut max_chain = Vec::new();
     let mut current = max_chain_ending_pos;
     while chains[current].pred != current {
-        println!("{:?}", chains[current]);
         max_chain.push(matches[current].clone());
         current = chains[current].pred;
     }
@@ -123,7 +123,6 @@ fn get_rec_chain(
     max_chain.iter().for_each(|m| {
         max_chain_seed[m.seed_idx] = Some(m);
     });
-    println!("{:?}", max_chain_seed);
     let mut sum = 0;
     let mut current_path = max_chain[max_chain.len() - 1].path_id;
     let mut rec_chain: Vec<_> = max_chain_seed
@@ -147,6 +146,10 @@ fn get_rec_chain(
         .iter()
         .flat_map(|&x| std::iter::repeat(x).take(match_len))
         .collect();
+
+    while heu.len() < query_len {
+        heu.push(rec_chain[rec_chain.len() - 1]);
+    }
     heu.insert(0, rec_chain[0]);
     heu
     // FIXME: heu must have sequence length
