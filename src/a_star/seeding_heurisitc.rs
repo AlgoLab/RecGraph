@@ -13,7 +13,7 @@ fn get_matches_chains(
     query_w_prefix: &BString,
     chunk_size: usize,
     indexes: &Vec<(usize, LtFmIndex)>,
-) -> Vec<Vec<usize>> {
+) -> (Vec<Vec<usize>>, Vec<(usize, usize)>) {
     let query = &BString::from(&query_w_prefix[1..]);
 
     let seeds: Vec<_> = query.chunks_exact(chunk_size).collect::<Vec<_>>();
@@ -47,8 +47,7 @@ fn get_matches_chains(
     flat_matches.sort_by_key(|m| m.path_pos);
     flat_matches.sort_by_key(|m| m.seed_idx);
     let rec_chain = get_rec_chain(&flat_matches, chunk_size, 1, seeds.len());
-    println!("{:?}", rec_chain);
-    match_chains
+    (match_chains, rec_chain)
 }
 
 /// Get the maximum chain of matches for a path
@@ -78,7 +77,7 @@ fn get_rec_chain(
     match_len: usize,
     rec_cost: usize,
     seeds_number: usize,
-) -> Vec<usize> {
+) -> Vec<(usize, usize)> {
     let mut chains = vec![Link::new(); matches.len()];
     for i in 0..matches.len() {
         chains[i] = Link::init(1, i, match_len);
@@ -118,7 +117,6 @@ fn get_rec_chain(
         max_chain.push(matches[current].clone());
         current = chains[current].pred;
     }
-    println!("{:?}", chains[current]);
     max_chain.push(matches[current].clone());
     max_chain.reverse();
     let mut max_chain_seed = vec![None; seeds_number];
@@ -128,7 +126,7 @@ fn get_rec_chain(
     println!("{:?}", max_chain_seed);
     let mut sum = 0;
     let mut current_path = max_chain[max_chain.len() - 1].path_id;
-    let mut rec_chain: Vec<usize> = max_chain_seed
+    let mut rec_chain: Vec<_> = max_chain_seed
         .iter()
         .rev()
         .map(|is_match| {
@@ -141,12 +139,17 @@ fn get_rec_chain(
                 rec_cost
             };
             sum += update;
-            sum
+            (sum, current_path)
         })
         .collect();
     rec_chain.reverse();
-    // TODO consider also for wich path rec_chain is valid
-    rec_chain
+    let mut heu: Vec<_> = rec_chain
+        .iter()
+        .flat_map(|&x| std::iter::repeat(x).take(match_len))
+        .collect();
+    heu.insert(0, rec_chain[0]);
+    heu
+    // FIXME: heu must have sequence length
 }
 
 #[derive(Debug, Clone)]
@@ -176,7 +179,7 @@ pub fn get_chaining_sh(
     chunk_size: usize,
     indexes: &Vec<(usize, LtFmIndex)>,
 ) -> Vec<Vec<usize>> {
-    let chains = get_matches_chains(query, chunk_size, indexes);
+    let (chains, rec_chain) = get_matches_chains(query, chunk_size, indexes);
     let seeds_number = (query.len() - 1) / chunk_size;
     let paths_number = graph.paths.len();
     let mut heuristic = vec![vec![0; query.len()]; paths_number];
@@ -197,8 +200,22 @@ pub fn get_chaining_sh(
                 });
             path_heu[0] = path_heu[1];
         });
-
+    update_heuristic_with_rec(&mut heuristic, &rec_chain);
     heuristic
+}
+
+fn update_heuristic_with_rec(heuristic: &mut Vec<Vec<usize>>, rec_chain: &Vec<(usize, usize)>) {
+    heuristic
+        .iter_mut()
+        .enumerate()
+        .for_each(|(path_id, path_heu)| {
+            path_heu.iter_mut().enumerate().for_each(|(pos, val)| {
+                let (rec_score, path) = rec_chain[pos];
+                if path == path_id && rec_score < *val {
+                    *val = rec_score;
+                }
+            });
+        });
 }
 
 #[derive(Debug, Clone)]
