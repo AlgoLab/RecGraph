@@ -30,11 +30,14 @@ fn main() {
 
     let (base_rec_cost, multi_rec_cost) = (args.base_rec_cost, args.multi_rec_cost);
     let is_local = args.alignment_mode;
-    a_star_demo::a_star_demo();
+
     a_star_demo::a_star_demo_chain();
 
     /*
+
+
     let mut gafs = Vec::new();
+    let start = Instant::now();
     sequences.iter().enumerate().for_each(|(i, seq)| {
         let mut gaf = pathwise_alignment_recombination::exec(
             is_local,
@@ -52,8 +55,9 @@ fn main() {
     });
 
     for (i, gaf) in gafs.iter().enumerate() {
-        //utils::write_gaf(gaf, i, args.out_file.as_str());
+        utils::write_gaf(gaf, i, args.out_file.as_str());
     }
+    println!("alignment time: {:?}", start.elapsed());
      */
     match now.elapsed() {
         Ok(elapsed) => {

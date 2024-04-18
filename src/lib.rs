@@ -26,3 +26,5 @@ pub mod utils;
 pub mod node_displacement;
 
 pub mod a_star;
+
+pub mod new_path_graph;

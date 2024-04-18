@@ -1,7 +1,7 @@
 use ahash::AHashMap as HashMap;
 use bstr::BString;
 
-use crate::{build_cigar, pathwise_graph::PathGraph};
+use crate::{build_cigar, new_path_graph::path_graph::PathGraph};
 
 use super::a_star_visit::{AStarNode, Coord};
 

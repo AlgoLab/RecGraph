@@ -2,10 +2,41 @@ use std::cmp::Ordering;
 
 use bit_vec::BitVec;
 use bstr::BString;
-use handlegraph::hashgraph::HashGraph;
+use handlegraph::{
+    handlegraph::HandleGraph,
+    hashgraph::{HashGraph, Path},
+};
 use longest_increasing_subsequence::lis;
-use lt_fm_index::LtFmIndex;
+use lt_fm_index::{LtFmIndex, LtFmIndexBuilder};
 use rayon::{prelude::*, vec};
+
+/// Get the FM index for each path in the graph, return Vec[(path_id, fm_index); paths_number]
+pub fn get_fm_index(graph: &HashGraph) -> Vec<(usize, LtFmIndex)> {
+    let mut fm_indexes: Vec<(usize, LtFmIndex)> = graph
+        .paths
+        .par_iter()
+        .map(|(id, path)| {
+            let path_seq = linearize_path(path, graph);
+            let builder = LtFmIndexBuilder::new()
+                .text_type_is_inferred()
+                .set_lookup_table_kmer_size_to_default()
+                .set_suffix_array_sampling_ratio_to_default();
+            let fm_index = builder.build(path_seq).unwrap();
+            (*id as usize, fm_index)
+        })
+        .collect();
+    fm_indexes.sort_by_key(|(id, _)| *id);
+    fm_indexes
+}
+
+fn linearize_path(path: &Path, graph: &HashGraph) -> Vec<u8> {
+    path.nodes
+        .iter()
+        .map(|node| graph.sequence(*node))
+        .collect::<Vec<_>>()
+        .concat()
+}
+
 // CHAINING
 /// Get the matches chains for each path in the graph, return Vec[Vec[Match]; paths_number]
 /// first get the matches for each path, then get the maximum chain of matches for each path
@@ -13,6 +44,7 @@ fn get_matches_chains(
     query_w_prefix: &BString,
     chunk_size: usize,
     indexes: &Vec<(usize, LtFmIndex)>,
+    rec_cost: usize,
 ) -> (Vec<Vec<usize>>, Vec<(usize, usize)>) {
     let query = &BString::from(&query_w_prefix[1..]);
 
@@ -46,7 +78,13 @@ fn get_matches_chains(
     let mut flat_matches = matches.iter().flatten().collect::<Vec<_>>();
     flat_matches.sort_by_key(|m| m.path_pos);
     flat_matches.sort_by_key(|m| m.seed_idx);
-    let rec_chain = get_rec_chain(&flat_matches, chunk_size, 1, seeds.len(), query.len());
+    let rec_chain = get_rec_chain(
+        &flat_matches,
+        chunk_size,
+        rec_cost,
+        seeds.len(),
+        query.len(),
+    );
     (match_chains, rec_chain)
 }
 
@@ -152,7 +190,6 @@ fn get_rec_chain(
     }
     heu.insert(0, rec_chain[0]);
     heu
-    // FIXME: heu must have sequence length
 }
 
 #[derive(Debug, Clone)]
@@ -181,8 +218,9 @@ pub fn get_chaining_sh(
     graph: &HashGraph,
     chunk_size: usize,
     indexes: &Vec<(usize, LtFmIndex)>,
+    rec_cost: usize,
 ) -> Vec<Vec<usize>> {
-    let (chains, rec_chain) = get_matches_chains(query, chunk_size, indexes);
+    let (chains, rec_chain) = get_matches_chains(query, chunk_size, indexes, rec_cost);
     let seeds_number = (query.len() - 1) / chunk_size;
     let paths_number = graph.paths.len();
     let mut heuristic = vec![vec![0; query.len()]; paths_number];

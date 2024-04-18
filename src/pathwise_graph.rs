@@ -2,11 +2,7 @@ use bit_vec::BitVec;
 
 use bstr::BString;
 use gfa::{gfa::*, parser::GFAParser};
-use handlegraph::{
-    handle::{Handle, NodeId},
-    handlegraph::HandleGraph,
-    hashgraph::HashGraph,
-};
+use handlegraph::{handle::Handle, handlegraph::HandleGraph, hashgraph::HashGraph};
 
 use ahash::AHashMap as HashMap;
 #[derive(Debug)]

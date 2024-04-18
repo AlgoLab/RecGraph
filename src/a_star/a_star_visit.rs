@@ -1,5 +1,5 @@
 use crate::args_parser::ClArgs;
-use crate::pathwise_graph::PathGraph;
+use crate::new_path_graph::path_graph::PathGraph;
 use ahash::AHashMap as HashMap;
 use bstr::BString;
 use pheap::PairingHeap as FibHeap;
@@ -34,7 +34,7 @@ pub fn exec(
         if current_node.coord.node + 1 < path_graph.lnz.len()
             && current_node.coord.pos + 1 < query.len()
         {
-            if !path_graph.nwp_rev[current_node.coord.node] {
+            if !path_graph.nws[current_node.coord.node] {
                 let match_mis = if path_graph.lnz[current_node.coord.node + 1]
                     == query[current_node.coord.pos + 1]
                 {
@@ -54,8 +54,8 @@ pub fn exec(
                 update_open_set(&mut open_set, &mut alignment_graph, &neigh.2);
             } else {
                 path_graph
-                    .pred_hash_rev
-                    .get_preds_and_paths(current_node.coord.node)
+                    .succ_hash
+                    .get_node_succs_and_paths(current_node.coord.node)
                     .iter()
                     .for_each(|(succ, paths)| {
                         if paths[current_node.coord.path] {
@@ -74,19 +74,12 @@ pub fn exec(
                         }
                     });
             };
-            /*
-            if let Some(rec_node) =
-                add_recombination(&current_node, &mut best_score_per_position, &crumbs)
-            {
-                update_open_set(&mut open_set, &mut alignment_graph, &rec_node);
-            }
 
-            */
             add_multi_recs(
                 &current_node,
                 &mut best_score_per_position,
                 &crumbs,
-                path_graph.paths_number,
+                path_graph.succ_hash.paths_number,
                 &mut open_set,
                 &mut alignment_graph,
             )
@@ -149,41 +142,7 @@ fn update_open_set(
     }
 }
 
-fn add_recombination(
-    current_node: &AStarNode,
-    best_score_per_position: &mut HashMap<(usize, usize), (usize, usize)>,
-    crumbs: &Vec<Vec<usize>>,
-) -> Option<AStarNode> {
-    let rec_cost = ClArgs::parse().base_rec_cost as usize;
-    if let Some((score, path)) =
-        best_score_per_position.get(&(current_node.coord.node, current_node.coord.pos))
-    {
-        if score + rec_cost < current_node.g {
-            let rec_node = AStarNode::init(
-                current_node.coord,
-                *score + rec_cost, // change +1 to rec
-                crumbs[*path][current_node.coord.pos],
-                &Coord::init(current_node.coord.node, current_node.coord.pos, *path),
-            );
-            Some(rec_node)
-        } else {
-            if score > &current_node.g {
-                best_score_per_position.insert(
-                    (current_node.coord.node, current_node.coord.pos),
-                    (current_node.g, current_node.coord.path),
-                );
-            }
-            None
-        }
-    } else {
-        best_score_per_position.insert(
-            (current_node.coord.node, current_node.coord.pos),
-            (current_node.g, current_node.coord.path),
-        );
-        None
-    }
-}
-
+// TODO: add ony if path is present in node
 fn add_multi_recs(
     current_node: &AStarNode,
     best_score_per_position: &mut HashMap<(usize, usize), (usize, usize)>,
