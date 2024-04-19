@@ -22,7 +22,6 @@ pub fn a_star_demo_chain() {
     let gfa: GFA<usize, ()> = parser.parse_file(file_path).unwrap();
     let graph: HashGraph = HashGraph::from_gfa(&gfa);
     let path_graph = PathGraph::from_hash_graph(&graph);
-    println!(" {:?}", path_graph);
     let (sequences, _) = sequences::get_sequences(args.sequence_path);
 
     let chunk_size = ClArgs::parse().seed_len;

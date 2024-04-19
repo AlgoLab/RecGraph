@@ -45,6 +45,9 @@ impl SuccHash {
         res
     }
 
+    pub fn get_paths_node(&self, node: usize) -> &BitVec {
+        self.paths_in_nodes.get(&node).unwrap()
+    }
     pub fn set_node_successor(&mut self, curr_node: usize, succ_pos: usize) {
         if self.succecessor.get(&curr_node).is_none() {
             self.succecessor.insert(curr_node, Vec::new());

@@ -1,6 +1,7 @@
 use crate::args_parser::ClArgs;
 use crate::new_path_graph::path_graph::PathGraph;
 use ahash::AHashMap as HashMap;
+use bit_vec::BitVec;
 use bstr::BString;
 use pheap::PairingHeap as FibHeap;
 use std::hash::Hash;
@@ -73,16 +74,16 @@ pub fn exec(
                             update_open_set(&mut open_set, &mut alignment_graph, &del);
                         }
                     });
-            };
-
-            add_multi_recs(
-                &current_node,
-                &mut best_score_per_position,
-                &crumbs,
-                path_graph.succ_hash.paths_number,
-                &mut open_set,
-                &mut alignment_graph,
-            )
+                let paths = path_graph.succ_hash.get_paths_node(current_node.coord.node);
+                add_multi_recs(
+                    &current_node,
+                    &mut best_score_per_position,
+                    &crumbs,
+                    paths,
+                    &mut open_set,
+                    &mut alignment_graph,
+                );
+            }
         }
     }
     (end_pos.unwrap(), alignment_graph)
@@ -147,7 +148,7 @@ fn add_multi_recs(
     current_node: &AStarNode,
     best_score_per_position: &mut HashMap<(usize, usize), (usize, usize)>,
     crumbs: &Vec<Vec<usize>>,
-    paths_number: usize,
+    paths: &BitVec,
     open_set: &mut FibHeap<AStarNode, usize>,
     alignment_graph: &mut HashMap<Coord, AStarNode>,
 ) {
@@ -176,14 +177,16 @@ fn add_multi_recs(
             (current_node.coord.node, current_node.coord.pos),
             (current_node.g, current_node.coord.path),
         );
-        for path in 0..paths_number {
-            let rec_node = AStarNode::init(
-                Coord::init(current_node.coord.node, current_node.coord.pos, path),
-                current_node.g + rec_cost,
-                crumbs[path][current_node.coord.pos],
-                &current_node.coord,
-            );
-            update_open_set(open_set, alignment_graph, &rec_node);
+        for (path, is_in) in paths.iter().enumerate() {
+            if is_in {
+                let rec_node = AStarNode::init(
+                    Coord::init(current_node.coord.node, current_node.coord.pos, path),
+                    current_node.g + rec_cost,
+                    crumbs[path][current_node.coord.pos],
+                    &current_node.coord,
+                );
+                update_open_set(open_set, alignment_graph, &rec_node);
+            }
         }
     }
 }
