@@ -8,7 +8,7 @@ use handlegraph::{
 };
 use longest_increasing_subsequence::lis;
 use lt_fm_index::{LtFmIndex, LtFmIndexBuilder};
-use rayon::{prelude::*, vec};
+use rayon::prelude::*;
 
 /// Get the FM index for each path in the graph, return Vec[(path_id, fm_index); paths_number]
 pub fn get_fm_index(graph: &HashGraph) -> Vec<(usize, LtFmIndex)> {
@@ -67,7 +67,7 @@ fn get_matches_chains(
         })
         .collect();
     let match_chains = matches
-        .iter_mut()
+        .par_iter_mut()
         .map(|path_matches| {
             // sort by path position and seed index, faster chain computation
             path_matches.sort_by_key(|m| m.path_pos);
@@ -215,34 +215,43 @@ impl Link {
 /// heuristic[i][j] = x, where x is the number of seeds after the j-th that match the i-th path considering the max chain
 pub fn get_chaining_sh(
     query: &BString,
-    graph: &HashGraph,
     chunk_size: usize,
     indexes: &Vec<(usize, LtFmIndex)>,
     rec_cost: usize,
 ) -> Vec<Vec<usize>> {
     let (chains, rec_chain) = get_matches_chains(query, chunk_size, indexes, rec_cost);
     let seeds_number = (query.len() - 1) / chunk_size;
-    let paths_number = graph.paths.len();
-    let mut heuristic = vec![vec![0; query.len()]; paths_number];
+    let mut heuristic = build_heuristic(&chains, &query, seeds_number, chunk_size);
+    update_heuristic_with_rec(&mut heuristic, &rec_chain);
     heuristic
-        .iter_mut()
-        .enumerate()
-        .for_each(|(path_id, path_heu)| {
+}
+
+fn build_heuristic(
+    chains: &[Vec<usize>],
+    query: &BString,
+    seeds_number: usize,
+    chunk_size: usize,
+) -> Vec<Vec<usize>> {
+    (0..chains.len())
+        .into_par_iter()
+        .map(|path_id| {
             let path_chain = &chains[path_id];
+            let mut path_heu = vec![0; query.len()];
+
             path_heu[1..(seeds_number - 1) * chunk_size]
                 .iter_mut()
                 .enumerate()
                 .for_each(|(pos, val)| {
-                    // prefix is now used
                     let idx = pos / chunk_size;
                     let potential = seeds_number - idx - 1;
                     let actual = potential - path_chain[idx + 1];
                     *val = actual;
                 });
+
             path_heu[0] = path_heu[1];
-        });
-    update_heuristic_with_rec(&mut heuristic, &rec_chain);
-    heuristic
+            path_heu
+        })
+        .collect()
 }
 
 fn update_heuristic_with_rec(heuristic: &mut Vec<Vec<usize>>, rec_chain: &Vec<(usize, usize)>) {

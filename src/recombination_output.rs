@@ -546,7 +546,7 @@ pub fn build_alignment_path_no_rec(
     temp_cigar.reverse();
     temp_path_sequence.reverse();
 
-    let path_sequence_string: String = String::from_utf8(temp_path_sequence).unwrap();
+    //let path_sequence_string: String = String::from_utf8(temp_path_sequence).unwrap();
 
     let query_name = String::from("Temp");
     let seq_length = seq.len() - 1;

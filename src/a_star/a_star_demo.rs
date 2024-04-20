@@ -4,13 +4,12 @@ use gfa::gfa::GFA;
 use gfa::parser::GFAParser;
 use handlegraph::hashgraph::HashGraph;
 
-use crate::a_star::seeding_heurisitc;
+use crate::a_star::{a_star_visit, seeding_heurisitc};
 use crate::args_parser::ClArgs;
 use crate::new_path_graph::path_graph::PathGraph;
 use crate::sequences;
 
 use super::a_star_output::build_gaf;
-use super::a_star_visit;
 use super::seeding_heurisitc::get_chaining_sh;
 
 pub fn a_star_demo_chain() {
@@ -30,14 +29,14 @@ pub fn a_star_demo_chain() {
     sequences.iter().for_each(|seq| {
         let crumbs = get_chaining_sh(
             seq,
-            &graph,
             chunk_size as usize,
             &indexes,
             args.base_rec_cost as usize,
         );
-        let (end_pos, mut alignment_graph) = a_star_visit::exec(seq, crumbs, &path_graph);
+        let (end_pos, mut alignment_graph) = a_star_visit::exec(seq, &crumbs, &path_graph);
 
         build_gaf(&mut alignment_graph, &end_pos, &path_graph, seq);
     });
+
     println!("chain time: {:?}", start.elapsed());
 }
