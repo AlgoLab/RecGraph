@@ -45,37 +45,15 @@ pub fn exec(
                 } else {
                     1
                 };
-                let neigh = get_neighbours(&current_node, &current_node_coord, &crumbs, match_mis);
 
-                update_open_set(
+                push_neigh(
+                    match_mis,
+                    &current_node,
+                    &current_node_coord,
                     &mut open_set,
                     &mut alignment_graph,
-                    &neigh.0,
-                    Coord::init(
-                        current_node_coord.node + 1,
-                        current_node_coord.pos + 1,
-                        current_node_coord.path,
-                    ),
-                );
-                update_open_set(
-                    &mut open_set,
-                    &mut alignment_graph,
-                    &neigh.1,
-                    Coord::init(
-                        current_node_coord.node + 1,
-                        current_node_coord.pos,
-                        current_node_coord.path,
-                    ),
-                );
-                update_open_set(
-                    &mut open_set,
-                    &mut alignment_graph,
-                    &neigh.2,
-                    Coord::init(
-                        current_node_coord.node,
-                        current_node_coord.pos + 1,
-                        current_node_coord.path,
-                    ),
+                    &crumbs,
+                    current_node_coord.node + 1,
                 );
             } else {
                 path_graph
@@ -90,38 +68,15 @@ pub fn exec(
                                 } else {
                                     1
                                 };
-                            let (m_x, ins, del) = get_neighbours(
+
+                            push_neigh(
+                                match_mis,
                                 &current_node,
                                 &current_node_coord,
+                                &mut open_set,
+                                &mut alignment_graph,
                                 &crumbs,
-                                match_mis,
-                            );
-
-                            update_open_set(
-                                &mut open_set,
-                                &mut alignment_graph,
-                                &m_x,
-                                Coord::init(
-                                    *succ,
-                                    current_node_coord.pos + 1,
-                                    current_node_coord.path,
-                                ),
-                            );
-                            update_open_set(
-                                &mut open_set,
-                                &mut alignment_graph,
-                                &ins,
-                                Coord::init(*succ, current_node_coord.pos, current_node_coord.path),
-                            );
-                            update_open_set(
-                                &mut open_set,
-                                &mut alignment_graph,
-                                &del,
-                                Coord::init(
-                                    current_node_coord.node,
-                                    current_node_coord.pos + 1,
-                                    current_node_coord.path,
-                                ),
+                                *succ,
                             );
                         }
                     });
@@ -137,6 +92,9 @@ pub fn exec(
                 );
             }
         }
+    }
+    if end_pos.is_none() {
+        panic!("No path found");
     }
     (end_pos.unwrap().clone(), alignment_graph)
 }
@@ -214,7 +172,7 @@ fn add_multi_recs(
             (current_node.g, current_node_coord.path),
         );
         for (path, is_in) in paths.iter().enumerate() {
-            if is_in {
+            if is_in && crumbs[path][current_node_coord.pos] <= current_node.h {
                 let rec_node = AStarNode::init(
                     current_node.g + rec_cost,
                     crumbs[path][current_node_coord.pos],
@@ -225,6 +183,75 @@ fn add_multi_recs(
                 update_open_set(open_set, alignment_graph, &rec_node, rec_node_coord);
             }
         }
+    }
+}
+
+fn push_neigh(
+    match_mis: usize,
+    current_node: &AStarNode,
+    current_node_coord: &Coord,
+    open_set: &mut FibHeap<Coord, usize>,
+    alignment_graph: &mut HashMap<Coord, AStarNode>,
+    crumbs: &Vec<Vec<usize>>,
+    succ: usize,
+) {
+    let (m_x, mut ins, del) =
+        get_neighbours(&current_node, &current_node_coord, &crumbs, match_mis);
+    // change for semiglobal alignment
+    if current_node_coord.pos == 0 {
+        ins.g = 0;
+        update_open_set(
+            open_set,
+            alignment_graph,
+            &m_x,
+            Coord::init(succ, current_node_coord.pos + 1, current_node_coord.path),
+        );
+        update_open_set(
+            open_set,
+            alignment_graph,
+            &ins,
+            Coord::init(succ, current_node_coord.pos, current_node_coord.path),
+        );
+        update_open_set(
+            open_set,
+            alignment_graph,
+            &del,
+            Coord::init(
+                current_node_coord.node,
+                current_node_coord.pos + 1,
+                current_node_coord.path,
+            ),
+        );
+    } else if match_mis == 0 {
+        update_open_set(
+            open_set,
+            alignment_graph,
+            &m_x,
+            Coord::init(succ, current_node_coord.pos + 1, current_node_coord.path),
+        );
+    } else {
+        update_open_set(
+            open_set,
+            alignment_graph,
+            &m_x,
+            Coord::init(succ, current_node_coord.pos + 1, current_node_coord.path),
+        );
+        update_open_set(
+            open_set,
+            alignment_graph,
+            &ins,
+            Coord::init(succ, current_node_coord.pos, current_node_coord.path),
+        );
+        update_open_set(
+            open_set,
+            alignment_graph,
+            &del,
+            Coord::init(
+                current_node_coord.node,
+                current_node_coord.pos + 1,
+                current_node_coord.path,
+            ),
+        );
     }
 }
 #[derive(Debug, Clone)]

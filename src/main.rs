@@ -33,9 +33,6 @@ fn main() {
 
     a_star_demo::a_star_demo_chain();
 
-    /*
-
-
     let mut gafs = Vec::new();
     let start = Instant::now();
     sequences.iter().enumerate().for_each(|(i, seq)| {
@@ -55,10 +52,9 @@ fn main() {
     });
 
     for (i, gaf) in gafs.iter().enumerate() {
-        utils::write_gaf(gaf, i, args.out_file.as_str());
+        //utils::write_gaf(gaf, i, args.out_file.as_str());
     }
     println!("alignment time: {:?}", start.elapsed());
-     */
     match now.elapsed() {
         Ok(elapsed) => {
             // it prints '2'

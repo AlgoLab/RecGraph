@@ -10,7 +10,7 @@ pub fn build_gaf(
     end_pos: &Coord,
     path_graph: &PathGraph,
     query: &BString,
-) {
+) -> String {
     let mut align_coord = end_pos.clone();
     let mut align = alignment_graph.remove(&align_coord).unwrap();
     let ed = align.g;
@@ -42,11 +42,12 @@ pub fn build_gaf(
     }
     cigar.reverse();
     let recs_out_string = recs.join("\t");
-    println!(
+    let output = format!(
         "{:?}\tbest path: {}\tED {}\t{}",
         build_cigar::build_cigar(&cigar),
         align_coord.path,
         ed,
         recs_out_string
-    )
+    );
+    output
 }

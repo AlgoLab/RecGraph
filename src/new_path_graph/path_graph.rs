@@ -57,6 +57,7 @@ impl PathGraph {
         });
 
         lnz.push(b'$');
+
         succ_hash.set_node_paths(lnz.len() - 1, BitVec::from_elem(graph.paths.len(), true));
         for final_pos in last_path_pos {
             succ_hash.set_node_successor(final_pos, lnz.len() - 1);

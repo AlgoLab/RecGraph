@@ -26,6 +26,7 @@ pub fn a_star_demo_chain() {
     let chunk_size = ClArgs::parse().seed_len;
     let indexes = seeding_heurisitc::get_fm_index(&graph);
 
+    let mut outs = Vec::new();
     sequences.iter().for_each(|seq| {
         let crumbs = get_chaining_sh(
             seq,
@@ -35,8 +36,9 @@ pub fn a_star_demo_chain() {
         );
         let (end_pos, mut alignment_graph) = a_star_visit::exec(seq, &crumbs, &path_graph);
 
-        build_gaf(&mut alignment_graph, &end_pos, &path_graph, seq);
+        outs.push(build_gaf(&mut alignment_graph, &end_pos, &path_graph, seq));
     });
 
+    outs.iter().for_each(|out| println!("{}", out));
     println!("chain time: {:?}", start.elapsed());
 }
