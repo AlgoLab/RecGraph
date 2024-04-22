@@ -1,3 +1,4 @@
+use recgraph::a_star;
 use recgraph::a_star::a_star_demo;
 use recgraph::args_parser::ClArgs;
 use recgraph::node_displacement::DisplacementMatrix;
@@ -51,6 +52,8 @@ fn main() {
         gafs.push(gaf.to_string());
     });
 
+    let seq = Vec::from(sequences[0].clone());
+    a_star::approx_matching::test(&seq, &seq[0..10].to_vec());
     for (i, gaf) in gafs.iter().enumerate() {
         //utils::write_gaf(gaf, i, args.out_file.as_str());
     }

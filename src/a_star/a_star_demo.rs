@@ -4,7 +4,7 @@ use gfa::gfa::GFA;
 use gfa::parser::GFAParser;
 use handlegraph::hashgraph::HashGraph;
 
-use crate::a_star::{a_star_visit, seeding_heurisitc};
+use crate::a_star::{a_star_visit, approx_matching, new_seeding, seeding_heurisitc};
 use crate::args_parser::ClArgs;
 use crate::new_path_graph::path_graph::PathGraph;
 use crate::sequences;
@@ -24,11 +24,11 @@ pub fn a_star_demo_chain() {
     let (sequences, _) = sequences::get_sequences(args.sequence_path);
 
     let chunk_size = ClArgs::parse().seed_len;
-    let indexes = seeding_heurisitc::get_fm_index(&graph);
+    let indexes = new_seeding::get_fm_index(&graph);
 
     let mut outs = Vec::new();
     sequences.iter().for_each(|seq| {
-        let crumbs = get_chaining_sh(
+        let crumbs = new_seeding::get_chaining_sh(
             seq,
             chunk_size as usize,
             &indexes,

@@ -195,34 +195,10 @@ fn push_neigh(
     crumbs: &Vec<Vec<usize>>,
     succ: usize,
 ) {
-    let (m_x, mut ins, del) =
+    let (m_x, ins, del) =
         get_neighbours(&current_node, &current_node_coord, &crumbs, match_mis);
     // change for semiglobal alignment
-    if current_node_coord.pos == 0 {
-        ins.g = 0;
-        update_open_set(
-            open_set,
-            alignment_graph,
-            &m_x,
-            Coord::init(succ, current_node_coord.pos + 1, current_node_coord.path),
-        );
-        update_open_set(
-            open_set,
-            alignment_graph,
-            &ins,
-            Coord::init(succ, current_node_coord.pos, current_node_coord.path),
-        );
-        update_open_set(
-            open_set,
-            alignment_graph,
-            &del,
-            Coord::init(
-                current_node_coord.node,
-                current_node_coord.pos + 1,
-                current_node_coord.path,
-            ),
-        );
-    } else if match_mis == 0 {
+    if match_mis == 0 {
         update_open_set(
             open_set,
             alignment_graph,
