@@ -53,7 +53,7 @@ fn main() {
     });
 
     let seq = Vec::from(sequences[0].clone());
-    a_star::approx_matching::test(&seq, &seq[0..10].to_vec());
+    a_star::a_star_demo::a_star_approx();
     for (i, gaf) in gafs.iter().enumerate() {
         //utils::write_gaf(gaf, i, args.out_file.as_str());
     }

@@ -1,4 +1,8 @@
-use std::{cmp::Ordering, collections::HashMap, hash::{Hash, Hasher}};
+use std::{
+    cmp::Ordering,
+    collections::HashMap,
+    hash::{Hash, Hasher},
+};
 
 use bit_vec::BitVec;
 use bstr::BString;
@@ -25,17 +29,22 @@ pub fn get_fm_index(graph: &HashGraph) -> Vec<(usize, LtFmIndex, Vec<u64>)> {
             (*id as usize, fm_index, path_nodes)
         })
         .collect();
-    fm_indexes.sort_by_key(|(id, _,_)| *id);
+    fm_indexes.sort_by_key(|(id, _, _)| *id);
     fm_indexes
 }
 
 fn linearize_path(path: &Path, graph: &HashGraph) -> (Vec<u8>, Vec<u64>) {
-    let lnz_path = path.nodes
+    let lnz_path = path
+        .nodes
         .iter()
-        .map(|node| graph.sequence(*node), )
+        .map(|node| graph.sequence(*node))
         .collect::<Vec<_>>()
         .concat();
-    let path_nodes = path.nodes.iter().flat_map(|node| vec![node.0 as u64;  graph.sequence(*node).len()]).collect();
+    let path_nodes = path
+        .nodes
+        .iter()
+        .flat_map(|node| vec![node.0 as u64; graph.sequence(*node).len()])
+        .collect();
     (lnz_path, path_nodes)
 }
 
@@ -54,11 +63,11 @@ fn get_matches_chains(
 
     let mut matches: Vec<Vec<Match>> = indexes
         .par_iter()
-        .map(|(path_id, index,_)| {
+        .map(|(path_id, index, _)| {
             seeds
                 .iter()
                 .enumerate()
-                .flat_map(|(seed_id, seed)| {   
+                .flat_map(|(seed_id, seed)| {
                     let matches_pos = index.locate(seed);
                     matches_pos
                         .iter()
@@ -68,9 +77,7 @@ fn get_matches_chains(
                 .collect()
         })
         .collect();
-    matches.iter().for_each(|x| println!("{:?}", x));
     let prova = get_matches_coord(&matches, indexes);
-    prova.iter().for_each(|x| println!("{:?}", x));
     let match_chains: Vec<Vec<usize>> = matches
         .par_iter_mut()
         .map(|path_matches| {
@@ -80,7 +87,7 @@ fn get_matches_chains(
             get_max_chain(path_matches, seeds.len())
         })
         .collect();
-    
+
     let mut flat_matches = matches.iter().flatten().collect::<Vec<_>>();
     flat_matches.sort_by_key(|m| m.path_pos);
     flat_matches.sort_by_key(|m| m.seed_idx);
@@ -99,25 +106,19 @@ fn get_matches_coord(
     indexes: &Vec<(usize, LtFmIndex, Vec<u64>)>,
 ) -> HashMap<MatchCoord, BitVec> {
     let mut matches_coord: HashMap<MatchCoord, BitVec> = HashMap::new();
-    matches
-        .iter()
-        .enumerate()
-        .for_each(|(path, path_matches)| {
-            path_matches
-                .iter()
-                .for_each(|m| {
-                    let node_id = indexes[m.path_id].2[m.path_pos];
-                    let coord = MatchCoord::build(node_id, m.path_pos, &indexes[m.path_id].2);
-                    if matches_coord.contains_key(&coord) {
-                        matches_coord.get_mut(&coord).unwrap().set(path, true);
-                    } else {
-                        matches_coord.insert(coord.clone(), BitVec::from_elem(indexes.len(), false));
-                        matches_coord.get_mut(&coord).unwrap().set(path, true);
-                    }
-                })
-               
-        });
-        
+    matches.iter().enumerate().for_each(|(path, path_matches)| {
+        path_matches.iter().for_each(|m| {
+            let node_id = indexes[m.path_id].2[m.path_pos];
+            let coord = MatchCoord::build(node_id, m.path_pos, &indexes[m.path_id].2);
+            if matches_coord.contains_key(&coord) {
+                matches_coord.get_mut(&coord).unwrap().set(path, true);
+            } else {
+                matches_coord.insert(coord.clone(), BitVec::from_elem(indexes.len(), false));
+                matches_coord.get_mut(&coord).unwrap().set(path, true);
+            }
+        })
+    });
+
     matches_coord
 }
 /// Get the maximum chain of matches for a path
@@ -153,7 +154,8 @@ fn get_rec_chain(
     for i in 0..matches.len() {
         chains[i] = Link::init(1, i, match_len);
         for j in 0..i {
-            if matches[j].seed_idx < matches[i].seed_idx && matches[j].path_pos < matches[i].path_pos
+            if matches[j].seed_idx < matches[i].seed_idx
+                && matches[j].path_pos < matches[i].path_pos
             {
                 let new_len = chains[j].len + 1;
                 let gap_cost = (matches[i].path_pos - matches[j].path_pos)

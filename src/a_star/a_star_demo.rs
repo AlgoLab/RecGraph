@@ -42,3 +42,23 @@ pub fn a_star_demo_chain() {
     outs.iter().for_each(|out| println!("{}", out));
     println!("chain time: {:?}", start.elapsed());
 }
+
+pub fn a_star_approx() {
+    let start = Instant::now();
+    let args = ClArgs::parse();
+
+    let file_path = args.graph_path;
+    let parser = GFAParser::new();
+    let gfa: GFA<usize, ()> = parser.parse_file(file_path).unwrap();
+    let graph: HashGraph = HashGraph::from_gfa(&gfa);
+    let path_graph = PathGraph::from_hash_graph(&graph);
+    let (sequences, _) = sequences::get_sequences(args.sequence_path);
+
+    let chunk_size = ClArgs::parse().seed_len;
+    let linearized_paths = approx_matching::get_linearized_paths(&graph);
+    let indexes = seeding_heurisitc::get_fm_index(&graph);
+
+    sequences.iter().for_each(|seq| {
+        approx_matching::build_heuristic(&linearized_paths, &seq, chunk_size as usize, &indexes);
+    });
+}
