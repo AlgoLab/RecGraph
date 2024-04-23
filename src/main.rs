@@ -1,4 +1,3 @@
-use recgraph::a_star;
 use recgraph::a_star::a_star_demo;
 use recgraph::args_parser::ClArgs;
 use recgraph::node_displacement::DisplacementMatrix;
@@ -33,7 +32,7 @@ fn main() {
     let is_local = args.alignment_mode;
 
     a_star_demo::a_star_demo_chain();
-
+    /*
     let mut gafs = Vec::new();
     let start = Instant::now();
     sequences.iter().enumerate().for_each(|(i, seq)| {
@@ -56,6 +55,7 @@ fn main() {
         //utils::write_gaf(gaf, i, args.out_file.as_str());
     }
     println!("alignment time: {:?}", start.elapsed());
+     */
     match now.elapsed() {
         Ok(elapsed) => {
             // it prints '2'

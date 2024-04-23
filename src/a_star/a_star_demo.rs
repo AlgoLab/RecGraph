@@ -4,16 +4,14 @@ use gfa::gfa::GFA;
 use gfa::parser::GFAParser;
 use handlegraph::hashgraph::HashGraph;
 
-use crate::a_star::{a_star_visit, approx_matching, new_seeding, seeding_heurisitc};
+use crate::a_star::{a_star_visit, approx_matching, new_seeding};
 use crate::args_parser::ClArgs;
 use crate::new_path_graph::path_graph::PathGraph;
 use crate::sequences;
 
 use super::a_star_output::build_gaf;
-use super::seeding_heurisitc::get_chaining_sh;
 
 pub fn a_star_demo_chain() {
-    let start = Instant::now();
     let args = ClArgs::parse();
 
     let file_path = args.graph_path;

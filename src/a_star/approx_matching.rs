@@ -1,11 +1,9 @@
-use std::path;
 
-use bio::pattern_matching::{myers::Myers, ukkonen};
+use bio::pattern_matching::myers::Myers;
 use rayon::prelude::*;
 
 use bstr::BString;
 use handlegraph::{handlegraph::HandleGraph, hashgraph::HashGraph};
-use lt_fm_index::{LtFmIndex, LtFmIndexBuilder};
 
 use crate::args_parser::ClArgs;
 
@@ -53,7 +51,6 @@ pub fn build_heuristic(
         query.len(),
         &mut heus,
     );
-
     heus
 }
 
@@ -66,7 +63,6 @@ fn get_matches(
 
     let seeds: Vec<_> = query.chunks_exact(chunk_size).collect::<Vec<_>>();
 
-    let start = std::time::Instant::now();
     let matches = linearized_paths
         .par_iter()
         .map(|path| {
@@ -83,8 +79,6 @@ fn get_matches(
                 .collect()
         })
         .collect();
-    println!("Myers {:?}", start.elapsed());
-
     matches
 }
 
@@ -152,8 +146,8 @@ fn get_path_max_chain(
         .flat_map(|&x| std::iter::repeat(x).take(match_len))
         .collect();
 
-    while heu.len() < query_len {
-        heu.push(rec_chain[rec_chain.len() - 1]);
+    while heu.len() < query_len - 1{
+        heu.push(heu[heu.len()-1]);
     }
     heu.insert(0, rec_chain[0]);
     heu
@@ -232,9 +226,10 @@ fn rec_chain_update(
         .flat_map(|&x| std::iter::repeat(x).take(match_len))
         .collect();
 
-    while heu.len() < query_len + 1 {
+    while heu.len() < query_len - 1 {
         heu.push(rec_chain[rec_chain.len() - 1]);
     }
+    heu.insert(0, rec_chain[0]);
 
     heuristics
         .iter_mut()
