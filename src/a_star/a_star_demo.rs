@@ -24,8 +24,9 @@ pub fn a_star_demo_chain() {
     let (sequences, _) = sequences::get_sequences(args.sequence_path);
 
     let chunk_size = ClArgs::parse().seed_len;
-    let indexes = new_seeding::get_fm_index(&graph);
 
+    let start = Instant::now();
+    let indexes = new_seeding::get_fm_index(&graph);
     let mut outs = Vec::new();
     sequences.iter().for_each(|seq| {
         let crumbs = new_seeding::get_chaining_sh(
@@ -38,27 +39,18 @@ pub fn a_star_demo_chain() {
 
         outs.push(build_gaf(&mut alignment_graph, &end_pos, &path_graph, seq));
     });
-
     outs.iter().for_each(|out| println!("{}", out));
-    println!("chain time: {:?}", start.elapsed());
-}
+    println!("Exact time: {:?}", start.elapsed());
 
-pub fn a_star_approx() {
     let start = Instant::now();
-    let args = ClArgs::parse();
-
-    let file_path = args.graph_path;
-    let parser = GFAParser::new();
-    let gfa: GFA<usize, ()> = parser.parse_file(file_path).unwrap();
-    let graph: HashGraph = HashGraph::from_gfa(&gfa);
-    let path_graph = PathGraph::from_hash_graph(&graph);
-    let (sequences, _) = sequences::get_sequences(args.sequence_path);
-
-    let chunk_size = ClArgs::parse().seed_len;
     let linearized_paths = approx_matching::get_linearized_paths(&graph);
-    let indexes = seeding_heurisitc::get_fm_index(&graph);
-
+    let mut outs = Vec::new();
     sequences.iter().for_each(|seq| {
-        approx_matching::build_heuristic(&linearized_paths, &seq, chunk_size as usize);
+        let crumbs = approx_matching::build_heuristic(&linearized_paths, seq, chunk_size as usize);
+        let (end_pos, mut alignment_graph) = a_star_visit::exec(seq, &crumbs, &path_graph);
+
+        outs.push(build_gaf(&mut alignment_graph, &end_pos, &path_graph, seq));
     });
+    outs.iter().for_each(|out| println!("{}", out));
+    println!("Approx time: {:?}", start.elapsed());
 }

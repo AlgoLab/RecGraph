@@ -52,8 +52,6 @@ fn main() {
         gafs.push(gaf.to_string());
     });
 
-    let seq = Vec::from(sequences[0].clone());
-    a_star::a_star_demo::a_star_approx();
     for (i, gaf) in gafs.iter().enumerate() {
         //utils::write_gaf(gaf, i, args.out_file.as_str());
     }
