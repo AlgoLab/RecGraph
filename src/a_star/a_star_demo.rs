@@ -59,6 +59,6 @@ pub fn a_star_approx() {
     let indexes = seeding_heurisitc::get_fm_index(&graph);
 
     sequences.iter().for_each(|seq| {
-        approx_matching::build_heuristic(&linearized_paths, &seq, chunk_size as usize, &indexes);
+        approx_matching::build_heuristic(&linearized_paths, &seq, chunk_size as usize);
     });
 }
