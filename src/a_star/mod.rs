@@ -4,6 +4,4 @@ pub mod a_star_visit;
 
 pub mod a_star_output;
 
-pub mod new_seeding;
-
 pub mod approx_matching;
