@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, collections::HashMap, hash::Hash, time::Instant};
+use std::{cmp::Ordering, collections::HashMap, hash::{Hash, Hasher}, time::Instant};
 
 use bio::pattern_matching::myers::Myers;
 use bit_vec::BitVec;
@@ -47,7 +47,7 @@ pub fn build_heuristic(
         .map(|m| get_path_max_chain(m, chunk_size, query.len() / chunk_size, query.len()))
         .collect::<Vec<_>>();
     println!("\tnormal: {:?}", start.elapsed());
-    let filtered_match = get_matches_coord(&matches, linearized_paths);
+    let filtered_match = get_matches_coord(&matches, linearized_paths, chunk_size);
     println!("{:?}", filtered_match);
     let start = Instant::now();
 
@@ -174,12 +174,12 @@ fn get_path_max_chain(
 fn get_matches_coord(
     matches: &Vec<Vec<Match>>,
     indexes: &Vec<(Vec<u8>, Vec<u8>)>,
+    match_len: usize,
 ) -> Vec<(MatchCoord, BitVec)> {
     let mut matches_coord: HashMap<MatchCoord, BitVec> = HashMap::new();
     matches.iter().enumerate().for_each(|(path, path_matches)| {
         path_matches.iter().for_each(|m| {
-            let node_id = indexes[m.path_id].1[m.pos] as u64;
-            let coord = MatchCoord::build(node_id, m.pos, &indexes[m.path_id].1, m.seed_id);
+            let coord = MatchCoord::build( m.pos, &indexes[m.path_id].1, m.seed_id, match_len);
             if matches_coord.contains_key(&coord) {
                 matches_coord.get_mut(&coord).unwrap().set(path, true);
             } else {
@@ -430,65 +430,191 @@ impl Link {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, PartialOrd, Ord)]
-pub struct MatchCoord {
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub struct MatchNode {
     pub node_id: usize,
     pub offset: usize,
+}
+
+impl MatchNode {
+    pub fn new(node_id: usize, offset: usize) -> MatchNode {
+        MatchNode { node_id, offset }
+    }
+}
+
+impl Ord for MatchNode {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.node_id.cmp(&other.node_id)
+    }
+}
+
+impl PartialOrd for MatchNode {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub struct MatchCoord {
+    pub node_start: MatchNode,
+    pub node_end: MatchNode,
     pub seed_id: usize,
 }
 
 impl MatchCoord {
     pub fn empty_new() -> MatchCoord {
         MatchCoord {
-            node_id: 0,
-            offset: 0,
-            seed_id: 0,
-        }
-    }
-    pub fn new(position: usize) -> MatchCoord {
-        MatchCoord {
-            node_id: 0,
-            offset: position,
+            node_start: MatchNode::new(0, 0),
+            node_end: MatchNode::new(0, 0),
             seed_id: 0,
         }
     }
     pub fn build(
-        handle_id: u64,
         position: usize,
         handles_pos: &[u8],
         seed_id: usize,
+        match_len: usize,
     ) -> MatchCoord {
-        let mut offset = 0;
+        let start_handle_id = handles_pos[position] as usize;
+        let mut start_offset = 0;
         let mut start = position;
-        while start > 0 && handles_pos[start - 1] == handle_id as u8 {
+        while start > 0 && handles_pos[start - 1] == start_handle_id as u8 {
             start -= 1;
-            offset += 1;
+            start_offset += 1;
+        }
+
+        let end_handle_id = handles_pos[position + match_len - 1] as usize;
+        let mut end = position + match_len - 1;
+        let mut end_offset = 0;
+
+        while end > 0 && handles_pos[end - 1] == end_handle_id as u8{
+            end -= 1;
+            end_offset += 1;
         }
 
         MatchCoord {
-            node_id: handle_id as usize,
-            offset,
+            node_start: MatchNode::new(start_handle_id, start_offset),
+            node_end: MatchNode::new(end_handle_id, end_offset),
             seed_id,
         }
     }
 
     pub fn equal(&self, other: &MatchCoord) -> bool {
-        self.node_id == other.node_id && self.offset == other.offset
+        self.node_start == other.node_start && self.node_end == other.node_end
     }
 
-    pub fn included(&self, start_coor: &MatchCoord, end_coor: &MatchCoord) -> bool {
-        let after_start = match self.node_id.cmp(&start_coor.node_id) {
-            Ordering::Greater => true,
-            Ordering::Equal => self.offset >= start_coor.offset,
-            Ordering::Less => false,
-        };
+}
 
-        let before_end = match self.node_id.cmp(&end_coor.node_id) {
-            Ordering::Greater => false,
-            Ordering::Equal => self.offset <= end_coor.offset,
-            Ordering::Less => true,
-        };
+impl Ord for MatchCoord {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.node_start.cmp(&other.node_start)
+    }
+    
+}
 
-        after_start && before_end
+impl PartialOrd for MatchCoord {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_coord_equal (){
+        let coord1: MatchCoord = MatchCoord {
+            node_start: MatchNode::new(1, 0),
+            node_end: MatchNode::new(1, 0),
+            seed_id: 0,
+        };
+        let coord2 = MatchCoord {
+            node_start: MatchNode::new(1, 0),
+            node_end: MatchNode::new(1, 0),
+            seed_id: 0,
+        };
+        let coord3 = MatchCoord {
+            node_start: MatchNode::new(1, 0),
+            node_end: MatchNode::new(1, 0),
+            seed_id: 1,
+        };
+        let coord4 = MatchCoord {
+            node_start: MatchNode::new(1, 0),
+            node_end: MatchNode::new(1, 1),
+            seed_id: 0,
+        };
+        let coord5 = MatchCoord {
+            node_start: MatchNode::new(1, 1),
+            node_end: MatchNode::new(1, 0),
+            seed_id: 0,
+        };
+        let coord6 = MatchCoord {
+            node_start: MatchNode::new(1, 1),
+            node_end: MatchNode::new(1, 1),
+            seed_id: 0,
+        };
+        assert_eq!(coord1, coord2);
+        assert_ne!(coord1, coord3);
+        assert_ne!(coord1, coord4);
+        assert_ne!(coord1, coord5);
+        assert_ne!(coord1, coord6);
+        assert_ne!(coord4, coord5);
+        assert_ne!(coord4, coord6);
+        assert_ne!(coord5, coord6);
+    }
+
+
+    // TODO: test for ordering between match coord
+    #[test]
+    fn test_coord_ordering() {
+        let coord1: MatchCoord = MatchCoord {
+            node_start: MatchNode::new(1, 0),
+            node_end: MatchNode::new(2, 0),
+            seed_id: 0,
+        };
+        let coord2 = MatchCoord {
+            node_start: MatchNode::new(1, 0),
+            node_end: MatchNode::new(1, 0),
+            seed_id: 1,
+        };
+        let coord3 = MatchCoord {
+            node_start: MatchNode::new(3, 0),
+            node_end: MatchNode::new(4, 0),
+            seed_id: 0,
+        };
+        let coord4 = MatchCoord {
+            node_start: MatchNode::new(1, 0),
+            node_end: MatchNode::new(2, 10),
+            seed_id: 0,
+        };
+        let coord5 = MatchCoord {
+            node_start: MatchNode::new(3, 5),
+            node_end: MatchNode::new(5, 6),
+            seed_id: 0,
+        };
+        let coord6 = MatchCoord {
+            node_start: MatchNode::new(2, 10),
+            node_end: MatchNode::new(6, 0),
+            seed_id: 1,
+        };
+        let coord7 = MatchCoord {
+            node_start: MatchNode::new(1, 1),
+            node_end: MatchNode::new(1, 0),
+            seed_id: 1,
+        };
+        let coord8 = MatchCoord {
+            node_start: MatchNode::new(1, 1),
+            node_end: MatchNode::new(1, 1),
+            seed_id: 1,
+        };
+
+        assert!(!(coord1 < coord2));
+        assert!(!(coord2 < coord1));
+
+        assert!(coord1 < coord3);
+        assert!(coord4 < coord5);
+        
+        assert!(!(coord4 < coord5));
+    }
+}
+        
