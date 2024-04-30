@@ -1,22 +1,15 @@
-use std::{
-    cmp::Ordering,
-    collections::HashMap,
-    hash::{Hash, Hasher},
-    time::Instant,
-};
-
 use bio::pattern_matching::myers::Myers;
-use bit_vec::BitVec;
+use rayon::prelude::*;
+
 use bstr::BString;
 use handlegraph::{handlegraph::HandleGraph, hashgraph::HashGraph};
-use rayon::prelude::*;
 
 use crate::args_parser::ClArgs;
 
-pub fn get_linearized_paths_and_handles(graph: &HashGraph) -> Vec<(Vec<u8>, Vec<u8>)> {
+pub fn get_linearized_paths(graph: &HashGraph) -> Vec<Vec<u8>> {
     let mut lnz_paths = graph
         .paths
-        .par_iter()
+        .iter()
         .map(|(path_id, path)| {
             let seq = path
                 .nodes
@@ -24,60 +17,31 @@ pub fn get_linearized_paths_and_handles(graph: &HashGraph) -> Vec<(Vec<u8>, Vec<
                 .map(|node| graph.sequence(node.clone()))
                 .collect::<Vec<_>>()
                 .concat();
-            let path_nodes = path
-                .nodes
-                .iter()
-                .flat_map(|node| vec![node.0 as u8; graph.sequence(*node).len()])
-                .collect::<Vec<_>>();
-            (*path_id as usize, seq, path_nodes)
+            (*path_id as usize, seq)
         })
         .collect::<Vec<_>>();
     lnz_paths.sort_by(|x, y| x.0.partial_cmp(&y.0).unwrap());
-    lnz_paths
-        .iter()
-        .map(|(_, path, handles)| (path.to_owned(), handles.to_owned()))
-        .collect()
+    lnz_paths.iter().map(|(_, path)| path.to_owned()).collect()
 }
 
 pub fn build_heuristic(
-    linearized_paths: &Vec<(Vec<u8>, Vec<u8>)>,
+    linearized_paths: &Vec<Vec<u8>>,
     query: &BString,
     chunk_size: usize,
 ) -> Vec<Vec<usize>> {
     let matches = get_matches(linearized_paths, query, chunk_size);
-
-    let start = Instant::now();
-    let mut heus = matches
+    let chains = matches
         .iter()
-        .map(|m| get_path_max_chain(m, chunk_size, query.len() / chunk_size, query.len()))
+        .map(|m| get_path_max_chain(m, chunk_size, query.len() / chunk_size))
         .collect::<Vec<_>>();
-    println!("\tnormal: {:?}", start.elapsed());
-    let filtered_match = get_matches_coord(&matches, linearized_paths, chunk_size);
-    println!("{:?}", filtered_match);
-    let start = Instant::now();
 
-    let mut flat_matches: Vec<(&Match, Option<usize>)> = matches
-        .iter()
-        .enumerate()
-        .flat_map(|(i, m)| m.iter().map(move |x| (x, Some(i))))
-        .collect();
-    flat_matches.sort_by_key(|x| x.0.pos);
-    flat_matches.sort_by_key(|x| x.0.seed_id);
     let rec_cost = ClArgs::parse().base_rec_cost;
-    rec_chain_update(
-        &flat_matches,
-        chunk_size,
-        rec_cost as usize,
-        query.len() / chunk_size,
-        query.len(),
-        &mut heus,
-    );
-    println!("\trec: {:?}", start.elapsed());
+    let heus = rec_chain_update(&chains, rec_cost as usize, query.len(), chunk_size);
     heus
 }
 
 fn get_matches(
-    linearized_paths: &Vec<(Vec<u8>, Vec<u8>)>,
+    linearized_paths: &Vec<Vec<u8>>,
     query_w_prefix: &BString,
     chunk_size: usize,
 ) -> Vec<Vec<Match>> {
@@ -87,8 +51,7 @@ fn get_matches(
 
     let matches = linearized_paths
         .par_iter()
-        .enumerate()
-        .map(|(path_id, (path, _))| {
+        .map(|path| {
             seeds
                 .iter()
                 .enumerate()
@@ -96,7 +59,7 @@ fn get_matches(
                     let myers = Myers::<u64>::new(*seed);
                     let occ: Vec<(usize, u8)> = myers.find_all_end(path, 1).collect();
                     occ.iter()
-                        .map(|(pos, dist)| Match::new(*pos, *dist, seed_id, path_id))
+                        .map(|(pos, dist)| Match::new(*pos, *dist, seed_id))
                         .collect::<Vec<_>>()
                 })
                 .collect()
@@ -105,12 +68,7 @@ fn get_matches(
     matches
 }
 
-fn get_path_max_chain(
-    matches: &Vec<Match>,
-    match_len: usize,
-    seeds_number: usize,
-    query_len: usize,
-) -> Vec<usize> {
+fn get_path_max_chain(matches: &Vec<Match>, match_len: usize, seeds_number: usize) -> Vec<u8> {
     let mut chains = vec![Link::new(); matches.len()];
     for i in 0..matches.len() {
         chains[i] = Link::init(1, i, match_len);
@@ -145,273 +103,72 @@ fn get_path_max_chain(
     }
     max_chain.push(matches[current].clone());
     max_chain.reverse();
-    let mut max_chain_seed = vec![None; seeds_number];
+    let mut max_chain_seed = vec![2; seeds_number];
     max_chain.iter().for_each(|m| {
-        max_chain_seed[m.seed_id] = Some(m);
+        max_chain_seed[m.seed_id] = m.dist;
     });
-    let mut sum = 0;
-    let mut chain_score: Vec<_> = max_chain_seed
-        .iter()
-        .rev()
-        .map(|is_match| {
-            let update = if is_match.is_none() {
-                2
-            } else {
-                is_match.as_ref().unwrap().dist as usize
-            };
-            sum += update;
-            sum
-        })
-        .collect();
-    chain_score.reverse();
-    let mut heu: Vec<_> = chain_score
-        .iter()
-        .flat_map(|&x| std::iter::repeat(x).take(match_len))
-        .collect();
-
-    while heu.len() < query_len - 1 {
-        heu.push(heu[heu.len() - 1]);
-    }
-    heu.insert(0, chain_score[0]);
-    heu
+    max_chain_seed
 }
-
-fn get_matches_coord(
-    matches: &Vec<Vec<Match>>,
-    indexes: &Vec<(Vec<u8>, Vec<u8>)>,
-    match_len: usize,
-) -> Vec<(MatchCoord, BitVec)> {
-    let mut matches_coord: HashMap<MatchCoord, BitVec> = HashMap::new();
-    matches.iter().enumerate().for_each(|(path, path_matches)| {
-        path_matches.iter().for_each(|m| {
-            let coord = MatchCoord::build(m.pos, &indexes[m.path_id].1, m.seed_id, match_len);
-            if matches_coord.contains_key(&coord) {
-                matches_coord.get_mut(&coord).unwrap().set(path, true);
-            } else {
-                matches_coord.insert(coord.clone(), BitVec::from_elem(indexes.len(), false));
-                matches_coord.get_mut(&coord).unwrap().set(path, true);
-            }
-        })
-    });
-
-    matches_coord.into_iter().collect()
-}
-
-// TODO: consider score for match coord
-// Way to get distance rapidly
-/*
-fn new_rec_chain_update(
-    matches: &Vec<(MatchCoord, BitVec)>,
-    match_len: usize,
-    rec_cost: usize,
-    seeds_number: usize,
-    query_len: usize,
-    heuristics: &mut Vec<Vec<usize>>,
-) {
-    let mut chains = vec![Link::new(); matches.len()];
-
-    for (i, (m_i, path_i)) in matches.iter().enumerate() {
-        chains[i] = Link::init(1, i, match_len);
-
-        for (j, (m_j, path_j)) in matches.iter().enumerate().take(i) {
-
-            if  m_j.seed_id < m_i.seed_id && m_j < m_i{
-                let new_len = chains[j].len + 1;
-                let gap_cost = (m_i.pos - m_j.pos).abs_diff((m_i.seed_id - m_j.seed_id) * match_len);
-
-                if gap_cost <= match_len {
-                    let new_score = if path_i == path_j {
-                        chains[j].score + match_len - gap_cost - m_i.dist as usize
-                    } else {
-                        chains[j].score - rec_cost + match_len - gap_cost - m_i.dist as usize
-                    };
-
-                    if new_score > chains[i].score {
-                        chains[i] = Link::init(new_len, j, new_score);
-                    }
-                }
-            }
-        }
-    }
-    let max_chain_ending_pos = chains
-        .iter()
-        .enumerate()
-        .max_by_key(|x| x.1.score)
-        .unwrap()
-        .0;
-    let mut max_chain = Vec::new();
-    let mut current = max_chain_ending_pos;
-    while chains[current].pred != current {
-        max_chain.push(matches[current].clone());
-        current = chains[current].pred;
-    }
-    max_chain.push(matches[current].clone());
-    max_chain.reverse();
-    let mut max_chain_seed = vec![None; seeds_number];
-    max_chain.iter().for_each(|(m, path)| {
-        max_chain_seed[m.path_id] = Some((m, path));
-    });
-    let mut sum = 0;
-    let mut current_path = max_chain[max_chain.len() - 1].1;
-    let mut rec_chain: Vec<_> = max_chain_seed
-        .iter()
-        .rev()
-        .map(|m| {
-            let update = if m.is_none() {
-                2
-            } else if *m.as_ref().unwrap().1 == current_path {
-                m.as_ref().unwrap().0.dist as usize
-            } else {
-                current_path = *m.as_ref().unwrap().1;
-                rec_cost + m.as_ref().unwrap().0.dist as usize
-            };
-            sum += update;
-            (sum, current_path)
-        })
-        .collect();
-    rec_chain.reverse();
-    let mut heu: Vec<_> = rec_chain
-        .iter()
-        .flat_map(|&x| std::iter::repeat(x).take(match_len))
-        .collect();
-
-    while heu.len() < query_len - 1 {
-        heu.push(rec_chain[rec_chain.len() - 1]);
-    }
-    heu.insert(0, rec_chain[0]);
-
-    heuristics
-        .iter_mut()
-        .enumerate()
-        .for_each(|(path_id, path_heu)| {
-            path_heu.iter_mut().enumerate().for_each(|(pos, val)| {
-                let (rec_score, path) = heu[pos];
-                if path.unwrap_or(0) == path_id && rec_score < *val {
-                    *val = rec_score;
-                }
-            });
-        });
-}
-*/
 
 fn rec_chain_update(
-    matches: &Vec<(&Match, Option<usize>)>,
-    match_len: usize,
+    chains: &Vec<Vec<u8>>,
     rec_cost: usize,
-    seeds_number: usize,
     query_len: usize,
-    heuristics: &mut Vec<Vec<usize>>,
-) {
-    let chains = build_chain_links(matches, match_len, rec_cost);
-
-    let max_chain_ending_pos = chains
-        .iter()
-        .enumerate()
-        .max_by_key(|x| x.1.score)
-        .unwrap()
-        .0;
-    let mut max_chain = Vec::new();
-    let mut current = max_chain_ending_pos;
-    while chains[current].pred != current {
-        max_chain.push(matches[current].clone());
-        current = chains[current].pred;
-    }
-    max_chain.push(matches[current].clone());
-    max_chain.reverse();
-    let mut max_chain_seed = vec![None; seeds_number];
-    max_chain.iter().for_each(|(m, path)| {
-        max_chain_seed[m.seed_id] = Some((m, path));
-    });
-    let mut sum = 0;
-    let mut current_path = max_chain[max_chain.len() - 1].1;
-    let mut rec_chain: Vec<_> = max_chain_seed
-        .iter()
-        .rev()
-        .map(|m| {
-            let update = if m.is_none() {
-                2
-            } else if *m.as_ref().unwrap().1 == current_path {
-                m.as_ref().unwrap().0.dist as usize
-            } else {
-                current_path = *m.as_ref().unwrap().1;
-                rec_cost + m.as_ref().unwrap().0.dist as usize
-            };
-            sum += update;
-            (sum, current_path)
-        })
-        .collect();
-    rec_chain.reverse();
-    let mut heu: Vec<_> = rec_chain
-        .iter()
-        .flat_map(|&x| std::iter::repeat(x).take(match_len))
-        .collect();
-
-    while heu.len() < query_len - 1 {
-        heu.push(rec_chain[rec_chain.len() - 1]);
-    }
-    heu.insert(0, rec_chain[0]);
-
-    heuristics
-        .iter_mut()
-        .enumerate()
-        .for_each(|(path_id, path_heu)| {
-            path_heu.iter_mut().enumerate().for_each(|(pos, val)| {
-                let (rec_score, path) = heu[pos];
-                if path.unwrap_or(0) == path_id && rec_score < *val {
-                    *val = rec_score;
-                }
-            });
-        });
-}
-
-fn build_chain_links(
-    matches: &Vec<(&Match, Option<usize>)>,
     match_len: usize,
-    rec_cost: usize,
-) -> Vec<Link> {
-    let mut chains = vec![Link::new(); matches.len()];
+) -> Vec<Vec<usize>> {
+    let mut rec_chains = vec![vec![Link::new(); chains[0].len()]; chains.len()];
+    let mut best_paths = vec![0; chains[0].len()];
+    for j in (0..rec_chains[0].len() - 1).rev() {
+        let mut curr_best = None;
+        for i in 0..rec_chains.len() {
+            let best_path = best_paths[j + 1];
+            let score = rec_chains[i][j + 1].score + chains[i][j] as usize;
+            let score_rec = rec_chains[best_path][j + 1].score + chains[i][j] as usize + rec_cost;
+            if score < score_rec {
+                rec_chains[i][j] = Link::init(rec_chains[i][j + 1].len + 1, j, score);
+            } else {
+                rec_chains[i][j] =
+                    Link::init(rec_chains[best_path][j + 1].len + 1, best_path, score_rec);
+            }
 
-    for (i, (m_i, path_i)) in matches.iter().enumerate() {
-        chains[i] = Link::init(1, i, match_len);
-
-        for (j, (m_j, path_j)) in matches.iter().enumerate().take(i) {
-            if m_j.seed_id < m_i.seed_id && m_j.pos < m_i.pos {
-                let new_len = chains[j].len + 1;
-                let gap_cost =
-                    (m_i.pos - m_j.pos).abs_diff((m_i.seed_id - m_j.seed_id) * match_len);
-
-                if gap_cost <= match_len {
-                    let new_score = if path_i == path_j {
-                        chains[j].score + match_len - gap_cost - m_i.dist as usize
-                    } else {
-                        chains[j].score - rec_cost + match_len - gap_cost - m_i.dist as usize
-                    };
-
-                    if new_score > chains[i].score {
-                        chains[i] = Link::init(new_len, j, new_score);
-                    }
-                }
+            if curr_best.is_none()
+                || rec_chains[i][j].score <= rec_chains[curr_best.unwrap() as usize][j].score
+            {
+                curr_best = Some(i);
             }
         }
+        best_paths[j] = curr_best.unwrap();
     }
-    chains
+
+    let mut chains_score: Vec<Vec<_>> = rec_chains
+        .iter()
+        .map(|chain| {
+            chain
+                .iter()
+                .flat_map(|link| std::iter::repeat(link.score).take(match_len))
+                .collect::<Vec<_>>()
+        })
+        .collect();
+
+    chains_score.iter_mut().for_each(|chain| {
+        while chain.len() < query_len - 1 {
+            chain.push(chain[chain.len() - 1]);
+        }
+        chain.insert(0, chain[0]);
+    });
+
+    chains_score
 }
 #[derive(Debug, Clone)]
 pub struct Match {
     pub pos: usize,
     pub dist: u8,
     pub seed_id: usize,
-    pub path_id: usize,
 }
 
 impl Match {
-    pub fn new(pos: usize, dist: u8, seed_id: usize, path_id: usize) -> Self {
-        Self {
-            pos,
-            dist,
-            seed_id,
-            path_id,
-        }
+    pub fn new(pos: usize, dist: u8, seed_id: usize) -> Self {
+        Self { pos, dist, seed_id }
     }
 }
 
@@ -432,190 +189,5 @@ impl Link {
     }
     pub fn init(len: usize, pred: usize, score: usize) -> Self {
         Link { len, pred, score }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
-pub struct MatchNode {
-    pub node_id: usize,
-    pub offset: usize,
-}
-
-impl MatchNode {
-    pub fn new(node_id: usize, offset: usize) -> MatchNode {
-        MatchNode { node_id, offset }
-    }
-}
-
-impl Ord for MatchNode {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.node_id.cmp(&other.node_id)
-    }
-}
-
-impl PartialOrd for MatchNode {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct MatchCoord {
-    pub node_start: MatchNode,
-    pub node_end: MatchNode,
-    pub seed_id: usize,
-}
-
-impl MatchCoord {
-    pub fn empty_new() -> MatchCoord {
-        MatchCoord {
-            node_start: MatchNode::new(0, 0),
-            node_end: MatchNode::new(0, 0),
-            seed_id: 0,
-        }
-    }
-    pub fn build(
-        position: usize,
-        handles_pos: &[u8],
-        seed_id: usize,
-        match_len: usize,
-    ) -> MatchCoord {
-        let start_handle_id = handles_pos[position] as usize;
-        let mut start_offset = 0;
-        let mut start = position;
-        while start > 0 && handles_pos[start - 1] == start_handle_id as u8 {
-            start -= 1;
-            start_offset += 1;
-        }
-
-        let end_handle_id = handles_pos[position + match_len - 1] as usize;
-        let mut end = position + match_len - 1;
-        let mut end_offset = 0;
-
-        while end > 0 && handles_pos[end - 1] == end_handle_id as u8 {
-            end -= 1;
-            end_offset += 1;
-        }
-
-        MatchCoord {
-            node_start: MatchNode::new(start_handle_id, start_offset),
-            node_end: MatchNode::new(end_handle_id, end_offset),
-            seed_id,
-        }
-    }
-
-    pub fn equal(&self, other: &MatchCoord) -> bool {
-        self.node_start == other.node_start && self.node_end == other.node_end
-    }
-}
-
-impl Ord for MatchCoord {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.node_start.cmp(&other.node_start)
-    }
-}
-
-impl PartialOrd for MatchCoord {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn test_coord_equal() {
-        let coord1: MatchCoord = MatchCoord {
-            node_start: MatchNode::new(1, 0),
-            node_end: MatchNode::new(1, 0),
-            seed_id: 0,
-        };
-        let coord2 = MatchCoord {
-            node_start: MatchNode::new(1, 0),
-            node_end: MatchNode::new(1, 0),
-            seed_id: 0,
-        };
-        let coord3 = MatchCoord {
-            node_start: MatchNode::new(1, 0),
-            node_end: MatchNode::new(1, 0),
-            seed_id: 1,
-        };
-        let coord4 = MatchCoord {
-            node_start: MatchNode::new(1, 0),
-            node_end: MatchNode::new(1, 1),
-            seed_id: 0,
-        };
-        let coord5 = MatchCoord {
-            node_start: MatchNode::new(1, 1),
-            node_end: MatchNode::new(1, 0),
-            seed_id: 0,
-        };
-        let coord6 = MatchCoord {
-            node_start: MatchNode::new(1, 1),
-            node_end: MatchNode::new(1, 1),
-            seed_id: 0,
-        };
-        assert_eq!(coord1, coord2);
-        assert_ne!(coord1, coord3);
-        assert_ne!(coord1, coord4);
-        assert_ne!(coord1, coord5);
-        assert_ne!(coord1, coord6);
-        assert_ne!(coord4, coord5);
-        assert_ne!(coord4, coord6);
-        assert_ne!(coord5, coord6);
-    }
-
-    // TODO: test for ordering between match coord
-    #[test]
-    fn test_coord_ordering() {
-        let coord1: MatchCoord = MatchCoord {
-            node_start: MatchNode::new(1, 0),
-            node_end: MatchNode::new(2, 0),
-            seed_id: 0,
-        };
-        let coord2 = MatchCoord {
-            node_start: MatchNode::new(1, 0),
-            node_end: MatchNode::new(1, 0),
-            seed_id: 1,
-        };
-        let coord3 = MatchCoord {
-            node_start: MatchNode::new(3, 0),
-            node_end: MatchNode::new(4, 0),
-            seed_id: 0,
-        };
-        let coord4 = MatchCoord {
-            node_start: MatchNode::new(1, 0),
-            node_end: MatchNode::new(2, 10),
-            seed_id: 0,
-        };
-        let coord5 = MatchCoord {
-            node_start: MatchNode::new(3, 5),
-            node_end: MatchNode::new(5, 6),
-            seed_id: 0,
-        };
-        let coord6 = MatchCoord {
-            node_start: MatchNode::new(2, 10),
-            node_end: MatchNode::new(6, 0),
-            seed_id: 1,
-        };
-        let coord7 = MatchCoord {
-            node_start: MatchNode::new(1, 1),
-            node_end: MatchNode::new(1, 0),
-            seed_id: 1,
-        };
-        let coord8 = MatchCoord {
-            node_start: MatchNode::new(1, 1),
-            node_end: MatchNode::new(1, 1),
-            seed_id: 1,
-        };
-
-        assert!(!(coord1 < coord2));
-        assert!(!(coord2 < coord1));
-
-        assert!(coord1 < coord3);
-        assert!(coord4 < coord5);
-
-        assert!(!(coord4 < coord5));
     }
 }
