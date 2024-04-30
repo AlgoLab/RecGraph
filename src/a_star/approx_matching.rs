@@ -1,4 +1,9 @@
-use std::{cmp::Ordering, collections::HashMap, hash::{Hash, Hasher}, time::Instant};
+use std::{
+    cmp::Ordering,
+    collections::HashMap,
+    hash::{Hash, Hasher},
+    time::Instant,
+};
 
 use bio::pattern_matching::myers::Myers;
 use bit_vec::BitVec;
@@ -179,7 +184,7 @@ fn get_matches_coord(
     let mut matches_coord: HashMap<MatchCoord, BitVec> = HashMap::new();
     matches.iter().enumerate().for_each(|(path, path_matches)| {
         path_matches.iter().for_each(|m| {
-            let coord = MatchCoord::build( m.pos, &indexes[m.path_id].1, m.seed_id, match_len);
+            let coord = MatchCoord::build(m.pos, &indexes[m.path_id].1, m.seed_id, match_len);
             if matches_coord.contains_key(&coord) {
                 matches_coord.get_mut(&coord).unwrap().set(path, true);
             } else {
@@ -487,7 +492,7 @@ impl MatchCoord {
         let mut end = position + match_len - 1;
         let mut end_offset = 0;
 
-        while end > 0 && handles_pos[end - 1] == end_handle_id as u8{
+        while end > 0 && handles_pos[end - 1] == end_handle_id as u8 {
             end -= 1;
             end_offset += 1;
         }
@@ -502,14 +507,12 @@ impl MatchCoord {
     pub fn equal(&self, other: &MatchCoord) -> bool {
         self.node_start == other.node_start && self.node_end == other.node_end
     }
-
 }
 
 impl Ord for MatchCoord {
     fn cmp(&self, other: &Self) -> Ordering {
         self.node_start.cmp(&other.node_start)
     }
-    
 }
 
 impl PartialOrd for MatchCoord {
@@ -522,7 +525,7 @@ impl PartialOrd for MatchCoord {
 mod tests {
     use super::*;
     #[test]
-    fn test_coord_equal (){
+    fn test_coord_equal() {
         let coord1: MatchCoord = MatchCoord {
             node_start: MatchNode::new(1, 0),
             node_end: MatchNode::new(1, 0),
@@ -562,7 +565,6 @@ mod tests {
         assert_ne!(coord4, coord6);
         assert_ne!(coord5, coord6);
     }
-
 
     // TODO: test for ordering between match coord
     #[test]
@@ -613,8 +615,7 @@ mod tests {
 
         assert!(coord1 < coord3);
         assert!(coord4 < coord5);
-        
+
         assert!(!(coord4 < coord5));
     }
 }
-        

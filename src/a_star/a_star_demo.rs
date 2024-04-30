@@ -4,7 +4,7 @@ use gfa::gfa::GFA;
 use gfa::parser::GFAParser;
 use handlegraph::hashgraph::HashGraph;
 
-use crate::a_star::{a_star_visit, approx_matching};
+use crate::a_star::{a_star_visit, approx_matching, new_approx_matching};
 use crate::args_parser::ClArgs;
 use crate::new_path_graph::path_graph::PathGraph;
 use crate::sequences;
@@ -24,13 +24,16 @@ pub fn a_star_demo_chain() {
     let chunk_size = ClArgs::parse().seed_len;
     let start = Instant::now();
     let linearized_paths = approx_matching::get_linearized_paths_and_handles(&graph);
+    let new_linearized_paths = new_approx_matching::get_linearized_paths(&graph);
     let mut outs = Vec::new();
     let mut count = Duration::new(0, 0);
     sequences.iter().for_each(|seq| {
         let istant = Instant::now();
-        let crumbs = approx_matching::build_heuristic(&linearized_paths, seq, chunk_size as usize);
+        let new_crumbs =
+            new_approx_matching::build_heuristic(&new_linearized_paths, seq, chunk_size as usize);
+        println!("{:?}", new_crumbs);
         count += Instant::now() - istant;
-        let (end_pos, mut alignment_graph) = a_star_visit::exec(seq, &crumbs, &path_graph);
+        let (end_pos, mut alignment_graph) = a_star_visit::exec(seq, &new_crumbs, &path_graph);
 
         outs.push(build_gaf(&mut alignment_graph, &end_pos, &path_graph, seq));
     });
