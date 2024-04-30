@@ -133,6 +133,16 @@ struct Args {
         help = "Seed length"
     )]
     seed_len: i32,
+
+    //Max num error per seed
+    #[clap(
+        help_heading = "A-Star",
+        short = 'e',
+        long = "err-max",
+        default_value_t = 1,
+        help = "Set the maximum number of errors allowed per seed between 0,1 or 2. Default is 1."
+    )]
+    mex_err_seed: u8,
 }
 
 pub struct ClArgs {
@@ -149,6 +159,7 @@ pub struct ClArgs {
     pub max_displacement: i32,
     pub out_file: String,
     pub seed_len: i32,
+    pub mex_err_seed: u8,
 }
 
 impl ClArgs {
@@ -168,6 +179,7 @@ impl ClArgs {
             max_displacement: args.max_displacement,
             out_file: args.out_file,
             seed_len: args.seed_len,
+            mex_err_seed: args.mex_err_seed,
         }
     }
 }

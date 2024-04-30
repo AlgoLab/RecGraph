@@ -28,7 +28,13 @@ pub fn a_star_demo_chain() {
     let mut count = Duration::new(0, 0);
     sequences.iter().for_each(|seq| {
         let istant = Instant::now();
-        let crumbs = approx_matching::build_heuristic(&linearized_paths, seq, chunk_size as usize);
+        let crumbs = approx_matching::build_heuristic(
+            &linearized_paths,
+            seq,
+            chunk_size as usize,
+            args.base_rec_cost as usize,
+            args.mex_err_seed,
+        );
         count += Instant::now() - istant;
         let (end_pos, mut alignment_graph) = a_star_visit::exec(seq, &crumbs, &path_graph);
 

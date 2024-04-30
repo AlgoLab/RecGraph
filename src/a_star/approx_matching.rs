@@ -4,8 +4,6 @@ use rayon::prelude::*;
 use bstr::BString;
 use handlegraph::{handlegraph::HandleGraph, hashgraph::HashGraph};
 
-use crate::args_parser::ClArgs;
-
 pub fn get_linearized_paths(graph: &HashGraph) -> Vec<Vec<u8>> {
     let mut lnz_paths = graph
         .paths
@@ -28,15 +26,16 @@ pub fn build_heuristic(
     linearized_paths: &Vec<Vec<u8>>,
     query: &BString,
     chunk_size: usize,
+    rec_cost: usize,
+    max_err: u8,
 ) -> Vec<Vec<usize>> {
-    let matches = get_matches(linearized_paths, query, chunk_size);
+    let matches = get_matches(linearized_paths, query, chunk_size, max_err);
     let chains = matches
         .iter()
-        .map(|m| get_path_max_chain(m, chunk_size, query.len() / chunk_size))
+        .map(|m| get_path_max_chain(m, chunk_size, query.len() / chunk_size, max_err))
         .collect::<Vec<_>>();
 
-    let rec_cost = ClArgs::parse().base_rec_cost;
-    let heus = rec_chain_update(&chains, rec_cost as usize, query.len(), chunk_size);
+    let heus = rec_chain_update(&chains, rec_cost, query.len(), chunk_size);
     heus
 }
 
@@ -44,6 +43,7 @@ fn get_matches(
     linearized_paths: &Vec<Vec<u8>>,
     query_w_prefix: &BString,
     chunk_size: usize,
+    max_err: u8,
 ) -> Vec<Vec<Match>> {
     let query = &BString::from(&query_w_prefix[1..]);
 
@@ -57,7 +57,7 @@ fn get_matches(
                 .enumerate()
                 .flat_map(|(seed_id, seed)| {
                     let myers = Myers::<u64>::new(*seed);
-                    let occ: Vec<(usize, u8)> = myers.find_all_end(path, 1).collect();
+                    let occ: Vec<(usize, u8)> = myers.find_all_end(path, max_err).collect();
                     occ.iter()
                         .map(|(pos, dist)| Match::new(*pos, *dist, seed_id))
                         .collect::<Vec<_>>()
@@ -68,7 +68,12 @@ fn get_matches(
     matches
 }
 
-fn get_path_max_chain(matches: &Vec<Match>, match_len: usize, seeds_number: usize) -> Vec<u8> {
+fn get_path_max_chain(
+    matches: &Vec<Match>,
+    match_len: usize,
+    seeds_number: usize,
+    max_err: u8,
+) -> Vec<u8> {
     let mut chains = vec![Link::new(); matches.len()];
     for i in 0..matches.len() {
         chains[i] = Link::init(1, i, match_len);
@@ -103,7 +108,7 @@ fn get_path_max_chain(matches: &Vec<Match>, match_len: usize, seeds_number: usiz
     }
     max_chain.push(matches[current].clone());
     max_chain.reverse();
-    let mut max_chain_seed = vec![2; seeds_number];
+    let mut max_chain_seed = vec![max_err + 1; seeds_number];
     max_chain.iter().for_each(|m| {
         max_chain_seed[m.seed_id] = m.dist;
     });
