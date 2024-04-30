@@ -10,6 +10,7 @@ pub struct PathGraph {
     pub lnz: BString,
     pub nws: BitVec,
     pub succ_hash: SuccHash,
+    pub ending_positions: Vec<usize>,
 }
 
 impl PathGraph {
@@ -18,6 +19,7 @@ impl PathGraph {
             lnz: BString::from(""),
             nws: BitVec::new(),
             succ_hash: SuccHash::new(),
+            ending_positions: Vec::new(),
         }
     }
 
@@ -33,7 +35,7 @@ impl PathGraph {
         let mut nws = BitVec::new();
         nws.push(true);
 
-        let mut last_path_pos = Vec::new();
+        let mut last_path_pos = vec![0; graph.paths.len()];
         graph.paths.iter().for_each(|(id, path)| {
             let mut prev_handle_end = 0;
             path.nodes.iter().for_each(|node| {
@@ -53,19 +55,20 @@ impl PathGraph {
                 succ_hash.set_node_successor(prev_handle_end, *handle_start);
                 prev_handle_end = handles_id_pos.get(&(node.0 as usize)).unwrap().1;
             });
-            last_path_pos.push(prev_handle_end);
+            last_path_pos[*id as usize] = prev_handle_end;
         });
 
         lnz.push(b'$');
 
         succ_hash.set_node_paths(lnz.len() - 1, BitVec::from_elem(graph.paths.len(), true));
-        for final_pos in last_path_pos {
-            succ_hash.set_node_successor(final_pos, lnz.len() - 1);
+        for final_pos in last_path_pos.iter() {
+            succ_hash.set_node_successor(*final_pos, lnz.len() - 1);
         }
         PathGraph {
             lnz,
             nws,
             succ_hash,
+            ending_positions: last_path_pos,
         }
     }
 }

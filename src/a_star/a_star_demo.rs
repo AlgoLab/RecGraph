@@ -36,9 +36,16 @@ pub fn a_star_demo_chain() {
             args.mex_err_seed,
         );
         count += Instant::now() - istant;
-        let (end_pos, mut alignment_graph) = a_star_visit::exec(seq, &crumbs, &path_graph);
+        let (end_pos, mut alignment_graph) =
+            a_star_visit::exec(seq, &crumbs, &path_graph, args.alignment_mode);
 
-        outs.push(build_gaf(&mut alignment_graph, &end_pos, &path_graph, seq));
+        outs.push(build_gaf(
+            &mut alignment_graph,
+            &end_pos,
+            &path_graph,
+            seq,
+            args.alignment_mode,
+        ));
     });
     outs.iter().for_each(|out| println!("{}", out));
     println!("Heu: {:?}", count);

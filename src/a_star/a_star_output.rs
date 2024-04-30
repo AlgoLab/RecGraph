@@ -10,13 +10,14 @@ pub fn build_gaf(
     end_pos: &Coord,
     path_graph: &PathGraph,
     query: &BString,
+    is_local: bool,
 ) -> String {
     let mut align_coord = end_pos.clone();
     let mut align = alignment_graph.remove(&align_coord).unwrap();
     let ed = align.g;
     let mut cigar = Vec::new();
     let mut recs = Vec::new();
-    while (align_coord.node, align_coord.pos) != (0, 0) {
+    while align_coord.pos != 0 {
         if align.parent.path != align_coord.path {
             recs.push(format!(
                 "REC paths {} - {}\t pos {:?}",
@@ -40,7 +41,16 @@ pub fn build_gaf(
         align_coord = align.parent.clone();
         align = alignment_graph.remove(&align_coord).unwrap();
     }
+
+    if !is_local {
+        while align_coord.node != 0 {
+            cigar.push('U');
+            align_coord = align.parent.clone();
+            align = alignment_graph.remove(&align_coord).unwrap();
+        }
+    }
     cigar.reverse();
+
     let recs_out_string = recs.join("\t");
     let output = format!(
         "{:?}\tbest path: {}\tED {}\t{}",

@@ -11,6 +11,7 @@ pub fn exec(
     query: &BString,
     crumbs: &Vec<Vec<usize>>,
     path_graph: &PathGraph,
+    is_local: bool,
 ) -> (Coord, HashMap<Coord, AStarNode>) {
     // init A* data structure, each path possible starting point
     let mut alignment_graph = HashMap::new();
@@ -29,7 +30,11 @@ pub fn exec(
     while !open_set.is_empty() {
         let (current_node_coord, _) = open_set.delete_min().unwrap();
         let current_node = alignment_graph.get(&current_node_coord).unwrap().clone();
-        if current_node_coord.pos == query.len() - 1 {
+        if current_node_coord.pos == query.len() - 1
+            && (current_node_coord.node == path_graph.ending_positions[current_node_coord.path]
+                || is_local)
+        {
+            // remove second check if semiglobal
             end_pos = Some(current_node_coord);
             break;
         }
@@ -54,6 +59,7 @@ pub fn exec(
                     &mut alignment_graph,
                     &crumbs,
                     current_node_coord.node + 1,
+                    is_local,
                 );
             } else {
                 path_graph
@@ -77,6 +83,7 @@ pub fn exec(
                                 &mut alignment_graph,
                                 &crumbs,
                                 *succ,
+                                is_local,
                             );
                         }
                     });
@@ -135,7 +142,6 @@ fn update_open_set(
     }
 }
 
-// TODO: add ony if path is present in node
 fn add_multi_recs(
     current_node: &AStarNode,
     current_node_coord: &Coord,
@@ -194,40 +200,37 @@ fn push_neigh(
     alignment_graph: &mut HashMap<Coord, AStarNode>,
     crumbs: &Vec<Vec<usize>>,
     succ: usize,
+    is_local: bool,
 ) {
-    let (m_x, ins, del) = get_neighbours(&current_node, &current_node_coord, &crumbs, match_mis);
-    // change for semiglobal alignment
-    if match_mis == 0 {
-        update_open_set(
-            open_set,
-            alignment_graph,
-            &m_x,
-            Coord::init(succ, current_node_coord.pos + 1, current_node_coord.path),
-        );
-    } else {
-        update_open_set(
-            open_set,
-            alignment_graph,
-            &m_x,
-            Coord::init(succ, current_node_coord.pos + 1, current_node_coord.path),
-        );
-        update_open_set(
-            open_set,
-            alignment_graph,
-            &ins,
-            Coord::init(succ, current_node_coord.pos, current_node_coord.path),
-        );
-        update_open_set(
-            open_set,
-            alignment_graph,
-            &del,
-            Coord::init(
-                current_node_coord.node,
-                current_node_coord.pos + 1,
-                current_node_coord.path,
-            ),
-        );
+    let (m_x, mut ins, del) =
+        get_neighbours(&current_node, &current_node_coord, &crumbs, match_mis);
+
+    if current_node_coord.pos == 0 && is_local {
+        ins.g = 0;
     }
+
+    update_open_set(
+        open_set,
+        alignment_graph,
+        &m_x,
+        Coord::init(succ, current_node_coord.pos + 1, current_node_coord.path),
+    );
+    update_open_set(
+        open_set,
+        alignment_graph,
+        &ins,
+        Coord::init(succ, current_node_coord.pos, current_node_coord.path),
+    );
+    update_open_set(
+        open_set,
+        alignment_graph,
+        &del,
+        Coord::init(
+            current_node_coord.node,
+            current_node_coord.pos + 1,
+            current_node_coord.path,
+        ),
+    );
 }
 #[derive(Debug, Clone)]
 pub struct Coord {
