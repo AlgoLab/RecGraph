@@ -11,7 +11,7 @@ pub fn exec(
     crumbs: &Vec<Vec<u32>>,
     path_graph: &PathGraph,
     is_local: bool,
-    rec_cost: u32
+    rec_cost: u32,
 ) -> (Coord, HashMap<Coord, AStarNode>) {
     // init A* data structure, each path possible starting point
     let mut alignment_graph = HashMap::new();
@@ -31,7 +31,8 @@ pub fn exec(
         let (current_node_coord, _) = open_set.delete_min().unwrap();
         let current_node = alignment_graph.get(&current_node_coord).unwrap().clone();
         if current_node_coord.pos == query.len() as u32 - 1
-            && (current_node_coord.node == path_graph.ending_positions[current_node_coord.path as usize] as u32
+            && (current_node_coord.node
+                == path_graph.ending_positions[current_node_coord.path as usize] as u32
                 || is_local)
         {
             // remove second check if semiglobal
@@ -68,12 +69,13 @@ pub fn exec(
                     .iter()
                     .for_each(|(succ, paths)| {
                         if paths[current_node_coord.path as usize] {
-                            let match_mis =
-                                if path_graph.lnz[*succ as usize]  == query[current_node_coord.pos as usize + 1] {
-                                    0
-                                } else {
-                                    1
-                                };
+                            let match_mis = if path_graph.lnz[*succ as usize]
+                                == query[current_node_coord.pos as usize + 1]
+                            {
+                                0
+                            } else {
+                                1
+                            };
 
                             push_neigh(
                                 match_mis,
@@ -153,7 +155,6 @@ fn add_multi_recs(
     alignment_graph: &mut HashMap<Coord, AStarNode>,
     rec_cost: u32,
 ) {
-    
     if let Some((score, path)) =
         best_score_per_position.get(&(current_node_coord.node, current_node_coord.pos))
     {

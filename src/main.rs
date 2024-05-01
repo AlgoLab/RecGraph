@@ -18,6 +18,7 @@ static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 fn main() {
     let now = SystemTime::now();
 
+    /*
     let args = ClArgs::parse();
 
     let (sequences, ids) = sequences::get_sequences(args.sequence_path);
@@ -31,8 +32,7 @@ fn main() {
     let (base_rec_cost, multi_rec_cost) = (args.base_rec_cost, args.multi_rec_cost);
     let is_local = args.alignment_mode;
 
-    a_star_demo::a_star_demo_chain();
-    /*
+
     let mut gafs = Vec::new();
     let start = Instant::now();
     sequences.iter().enumerate().for_each(|(i, seq)| {
@@ -56,6 +56,7 @@ fn main() {
     }
     println!("alignment time: {:?}", start.elapsed());
      */
+    a_star_demo::a_star_demo_chain();
 
     match now.elapsed() {
         Ok(elapsed) => {

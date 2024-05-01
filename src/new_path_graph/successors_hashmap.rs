@@ -68,8 +68,10 @@ impl SuccHash {
 
     pub fn set_node_path(&mut self, curr_node: u32, path: u32) {
         if self.paths_in_nodes.get(&curr_node).is_none() {
-            self.paths_in_nodes
-                .insert(curr_node, BitVec::from_elem(self.paths_number as usize, false));
+            self.paths_in_nodes.insert(
+                curr_node,
+                BitVec::from_elem(self.paths_number as usize, false),
+            );
         }
         self.paths_in_nodes
             .get_mut(&curr_node)
