@@ -132,16 +132,10 @@ fn update_open_set(
     new_node: &AStarNode,
     new_node_coord: Coord,
 ) {
-    if let Some(old_node) = alignment_graph.remove(&new_node_coord) {
-        if new_node.g < old_node.g {
-            open_set.insert(new_node_coord.clone(), new_node.g + new_node.h);
-            alignment_graph.insert(new_node_coord.clone(), new_node.clone());
-        } else {
-            alignment_graph.insert(new_node_coord.clone(), old_node);
-        }
-    } else {
-        open_set.insert(new_node_coord.clone(), new_node.g + new_node.h);
-        alignment_graph.insert(new_node_coord.clone(), new_node.clone());
+    let old_node = alignment_graph.get(&new_node_coord);
+    if old_node.is_none() || old_node.unwrap().g > new_node.g {
+        open_set.insert(new_node_coord, new_node.g + new_node.h);
+        alignment_graph.insert(new_node_coord, new_node.clone());
     }
 }
 

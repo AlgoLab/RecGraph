@@ -56,8 +56,9 @@ fn get_matches(
                 .iter()
                 .enumerate()
                 .flat_map(|(seed_id, seed)| {
-                    let myers = Myers::<u64>::new(*seed);
-                    let occ: Vec<(usize, u8)> = myers.find_all_end(path, max_err).collect();
+                    let mut myers = Myers::<u64>::new(*seed);
+                    let occ_iter = myers.find_all(path, max_err);
+                    let occ = occ_iter.map(|(start, _, dist)| (start, dist)).collect::<Vec<_>>();
                     occ.iter()
                         .map(|(pos, dist)| Match::new(*pos, *dist, seed_id))
                         .collect::<Vec<_>>()
