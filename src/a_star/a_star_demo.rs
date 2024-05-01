@@ -37,7 +37,7 @@ pub fn a_star_demo_chain() {
         );
         count += Instant::now() - istant;
         let (end_pos, mut alignment_graph) =
-            a_star_visit::exec(seq, &crumbs, &path_graph, args.alignment_mode);
+            a_star_visit::exec(seq, &crumbs, &path_graph, args.alignment_mode, args.base_rec_cost as u32);
 
         outs.push(build_gaf(
             &mut alignment_graph,

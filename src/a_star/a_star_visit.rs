@@ -1,4 +1,3 @@
-use crate::args_parser::ClArgs;
 use crate::new_path_graph::path_graph::PathGraph;
 use ahash::AHashMap as HashMap;
 use bit_vec::BitVec;
@@ -9,19 +8,20 @@ use std::{fmt::Debug, hash::Hasher};
 
 pub fn exec(
     query: &BString,
-    crumbs: &Vec<Vec<usize>>,
+    crumbs: &Vec<Vec<u32>>,
     path_graph: &PathGraph,
     is_local: bool,
+    rec_cost: u32
 ) -> (Coord, HashMap<Coord, AStarNode>) {
     // init A* data structure, each path possible starting point
     let mut alignment_graph = HashMap::new();
-    let mut best_score_per_position = HashMap::new();
+    let mut best_score_per_position: HashMap<(u32, u32), (u32, u32)> = HashMap::new();
     let mut open_set = FibHeap::new();
     for path in 0..crumbs.len() {
         let node = AStarNode::new_path(path, &crumbs);
-        let node_coord = Coord::init(0, 0, path);
+        let node_coord = Coord::init(0, 0, path as u32);
         open_set.insert(node_coord.clone(), node.g + node.h);
-        best_score_per_position.insert((node_coord.node, node_coord.pos), (node.g, path));
+        best_score_per_position.insert((node_coord.node, node_coord.pos), (node.g, path as u32));
         alignment_graph.insert(node_coord, node);
     }
 
@@ -30,8 +30,8 @@ pub fn exec(
     while !open_set.is_empty() {
         let (current_node_coord, _) = open_set.delete_min().unwrap();
         let current_node = alignment_graph.get(&current_node_coord).unwrap().clone();
-        if current_node_coord.pos == query.len() - 1
-            && (current_node_coord.node == path_graph.ending_positions[current_node_coord.path]
+        if current_node_coord.pos == query.len() as u32 - 1
+            && (current_node_coord.node == path_graph.ending_positions[current_node_coord.path as usize] as u32
                 || is_local)
         {
             // remove second check if semiglobal
@@ -39,12 +39,12 @@ pub fn exec(
             break;
         }
         // add neigh of current node (EDIT ops + rec) if not outside graph
-        if current_node_coord.node + 1 < path_graph.lnz.len()
-            && current_node_coord.pos + 1 < query.len()
+        if current_node_coord.node + 1 < path_graph.lnz.len() as u32
+            && current_node_coord.pos + 1 < query.len() as u32
         {
-            if !path_graph.nws[current_node_coord.node] {
-                let match_mis = if path_graph.lnz[current_node_coord.node + 1]
-                    == query[current_node_coord.pos + 1]
+            if !path_graph.nws[current_node_coord.node as usize] {
+                let match_mis = if path_graph.lnz[current_node_coord.node as usize + 1]
+                    == query[current_node_coord.pos as usize + 1]
                 {
                     0
                 } else {
@@ -67,9 +67,9 @@ pub fn exec(
                     .get_node_succs_and_paths(current_node_coord.node)
                     .iter()
                     .for_each(|(succ, paths)| {
-                        if paths[current_node_coord.path] {
+                        if paths[current_node_coord.path as usize] {
                             let match_mis =
-                                if path_graph.lnz[*succ] == query[current_node_coord.pos + 1] {
+                                if path_graph.lnz[*succ as usize]  == query[current_node_coord.pos as usize + 1] {
                                     0
                                 } else {
                                     1
@@ -96,6 +96,7 @@ pub fn exec(
                     paths,
                     &mut open_set,
                     &mut alignment_graph,
+                    rec_cost,
                 );
             }
         }
@@ -109,10 +110,10 @@ pub fn exec(
 fn get_neighbours(
     current_node: &AStarNode,
     current_node_coord: &Coord,
-    crumbs: &Vec<Vec<usize>>,
-    match_mis: usize,
+    crumbs: &Vec<Vec<u32>>,
+    match_mis: u32,
 ) -> (AStarNode, AStarNode, AStarNode) {
-    let h = crumbs[current_node_coord.path][current_node_coord.pos + 1];
+    let h = crumbs[current_node_coord.path as usize][current_node_coord.pos as usize + 1];
 
     let m_x = AStarNode::init(current_node.g + match_mis, h, &current_node_coord);
 
@@ -124,7 +125,7 @@ fn get_neighbours(
 }
 
 fn update_open_set(
-    open_set: &mut FibHeap<Coord, usize>,
+    open_set: &mut FibHeap<Coord, u32>,
     alignment_graph: &mut HashMap<Coord, AStarNode>,
     new_node: &AStarNode,
     new_node_coord: Coord,
@@ -145,20 +146,21 @@ fn update_open_set(
 fn add_multi_recs(
     current_node: &AStarNode,
     current_node_coord: &Coord,
-    best_score_per_position: &mut HashMap<(usize, usize), (usize, usize)>,
-    crumbs: &Vec<Vec<usize>>,
+    best_score_per_position: &mut HashMap<(u32, u32), (u32, u32)>,
+    crumbs: &Vec<Vec<u32>>,
     paths: &BitVec,
-    open_set: &mut FibHeap<Coord, usize>,
+    open_set: &mut FibHeap<Coord, u32>,
     alignment_graph: &mut HashMap<Coord, AStarNode>,
+    rec_cost: u32,
 ) {
-    let rec_cost = ClArgs::parse().base_rec_cost as usize;
+    
     if let Some((score, path)) =
         best_score_per_position.get(&(current_node_coord.node, current_node_coord.pos))
     {
         if score + rec_cost < current_node.g {
             let rec_node = AStarNode::init(
                 *score + rec_cost,
-                crumbs[*path][current_node_coord.pos],
+                crumbs[*path as usize][current_node_coord.pos as usize],
                 &current_node_coord,
             );
             let rec_node_coord =
@@ -178,14 +180,14 @@ fn add_multi_recs(
             (current_node.g, current_node_coord.path),
         );
         for (path, is_in) in paths.iter().enumerate() {
-            if is_in && crumbs[path][current_node_coord.pos] <= current_node.h {
+            if is_in && crumbs[path][current_node_coord.pos as usize] <= current_node.h {
                 let rec_node = AStarNode::init(
                     current_node.g + rec_cost,
-                    crumbs[path][current_node_coord.pos],
+                    crumbs[path][current_node_coord.pos as usize],
                     &current_node_coord,
                 );
                 let rec_node_coord =
-                    Coord::init(current_node_coord.node, current_node_coord.pos, path);
+                    Coord::init(current_node_coord.node, current_node_coord.pos, path as u32);
                 update_open_set(open_set, alignment_graph, &rec_node, rec_node_coord);
             }
         }
@@ -193,13 +195,13 @@ fn add_multi_recs(
 }
 
 fn push_neigh(
-    match_mis: usize,
+    match_mis: u32,
     current_node: &AStarNode,
     current_node_coord: &Coord,
-    open_set: &mut FibHeap<Coord, usize>,
+    open_set: &mut FibHeap<Coord, u32>,
     alignment_graph: &mut HashMap<Coord, AStarNode>,
-    crumbs: &Vec<Vec<usize>>,
-    succ: usize,
+    crumbs: &Vec<Vec<u32>>,
+    succ: u32,
     is_local: bool,
 ) {
     let (m_x, mut ins, del) =
@@ -234,9 +236,9 @@ fn push_neigh(
 }
 #[derive(Debug, Clone)]
 pub struct Coord {
-    pub node: usize,
-    pub pos: usize,
-    pub path: usize,
+    pub node: u32,
+    pub pos: u32,
+    pub path: u32,
 }
 
 impl Coord {
@@ -248,7 +250,7 @@ impl Coord {
         }
     }
 
-    pub fn init(node: usize, pos: usize, path: usize) -> Self {
+    pub fn init(node: u32, pos: u32, path: u32) -> Self {
         Coord { node, pos, path }
     }
 }
@@ -273,8 +275,8 @@ impl Copy for Coord {}
 
 #[derive(Debug, Clone)]
 pub struct AStarNode {
-    pub g: usize,
-    pub h: usize,
+    pub g: u32,
+    pub h: u32,
     pub parent: Coord,
 }
 impl AStarNode {
@@ -286,13 +288,13 @@ impl AStarNode {
         }
     }
 
-    pub fn new_path(path: usize, heu: &Vec<Vec<usize>>) -> Self {
+    pub fn new_path(path: usize, heu: &Vec<Vec<u32>>) -> Self {
         let mut node = AStarNode::new();
         node.h = heu[path][0];
         node
     }
 
-    pub fn init(g: usize, h: usize, parent: &Coord) -> Self {
+    pub fn init(g: u32, h: u32, parent: &Coord) -> Self {
         AStarNode {
             g,
             h,

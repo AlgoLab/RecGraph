@@ -3,9 +3,9 @@ use bit_vec::BitVec;
 
 #[derive(Debug)]
 pub struct SuccHash {
-    succecessor: HashMap<usize, Vec<usize>>, // key: node, values: node_idx of succ in paths_in_nodes
-    paths_in_nodes: HashMap<usize, BitVec>,
-    pub paths_number: usize,
+    succecessor: HashMap<u32, Vec<u32>>, // key: node, values: node_idx of succ in paths_in_nodes
+    paths_in_nodes: HashMap<u32, BitVec>,
+    pub paths_number: u32,
 }
 
 impl Default for SuccHash {
@@ -23,7 +23,7 @@ impl SuccHash {
         }
     }
 
-    pub fn get_node_succs_and_paths(&self, node: usize) -> Vec<(usize, &BitVec)> {
+    pub fn get_node_succs_and_paths(&self, node: u32) -> Vec<(u32, &BitVec)> {
         let succs = self.succecessor.get(&node).unwrap();
         let mut result = Vec::new();
         for succ in succs {
@@ -33,22 +33,22 @@ impl SuccHash {
         result
     }
 
-    pub fn get_succ_in_path(&self, node: usize, path: usize) -> Vec<usize> {
+    pub fn get_succ_in_path(&self, node: u32, path: u32) -> Vec<u32> {
         let succs = self.succecessor.get(&node).unwrap();
         let mut res = Vec::new();
         for succ in succs {
             let paths = self.paths_in_nodes.get(succ).unwrap();
-            if paths[path] {
+            if paths[path as usize] {
                 res.push(*succ);
             }
         }
         res
     }
 
-    pub fn get_paths_node(&self, node: usize) -> &BitVec {
+    pub fn get_paths_node(&self, node: u32) -> &BitVec {
         self.paths_in_nodes.get(&node).unwrap()
     }
-    pub fn set_node_successor(&mut self, curr_node: usize, succ_pos: usize) {
+    pub fn set_node_successor(&mut self, curr_node: u32, succ_pos: u32) {
         if self.succecessor.get(&curr_node).is_none() {
             self.succecessor.insert(curr_node, Vec::new());
         }
@@ -62,18 +62,18 @@ impl SuccHash {
         }
     }
 
-    pub fn set_node_paths(&mut self, curr_node: usize, paths: BitVec) {
+    pub fn set_node_paths(&mut self, curr_node: u32, paths: BitVec) {
         self.paths_in_nodes.insert(curr_node, paths);
     }
 
-    pub fn set_node_path(&mut self, curr_node: usize, path: usize) {
+    pub fn set_node_path(&mut self, curr_node: u32, path: u32) {
         if self.paths_in_nodes.get(&curr_node).is_none() {
             self.paths_in_nodes
-                .insert(curr_node, BitVec::from_elem(self.paths_number, false));
+                .insert(curr_node, BitVec::from_elem(self.paths_number as usize, false));
         }
         self.paths_in_nodes
             .get_mut(&curr_node)
             .unwrap()
-            .set(path, true);
+            .set(path as usize, true);
     }
 }

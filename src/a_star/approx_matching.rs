@@ -28,7 +28,7 @@ pub fn build_heuristic(
     chunk_size: usize,
     rec_cost: usize,
     max_err: u8,
-) -> Vec<Vec<usize>> {
+) -> Vec<Vec<u32>> {
     let matches = get_matches(linearized_paths, query, chunk_size, max_err);
     let chains = matches
         .iter()
@@ -120,7 +120,7 @@ fn rec_chain_update(
     rec_cost: usize,
     query_len: usize,
     match_len: usize,
-) -> Vec<Vec<usize>> {
+) -> Vec<Vec<u32>> {
     let mut rec_chains = vec![vec![Link::new(); chains[0].len()]; chains.len()];
     let mut best_paths = vec![0; chains[0].len()];
     for j in (0..rec_chains[0].len() - 1).rev() {
@@ -150,7 +150,7 @@ fn rec_chain_update(
         .map(|chain| {
             chain
                 .iter()
-                .flat_map(|link| std::iter::repeat(link.score).take(match_len))
+                .flat_map(|link| std::iter::repeat(link.score as u32).take(match_len))
                 .collect::<Vec<_>>()
         })
         .collect();

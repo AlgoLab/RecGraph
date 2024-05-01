@@ -56,6 +56,7 @@ fn main() {
     }
     println!("alignment time: {:?}", start.elapsed());
      */
+
     match now.elapsed() {
         Ok(elapsed) => {
             // it prints '2'
