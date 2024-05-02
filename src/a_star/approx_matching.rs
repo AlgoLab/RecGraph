@@ -7,7 +7,7 @@ use handlegraph::{handlegraph::HandleGraph, hashgraph::HashGraph};
 pub fn get_linearized_paths(graph: &HashGraph) -> Vec<Vec<u8>> {
     let mut lnz_paths = graph
         .paths
-        .iter()
+        .par_iter()
         .map(|(path_id, path)| {
             let seq = path
                 .nodes
@@ -15,7 +15,7 @@ pub fn get_linearized_paths(graph: &HashGraph) -> Vec<Vec<u8>> {
                 .map(|node| graph.sequence(node.clone()))
                 .collect::<Vec<_>>()
                 .concat();
-            (*path_id as usize, seq)
+            (*path_id, seq)
         })
         .collect::<Vec<_>>();
     lnz_paths.sort_by(|x, y| x.0.partial_cmp(&y.0).unwrap());
@@ -31,7 +31,7 @@ pub fn build_heuristic(
 ) -> Vec<Vec<u32>> {
     let matches = get_matches(linearized_paths, query, chunk_size, max_err);
     let chains = matches
-        .iter()
+        .par_iter()
         .map(|m| get_path_max_chain(m, chunk_size, query.len() / chunk_size, max_err))
         .collect::<Vec<_>>();
 
@@ -53,7 +53,7 @@ fn get_matches(
         .par_iter()
         .map(|path| {
             seeds
-                .iter()
+                .par_iter()
                 .enumerate()
                 .flat_map(|(seed_id, seed)| {
                     let mut myers = Myers::<u64>::new(*seed);
