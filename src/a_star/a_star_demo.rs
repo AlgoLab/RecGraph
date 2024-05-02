@@ -35,6 +35,7 @@ pub fn a_star_demo_chain() {
             args.base_rec_cost as usize,
             args.mex_err_seed,
         );
+
         count += Instant::now() - istant;
         let (end_pos, mut alignment_graph) = a_star_visit::exec(
             seq,

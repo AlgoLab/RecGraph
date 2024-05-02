@@ -1,6 +1,5 @@
 use crate::new_path_graph::path_graph::PathGraph;
 use ahash::AHashMap as HashMap;
-use bit_vec::BitVec;
 use bstr::BString;
 use pheap::PairingHeap as FibHeap;
 use std::hash::Hash;
@@ -15,13 +14,11 @@ pub fn exec(
 ) -> (Coord, HashMap<Coord, AStarNode>) {
     // init A* data structure, each path possible starting point
     let mut alignment_graph = HashMap::new();
-    let mut best_score_per_position: HashMap<(u32, u32), (u32, u32)> = HashMap::new();
     let mut open_set = FibHeap::new();
     for path in 0..crumbs.len() {
         let node = AStarNode::new_path(path, &crumbs);
         let node_coord = Coord::init(0, 0, path as u32);
         open_set.insert(node_coord.clone(), node.g + node.h);
-        best_score_per_position.insert((node_coord.node, node_coord.pos), (node.g, path as u32));
         alignment_graph.insert(node_coord, node);
     }
 
@@ -89,15 +86,14 @@ pub fn exec(
                             );
                         }
                     });
-                let paths = path_graph.succ_hash.get_paths_node(current_node_coord.node);
                 add_multi_recs(
                     &current_node,
                     &current_node_coord,
-                    &mut best_score_per_position,
                     &crumbs,
-                    paths,
                     &mut open_set,
                     &mut alignment_graph,
+                    &path_graph,
+                    query,
                     rec_cost,
                 );
             }
@@ -114,16 +110,38 @@ fn get_neighbours(
     current_node_coord: &Coord,
     crumbs: &Vec<Vec<u32>>,
     match_mis: u32,
+    rec_path: Option<(u32, u32)>, // path, rec_cost
 ) -> (AStarNode, AStarNode, AStarNode) {
-    let h = crumbs[current_node_coord.path as usize][current_node_coord.pos as usize + 1];
+    if let Some((new_path, rec_score)) = rec_path {
+        let m_x = AStarNode::init(
+            current_node.g + rec_score + match_mis,
+            crumbs[new_path as usize][current_node_coord.pos as usize + 1],
+            &current_node_coord,
+        );
 
-    let m_x = AStarNode::init(current_node.g + match_mis, h, &current_node_coord);
+        let ins = AStarNode::init(
+            current_node.g + rec_score + 1,
+            crumbs[new_path as usize][current_node_coord.pos as usize],
+            &current_node_coord,
+        );
 
-    let ins = AStarNode::init(current_node.g + 1, current_node.h, &current_node_coord);
+        let del = AStarNode::init(
+            current_node.g + rec_score + 1,
+            crumbs[new_path as usize][current_node_coord.pos as usize + 1],
+            &current_node_coord,
+        );
+        (m_x, ins, del)
+    } else {
+        let h = crumbs[current_node_coord.path as usize][current_node_coord.pos as usize + 1];
 
-    let del = AStarNode::init(current_node.g + 1, h, &current_node_coord);
+        let m_x = AStarNode::init(current_node.g + match_mis, h, &current_node_coord);
 
-    (m_x, ins, del)
+        let ins = AStarNode::init(current_node.g + 1, current_node.h, &current_node_coord);
+
+        let del = AStarNode::init(current_node.g + 1, h, &current_node_coord);
+
+        (m_x, ins, del)
+    }
 }
 
 fn update_open_set(
@@ -142,51 +160,65 @@ fn update_open_set(
 fn add_multi_recs(
     current_node: &AStarNode,
     current_node_coord: &Coord,
-    best_score_per_position: &mut HashMap<(u32, u32), (u32, u32)>,
     crumbs: &Vec<Vec<u32>>,
-    paths: &BitVec,
     open_set: &mut FibHeap<Coord, u32>,
     alignment_graph: &mut HashMap<Coord, AStarNode>,
+    path_graph: &PathGraph,
+    query: &BString,
     rec_cost: u32,
 ) {
-    if let Some((score, path)) =
-        best_score_per_position.get(&(current_node_coord.node, current_node_coord.pos))
-    {
-        if score + rec_cost < current_node.g {
-            let rec_node = AStarNode::init(
-                *score + rec_cost,
-                crumbs[*path as usize][current_node_coord.pos as usize],
-                &current_node_coord,
-            );
-            let rec_node_coord =
-                Coord::init(current_node_coord.node, current_node_coord.pos, *path);
-            update_open_set(open_set, alignment_graph, &rec_node, rec_node_coord);
-        } else {
-            if score > &current_node.g {
-                best_score_per_position.insert(
-                    (current_node_coord.node, current_node_coord.pos),
-                    (current_node.g, current_node_coord.path),
-                );
-            }
-        }
-    } else {
-        best_score_per_position.insert(
-            (current_node_coord.node, current_node_coord.pos),
-            (current_node.g, current_node_coord.path),
-        );
-        for (path, is_in) in paths.iter().enumerate() {
-            if is_in && crumbs[path][current_node_coord.pos as usize] <= current_node.h {
-                let rec_node = AStarNode::init(
-                    current_node.g + rec_cost,
-                    crumbs[path][current_node_coord.pos as usize],
+    let succs = path_graph
+        .succ_hash
+        .get_node_succs_and_paths(current_node_coord.node);
+    succs.iter().for_each(|(succs, paths)| {
+        paths.iter().enumerate().for_each(|(path, is_in)| {
+            if is_in
+                && path as u32 != current_node_coord.path
+                && crumbs[path as usize][current_node_coord.pos as usize]
+                    <= crumbs[current_node_coord.path as usize][current_node_coord.pos as usize]
+            {
+                let match_mis = if path_graph.lnz[*succs as usize]
+                    == query[current_node_coord.pos as usize + 1]
+                {
+                    0
+                } else {
+                    1
+                };
+                let (m_x, ins, del) = get_neighbours(
+                    &current_node,
                     &current_node_coord,
+                    &crumbs,
+                    match_mis,
+                    Some((path as u32, rec_cost)),
                 );
-                let rec_node_coord =
-                    Coord::init(current_node_coord.node, current_node_coord.pos, path as u32);
-                update_open_set(open_set, alignment_graph, &rec_node, rec_node_coord);
+
+                update_open_set(
+                    open_set,
+                    alignment_graph,
+                    &m_x,
+                    Coord::init(*succs, current_node_coord.pos + 1, path as u32),
+                );
+
+                update_open_set(
+                    open_set,
+                    alignment_graph,
+                    &ins,
+                    Coord::init(*succs, current_node_coord.pos, path as u32),
+                );
+
+                update_open_set(
+                    open_set,
+                    alignment_graph,
+                    &del,
+                    Coord::init(
+                        current_node_coord.node,
+                        current_node_coord.pos + 1,
+                        path as u32,
+                    ),
+                );
             }
-        }
-    }
+        });
+    });
 }
 
 fn push_neigh(
@@ -200,7 +232,7 @@ fn push_neigh(
     is_local: bool,
 ) {
     let (m_x, mut ins, del) =
-        get_neighbours(&current_node, &current_node_coord, &crumbs, match_mis);
+        get_neighbours(&current_node, &current_node_coord, &crumbs, match_mis, None);
 
     if current_node_coord.pos == 0 && is_local {
         ins.g = 0;

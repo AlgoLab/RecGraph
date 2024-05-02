@@ -58,14 +58,14 @@ fn get_matches(
                 .flat_map(|(seed_id, seed)| {
                     let mut myers = Myers::<u64>::new(*seed);
                     let occ_iter = myers.find_all(path, max_err);
-                    let occ = occ_iter.map(|(start, _, dist)| (start, dist)).collect::<Vec<_>>();
-                    occ.iter()
-                        .map(|(pos, dist)| Match::new(*pos, *dist, seed_id))
+                    occ_iter
+                        .map(|(start, _, dist)| Match::new(start, dist, seed_id))
                         .collect::<Vec<_>>()
                 })
                 .collect()
         })
         .collect();
+
     matches
 }
 
@@ -77,7 +77,7 @@ fn get_path_max_chain(
 ) -> Vec<u8> {
     let mut chains = vec![Link::new(); matches.len()];
     for i in 0..matches.len() {
-        chains[i] = Link::init(1, i, match_len);
+        chains[i] = Link::init(1, i, match_len - matches[i].dist as usize);
         for j in 0..i {
             if matches[j].seed_id < matches[i].seed_id && matches[j].pos < matches[i].pos {
                 let new_len = chains[j].len + 1;
@@ -131,7 +131,7 @@ fn rec_chain_update(
             let score = rec_chains[i][j + 1].score + chains[i][j] as usize;
             let score_rec = rec_chains[best_path][j + 1].score + chains[i][j] as usize + rec_cost;
             if score < score_rec {
-                rec_chains[i][j] = Link::init(rec_chains[i][j + 1].len + 1, j, score);
+                rec_chains[i][j] = Link::init(rec_chains[i][j + 1].len + 1, i, score);
             } else {
                 rec_chains[i][j] =
                     Link::init(rec_chains[best_path][j + 1].len + 1, best_path, score_rec);
@@ -149,7 +149,7 @@ fn rec_chain_update(
     let mut chains_score: Vec<Vec<_>> = rec_chains
         .iter()
         .map(|chain| {
-            chain
+            chain[1..]
                 .iter()
                 .flat_map(|link| std::iter::repeat(link.score as u32).take(match_len))
                 .collect::<Vec<_>>()
