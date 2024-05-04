@@ -55,7 +55,7 @@ fn main() {
         //utils::write_gaf(gaf, i, args.out_file.as_str());
     }
     println!("alignment time: {:?}", start.elapsed());
-    */
+     */
     match now.elapsed() {
         Ok(elapsed) => {
             // it prints '2'

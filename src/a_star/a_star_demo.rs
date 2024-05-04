@@ -25,7 +25,7 @@ pub fn a_star_demo_chain() {
     let start = Instant::now();
     let linearized_paths = approx_matching::get_linearized_paths(&graph);
     let mut outs = Vec::new();
-    let mut count = Duration::new(0, 0);
+    let mut duration = Duration::new(0, 0);
     sequences.iter().for_each(|seq| {
         let istant = Instant::now();
         let crumbs = approx_matching::build_heuristic(
@@ -35,8 +35,7 @@ pub fn a_star_demo_chain() {
             args.base_rec_cost as usize,
             args.mex_err_seed,
         );
-
-        count += Instant::now() - istant;
+        duration += istant.elapsed();
         let (end_pos, mut alignment_graph) = a_star_visit::exec(
             seq,
             &crumbs,
@@ -45,15 +44,15 @@ pub fn a_star_demo_chain() {
             args.base_rec_cost as u32,
         );
 
-        outs.push(build_gaf(
+        outs.push((build_gaf(
             &mut alignment_graph,
             &end_pos,
             &path_graph,
             seq,
             args.alignment_mode,
-        ));
+        ), istant.elapsed(), seq.len()));
     });
-    outs.iter().for_each(|out| println!("{}", out));
-    println!("Heu: {:?}", count);
+    println!("seeding: {:?}", duration);
+    outs.iter().for_each(|out| println!("{}\t{}\t{}", out.0, out.1.as_millis(), out.2));
     println!("Approx time: {:?}", start.elapsed());
 }
