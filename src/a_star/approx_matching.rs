@@ -1,3 +1,5 @@
+use std::cmp::max;
+
 use bio::pattern_matching::myers::Myers;
 use rayon::prelude::*;
 
@@ -49,23 +51,23 @@ fn get_matches(
 
     let seeds: Vec<_> = query.chunks_exact(chunk_size).collect::<Vec<_>>();
 
-    let matches = linearized_paths
+    let matches: Vec<_> = linearized_paths
         .par_iter()
         .map(|path| {
-            seeds
+            let matches: Vec<_> = seeds
                 .par_iter()
                 .enumerate()
                 .flat_map(|(seed_id, seed)| {
                     let mut myers = Myers::<u64>::new(*seed);
                     let occ_iter = myers.find_all(path, max_err);
                     occ_iter
-                        .map(|(start, _, dist)| Match::new(start, dist, seed_id))
+                        .map(|(start, end, dist)| Match::new((start, end), dist, seed_id))
                         .collect::<Vec<_>>()
                 })
-                .collect()
+                .collect();
+            matches
         })
         .collect();
-
     matches
 }
 
@@ -77,19 +79,23 @@ fn get_path_max_chain(
 ) -> Vec<u8> {
     let mut chains = vec![Link::new(); matches.len()];
     for i in 0..matches.len() {
-        chains[i] = Link::init(1, i, match_len - matches[i].dist as usize);
+        chains[i] = Link::init(
+            matches[i].dist as usize,
+            i,
+            match_len - matches[i].dist as usize,
+        );
         for j in 0..i {
-            if matches[j].seed_id < matches[i].seed_id && matches[j].pos < matches[i].pos {
-                let new_len = chains[j].len + 1;
-                let gap_cost = (matches[i].pos - matches[j].pos)
-                    .abs_diff((matches[i].seed_id - matches[j].seed_id) * match_len);
+            if matches[j].seed_id < matches[i].seed_id && matches[j].pos.1 <= matches[i].pos.0 {
+                let gap_cost = (matches[i].pos.0 - matches[j].pos.1)
+                    .abs_diff(((matches[i].seed_id - 1) - matches[j].seed_id) * match_len);
                 if gap_cost > match_len {
                     continue;
                 }
-                let new_score = chains[j].score + match_len - gap_cost - matches[i].dist as usize;
+                let new_score =
+                    chains[j].score + match_len - max(gap_cost, matches[i].dist as usize);
 
                 if new_score > chains[i].score {
-                    chains[i] = Link::init(new_len, j, new_score);
+                    chains[i] = Link::init(max(gap_cost, matches[i].dist as usize), j, new_score);
                 }
             }
         }
@@ -99,21 +105,25 @@ fn get_path_max_chain(
         .iter()
         .enumerate()
         .max_by_key(|x| x.1.score)
-        .unwrap()
+        .unwrap_or((0, &Link::new()))
         .0;
-    let mut max_chain = Vec::new();
-    let mut current = max_chain_ending_pos;
-    while chains[current].pred != current {
-        max_chain.push(matches[current].clone());
-        current = chains[current].pred;
+    if max_chain_ending_pos == 0 {
+        vec![max_err + 1; seeds_number]
+    } else {
+        let mut max_chain = Vec::new();
+        let mut current = max_chain_ending_pos;
+        while chains[current].pred != current {
+            max_chain.push((chains[current].len, matches[current].clone()));
+            current = chains[current].pred;
+        }
+        max_chain.push((chains[current].len, matches[current].clone()));
+        max_chain.reverse();
+        let mut max_chain_seed = vec![max_err + 1; seeds_number];
+        max_chain.iter().for_each(|(score, m)| {
+            max_chain_seed[m.seed_id] = *score as u8;
+        });
+        max_chain_seed
     }
-    max_chain.push(matches[current].clone());
-    max_chain.reverse();
-    let mut max_chain_seed = vec![max_err + 1; seeds_number];
-    max_chain.iter().for_each(|m| {
-        max_chain_seed[m.seed_id] = m.dist;
-    });
-    max_chain_seed
 }
 
 fn rec_chain_update(
@@ -147,7 +157,7 @@ fn rec_chain_update(
     }
 
     let mut chains_score: Vec<Vec<_>> = rec_chains
-        .iter()
+        .par_iter()
         .map(|chain| {
             chain[1..]
                 .iter()
@@ -156,7 +166,7 @@ fn rec_chain_update(
         })
         .collect();
 
-    chains_score.iter_mut().for_each(|chain| {
+    chains_score.par_iter_mut().for_each(|chain| {
         while chain.len() < query_len - 1 {
             chain.push(chain[chain.len() - 1]);
         }
@@ -167,13 +177,13 @@ fn rec_chain_update(
 }
 #[derive(Debug, Clone)]
 pub struct Match {
-    pub pos: usize,
+    pub pos: (usize, usize),
     pub dist: u8,
     pub seed_id: usize,
 }
 
 impl Match {
-    pub fn new(pos: usize, dist: u8, seed_id: usize) -> Self {
+    pub fn new(pos: (usize, usize), dist: u8, seed_id: usize) -> Self {
         Self { pos, dist, seed_id }
     }
 }
