@@ -1,5 +1,4 @@
 use std::time::{Duration, Instant};
-
 use gfa::gfa::GFA;
 use gfa::parser::GFAParser;
 use handlegraph::hashgraph::HashGraph;
@@ -13,7 +12,6 @@ use super::a_star_output::build_gaf;
 
 pub fn a_star_demo_chain() {
     let args = ClArgs::parse();
-
     let file_path = args.graph_path;
     let parser = GFAParser::new();
     let gfa: GFA<usize, ()> = parser.parse_file(file_path).unwrap();

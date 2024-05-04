@@ -32,7 +32,6 @@ fn main() {
 
     let (base_rec_cost, multi_rec_cost) = (args.base_rec_cost, args.multi_rec_cost);
     let is_local = args.alignment_mode;
-
     let mut gafs = Vec::new();
     let start = Instant::now();
     sequences.iter().enumerate().for_each(|(i, seq)| {
