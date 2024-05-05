@@ -62,9 +62,10 @@ pub fn exec(
             } else {
                 path_graph
                     .succ_hash
-                    .get_node_succs_and_paths(current_node_coord.node)
+                    .get_node_succs(current_node_coord.node)
                     .iter()
-                    .for_each(|(succ, paths)| {
+                    .for_each(|succ| {
+                        let paths = path_graph.get_node_path(current_node_coord.node);
                         if paths[current_node_coord.path as usize] {
                             let match_mis = if path_graph.lnz[*succ as usize]
                                 == query[current_node_coord.pos as usize + 1]
@@ -86,17 +87,16 @@ pub fn exec(
                             );
                         }
                     });
-                add_multi_recs(
-                    &current_node,
-                    &current_node_coord,
-                    &crumbs,
-                    &mut open_set,
-                    &mut alignment_graph,
-                    &path_graph,
-                    query,
-                    rec_cost,
-                );
             }
+            new_multi_rec(
+                &current_node,
+                &current_node_coord,
+                &crumbs,
+                &mut open_set,
+                &mut alignment_graph,
+                &path_graph,
+                rec_cost,
+            );
         }
     }
     if end_pos.is_none() {
@@ -157,6 +157,30 @@ fn update_open_set(
     }
 }
 
+fn new_multi_rec(
+    current_node: &AStarNode,
+    current_node_coord: &Coord,
+    crumbs: &Vec<Vec<u32>>,
+    open_set: &mut FibHeap<Coord, u32>,
+    alignment_graph: &mut HashMap<Coord, AStarNode>,
+    path_graph: &PathGraph,
+    rec_cost: u32,
+) {
+    let paths = path_graph.get_node_path(current_node_coord.node);
+    paths.iter().enumerate().for_each(|(path, is_in)| {
+        let rec_h = crumbs[path][current_node_coord.pos as usize];
+        if is_in && path != current_node_coord.path as usize && rec_h <= current_node.h {
+            let rec_node = AStarNode::init(current_node.g + rec_cost, rec_h, &current_node_coord);
+            update_open_set(
+                open_set,
+                alignment_graph,
+                &rec_node,
+                Coord::init(current_node_coord.node, current_node_coord.pos, path as u32),
+            );
+        }
+    })
+}
+/*
 fn add_multi_recs(
     current_node: &AStarNode,
     current_node_coord: &Coord,
@@ -169,15 +193,16 @@ fn add_multi_recs(
 ) {
     let succs = path_graph
         .succ_hash
-        .get_node_succs_and_paths(current_node_coord.node);
-    succs.iter().for_each(|(succs, paths)| {
+        .get_node_succs(current_node_coord.node);
+    succs.iter().for_each(|succ| {
+        let paths = path_graph.get_node_path(current_node_coord.node);
         paths.iter().enumerate().for_each(|(path, is_in)| {
             if is_in
                 && path as u32 != current_node_coord.path
                 && crumbs[path as usize][current_node_coord.pos as usize]
                     <= crumbs[current_node_coord.path as usize][current_node_coord.pos as usize]
             {
-                let match_mis = if path_graph.lnz[*succs as usize]
+                let match_mis = if path_graph.lnz[*succ as usize]
                     == query[current_node_coord.pos as usize + 1]
                 {
                     0
@@ -196,14 +221,14 @@ fn add_multi_recs(
                     open_set,
                     alignment_graph,
                     &m_x,
-                    Coord::init(*succs, current_node_coord.pos + 1, path as u32),
+                    Coord::init(*succ, current_node_coord.pos + 1, path as u32),
                 );
 
                 update_open_set(
                     open_set,
                     alignment_graph,
                     &ins,
-                    Coord::init(*succs, current_node_coord.pos, path as u32),
+                    Coord::init(*succ, current_node_coord.pos, path as u32),
                 );
 
                 update_open_set(
@@ -220,7 +245,7 @@ fn add_multi_recs(
         });
     });
 }
-
+ */
 fn push_neigh(
     match_mis: u32,
     current_node: &AStarNode,

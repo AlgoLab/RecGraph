@@ -10,6 +10,7 @@ pub struct PathGraph {
     pub lnz: BString,
     pub nws: BitVec,
     pub succ_hash: SuccHash,
+    pub handles_ids: Vec<u32>,
     pub ending_positions: Vec<u32>,
 }
 
@@ -19,6 +20,7 @@ impl PathGraph {
             lnz: BString::from(""),
             nws: BitVec::new(),
             succ_hash: SuccHash::new(),
+            handles_ids: Vec::new(),
             ending_positions: Vec::new(),
         }
     }
@@ -38,14 +40,16 @@ impl PathGraph {
         succ_hash.set_node_paths(0, BitVec::from_elem(succ_hash.paths_number as usize, true));
         let mut nws = BitVec::new();
         nws.push(true);
-
+        let mut handles_ids = vec![0];
         let mut last_path_pos = vec![0; graph.paths.len()];
         graph.paths.iter().for_each(|(id, path)| {
             let mut prev_handle_end = 0;
             path.nodes.iter().for_each(|node| {
+                let handle_id: u32 = (u64::from(node.id())) as u32;
                 if !visited_handles[cast_handle_id(node.0, min_node_id)] {
                     let handle_start = lnz.len() as u32;
                     lnz.append(&mut graph.sequence(*node));
+                    handles_ids.append(&mut vec![handle_id; graph.sequence(*node).len()]);
                     let handle_end = lnz.len() as u32 - 1;
                     visited_handles.set(cast_handle_id(node.0, min_node_id), true);
                     handles_id_pos.insert(node.0 as u32, (handle_start, handle_end));
@@ -54,9 +58,8 @@ impl PathGraph {
                     nws_slice.set(nws_slice.len() - 1, true);
                     nws.append(&mut nws_slice);
                 }
-                let (handle_start, handle_end) = handles_id_pos.get(&(node.0 as u32)).unwrap();
-                succ_hash.set_node_path(*handle_start, *id as u32);
-                succ_hash.set_node_path(*handle_end, *id as u32);
+                let (handle_start, _) = handles_id_pos.get(&(node.0 as u32)).unwrap();
+                succ_hash.set_node_path(handle_id, *id as u32);
                 succ_hash.set_node_successor(prev_handle_end, *handle_start);
                 prev_handle_end = handles_id_pos.get(&(node.0 as u32)).unwrap().1;
             });
@@ -64,11 +67,9 @@ impl PathGraph {
         });
 
         lnz.push(b'$');
-
-        succ_hash.set_node_paths(
-            lnz.len() as u32 - 1,
-            BitVec::from_elem(graph.paths.len(), true),
-        );
+        let max_handle_id = graph.handles_iter().max().unwrap().0 as u32 + 1;
+        handles_ids.push(max_handle_id);
+        succ_hash.set_node_paths(max_handle_id, BitVec::from_elem(graph.paths.len(), true));
         for final_pos in last_path_pos.iter() {
             succ_hash.set_node_successor(*final_pos, lnz.len() as u32 - 1);
         }
@@ -76,8 +77,14 @@ impl PathGraph {
             lnz,
             nws,
             succ_hash,
+            handles_ids,
             ending_positions: last_path_pos,
         }
+    }
+
+    pub fn get_node_path(&self, node: u32) -> &BitVec {
+        self.succ_hash
+            .get_paths_node(self.handles_ids[node as usize])
     }
 }
 
