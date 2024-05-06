@@ -17,7 +17,7 @@ pub fn exec(
     let mut open_set = FibHeap::new();
     for path in 0..crumbs.len() {
         let node = AStarNode::new_path(path, &crumbs);
-        let node_coord = Coord::init(0, 0, path as u32);
+        let node_coord = Coord::init(0, 0, path as u8);
         open_set.insert(node_coord.clone(), node.g + node.h);
         alignment_graph.insert(node_coord, node);
     }
@@ -175,7 +175,7 @@ fn new_multi_rec(
                 open_set,
                 alignment_graph,
                 &rec_node,
-                Coord::init(current_node_coord.node, current_node_coord.pos, path as u32),
+                Coord::init(current_node_coord.node, current_node_coord.pos, path as u8),
             );
         }
     })
@@ -290,7 +290,7 @@ fn push_neigh(
 pub struct Coord {
     pub node: u32,
     pub pos: u32,
-    pub path: u32,
+    pub path: u8,
 }
 
 impl Coord {
@@ -302,7 +302,7 @@ impl Coord {
         }
     }
 
-    pub fn init(node: u32, pos: u32, path: u32) -> Self {
+    pub fn init(node: u32, pos: u32, path: u8) -> Self {
         Coord { node, pos, path }
     }
 }

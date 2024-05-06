@@ -20,12 +20,17 @@ pheap = "0.3.0"
 longest-increasing-subsequence = "0.1.0"
 slotmap = "1.0.7"
 bio = "1.6.0"
+libc = "0.2.101"
 
 [target.'cfg(target_os="linux")'.dependencies]
 tikv-jemallocator = "0.5"
 
 [dev-dependencies]
-criterion = "0.3"
+criterion = "0.5.1"
+
+[[bench]]
+name = "a_star_bench"
+harness = false
 
 [profile.release]
 lto = "fat"

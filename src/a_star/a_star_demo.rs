@@ -18,7 +18,7 @@ pub fn a_star_demo_chain() {
     let graph: HashGraph = HashGraph::from_gfa(&gfa);
     let path_graph = PathGraph::from_hash_graph(&graph);
     let (sequences, _) = sequences::get_sequences(args.sequence_path);
-
+    let init = peak_mem_usage().unwrap();
     let chunk_size = ClArgs::parse().seed_len;
     let start = Instant::now();
     let linearized_paths = approx_matching::get_linearized_paths(&graph);
@@ -32,6 +32,7 @@ pub fn a_star_demo_chain() {
             args.base_rec_cost as usize,
             args.mex_err_seed,
         );
+
         let (end_pos, mut alignment_graph) = a_star_visit::exec(
             seq,
             &crumbs,
@@ -55,4 +56,19 @@ pub fn a_star_demo_chain() {
     outs.iter()
         .for_each(|out| println!("{}\t{}\t{}", out.0, out.1.as_millis(), out.2));
     println!("Approx time: {:?}", start.elapsed());
+    let mem = peak_mem_usage().unwrap();
+    println!("Init memory usage: {} B", init);
+    println!("Peak memory usage: {} B", mem);
+}
+
+#[cfg(target_os = "linux")]
+fn peak_mem_usage() -> Result<usize, &'static str> {
+    unsafe {
+        let mut rusage: libc::rusage = std::mem::zeroed();
+        let retval = libc::getrusage(libc::RUSAGE_SELF, &mut rusage as *mut _);
+        match retval {
+            0 => Ok(rusage.ru_maxrss as usize * 1024),
+            _ => Err("Error getting memory usage"),
+        }
+    }
 }
