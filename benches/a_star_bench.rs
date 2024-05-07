@@ -18,14 +18,20 @@ fn bench_global_alignment(c: &mut Criterion) {
     c.bench_function("a_star_visit", |b| {
         b.iter(|| {
             let linearized_paths = approx_matching::get_linearized_paths(&graph);
-            let crumbs =
-                approx_matching::build_heuristic(&linearized_paths, &sequences[0], 12, 4, 1);
+            let crumbs = approx_matching::build_heuristic(
+                (&linearized_paths.0, &linearized_paths.1),
+                &sequences[0],
+                12,
+                4,
+                1,
+            );
             let _ = a_star_visit::exec(
                 black_box(&sequences[0]),
                 black_box(&crumbs),
                 black_box(&path_graph),
                 false,
                 4,
+                12,
             );
         })
     });

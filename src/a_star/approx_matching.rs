@@ -1,44 +1,67 @@
 use std::cmp::max;
 
+use ahash::{HashSet, HashSetExt};
 use bio::pattern_matching::myers::Myers;
 use rayon::prelude::*;
 
 use bstr::BString;
 use handlegraph::{handlegraph::HandleGraph, hashgraph::HashGraph};
 
-pub fn get_linearized_paths(graph: &HashGraph) -> Vec<Vec<u8>> {
+pub fn get_linearized_paths(graph: &HashGraph) -> (Vec<Vec<u8>>, Vec<Vec<u32>>) {
     let mut lnz_paths = graph
         .paths
         .par_iter()
         .map(|(path_id, path)| {
-            let seq = path
+            let seq: (Vec<Vec<u8>>, Vec<Vec<u32>>) = path
                 .nodes
                 .iter()
-                .map(|node| graph.sequence(node.clone()))
-                .collect::<Vec<_>>()
-                .concat();
-            (*path_id, seq)
+                .map(|node| {
+                    (
+                        graph.sequence(node.clone()).to_owned(),
+                        vec![(u64::from(node.id())) as u32; graph.sequence(node.clone()).len()],
+                    )
+                })
+                .unzip();
+
+            (
+                *path_id,
+                seq.0.iter().flatten().cloned().collect::<Vec<_>>(),
+                seq.1.iter().flatten().cloned().collect::<Vec<_>>(),
+            )
         })
         .collect::<Vec<_>>();
-    lnz_paths.sort_by(|x, y| x.0.partial_cmp(&y.0).unwrap());
-    lnz_paths.iter().map(|(_, path)| path.to_owned()).collect()
+    lnz_paths.sort_by_key(|x| x.0);
+
+    lnz_paths
+        .iter()
+        .map(|(_, path, handles)| (path.to_owned(), handles.to_owned()))
+        .unzip()
 }
 
 pub fn build_heuristic(
-    linearized_paths: &Vec<Vec<u8>>,
+    linearized_paths: (&Vec<Vec<u8>>, &Vec<Vec<u32>>),
     query: &BString,
     chunk_size: usize,
     rec_cost: usize,
     max_err: u8,
-) -> Vec<Vec<u32>> {
-    let matches = get_matches(linearized_paths, query, chunk_size, max_err);
-    let chains = matches
+) -> (Vec<Vec<u32>>, Vec<HashSet<Handlepos>>) {
+    let matches = get_matches(linearized_paths.0, query, chunk_size, max_err);
+    let (chains, handles): (Vec<_>, Vec<_>) = matches
         .par_iter()
-        .map(|m| get_path_max_chain(m, chunk_size, query.len() / chunk_size, max_err))
-        .collect::<Vec<_>>();
+        .enumerate()
+        .map(|(path, m)| {
+            get_path_max_chain(
+                m,
+                &linearized_paths.1[path],
+                chunk_size,
+                query.len() / chunk_size,
+                max_err,
+            )
+        })
+        .unzip();
 
     let heus = rec_chain_update(&chains, rec_cost, query.len(), chunk_size);
-    heus
+    (heus, handles)
 }
 
 fn get_matches(
@@ -73,10 +96,11 @@ fn get_matches(
 
 fn get_path_max_chain(
     matches: &Vec<Match>,
+    handles: &Vec<u32>,
     match_len: usize,
     seeds_number: usize,
     max_err: u8,
-) -> Vec<u8> {
+) -> (Vec<u8>, HashSet<Handlepos>) {
     let mut chains = vec![Link::new(); matches.len()];
     for i in 0..matches.len() {
         chains[i] = Link::init(
@@ -108,7 +132,7 @@ fn get_path_max_chain(
         .unwrap_or((0, &Link::new()))
         .0;
     if max_chain_ending_pos == 0 {
-        vec![max_err + 1; seeds_number]
+        (vec![max_err + 1; seeds_number], HashSet::new())
     } else {
         let mut max_chain = Vec::new();
         let mut current = max_chain_ending_pos;
@@ -119,10 +143,12 @@ fn get_path_max_chain(
         max_chain.push((chains[current].len, matches[current].clone()));
         max_chain.reverse();
         let mut max_chain_seed = vec![max_err + 1; seeds_number];
+        let mut match_handles = HashSet::new();
         max_chain.iter().for_each(|(score, m)| {
             max_chain_seed[m.seed_id] = *score as u8;
+            match_handles.insert(Handlepos::init(m.pos.0, handles));
         });
-        max_chain_seed
+        (max_chain_seed, match_handles)
     }
 }
 
@@ -175,6 +201,30 @@ fn rec_chain_update(
 
     chains_score
 }
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub struct Handlepos {
+    pub handle: u32,
+    pub off: u32,
+}
+
+impl Handlepos {
+    pub fn new(handle: u32, off: u32) -> Self {
+        Self { handle, off }
+    }
+
+    pub fn init(pos: usize, handles: &Vec<u32>) -> Self {
+        let handle = handles[pos];
+        let mut off = 0;
+        let mut idx = pos;
+        while idx > 1 && handles[idx - 1] == handle {
+            off += 1;
+            idx -= 1;
+        }
+        Self { handle, off }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Match {
     pub pos: (usize, usize),

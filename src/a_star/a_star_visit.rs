@@ -1,20 +1,24 @@
 use crate::new_path_graph::path_graph::PathGraph;
-use ahash::AHashMap as HashMap;
+use ahash::{AHashMap as HashMap, HashSet};
 use bstr::BString;
 use pheap::PairingHeap as FibHeap;
 use std::hash::Hash;
 use std::{fmt::Debug, hash::Hasher};
 
+use super::approx_matching::Handlepos;
+
 pub fn exec(
     query: &BString,
-    crumbs: &Vec<Vec<u32>>,
+    heuristic: &(Vec<Vec<u32>>, Vec<HashSet<Handlepos>>),
     path_graph: &PathGraph,
     is_local: bool,
     rec_cost: u32,
+    match_len: u32,
 ) -> (Coord, HashMap<Coord, AStarNode>) {
     // init A* data structure, each path possible starting point
     let mut alignment_graph = HashMap::new();
     let mut open_set = FibHeap::new();
+    let (crumbs, match_handles) = heuristic;
     for path in 0..crumbs.len() {
         let node = AStarNode::new_path(path, &crumbs);
         let node_coord = Coord::init(0, 0, path as u8);
@@ -25,18 +29,48 @@ pub fn exec(
     // use PathGraph to navigate graph
     let mut end_pos = None;
     while !open_set.is_empty() {
-        let (current_node_coord, _) = open_set.delete_min().unwrap();
-        let current_node = alignment_graph.get(&current_node_coord).unwrap().clone();
+        let (mut current_node_coord, _) = open_set.delete_min().unwrap();
+        let mut current_node = alignment_graph.get(&current_node_coord).unwrap().clone();
+
+        if match_handles[current_node_coord.path as usize].contains(&Handlepos::init(
+            current_node_coord.node as usize,
+            &path_graph.handles_ids,
+        )) {
+            let mut skip_ahead_coord = current_node_coord.clone();
+            let mut skip_ahed_node = current_node.clone();
+            // Chain match found, skip ahead
+            // FIXME: not working as expected
+            for _ in 0..match_len - 1 {
+                if path_graph.nws[skip_ahead_coord.node as usize]
+                    || skip_ahead_coord.pos >= query.len() as u32 - 1
+                {
+                    break;
+                }
+                let new_node_coord = Coord::init(
+                    skip_ahead_coord.node + 1,
+                    skip_ahead_coord.pos + 1,
+                    skip_ahead_coord.path,
+                );
+                let new_node = AStarNode::init(
+                    skip_ahed_node.g,
+                    crumbs[skip_ahead_coord.path as usize][skip_ahead_coord.pos as usize],
+                    &skip_ahead_coord,
+                );
+                skip_ahead_coord = new_node_coord.clone();
+                skip_ahed_node = new_node.clone();
+                alignment_graph.insert(new_node_coord, new_node);
+            }
+            current_node_coord = skip_ahead_coord;
+            current_node = skip_ahed_node;
+        }
         if current_node_coord.pos == query.len() as u32 - 1
             && (current_node_coord.node
                 == path_graph.ending_positions[current_node_coord.path as usize] as u32
                 || is_local)
         {
-            // remove second check if semiglobal
             end_pos = Some(current_node_coord);
             break;
         }
-        // add neigh of current node (EDIT ops + rec) if not outside graph
         if current_node_coord.node + 1 < path_graph.lnz.len() as u32
             && current_node_coord.pos + 1 < query.len() as u32
         {

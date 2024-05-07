@@ -139,7 +139,7 @@ struct Args {
         help_heading = "A-Star",
         short = 'e',
         long = "err-max",
-        default_value_t = 1,
+        default_value_t = 0,
         help = "Set the maximum number of errors allowed per seed between 0,1 or 2. Default is 1."
     )]
     mex_err_seed: u8,

@@ -18,15 +18,15 @@ pub fn a_star_demo_chain() {
     let graph: HashGraph = HashGraph::from_gfa(&gfa);
     let path_graph = PathGraph::from_hash_graph(&graph);
     let (sequences, _) = sequences::get_sequences(args.sequence_path);
-    let init = peak_mem_usage().unwrap();
     let chunk_size = ClArgs::parse().seed_len;
     let start = Instant::now();
-    let linearized_paths = approx_matching::get_linearized_paths(&graph);
+    let (linearized_paths, handles) = approx_matching::get_linearized_paths(&graph);
     let mut outs = Vec::new();
+    let init = peak_mem_usage().unwrap();
     sequences.iter().for_each(|seq| {
         let istant = Instant::now();
         let crumbs = approx_matching::build_heuristic(
-            &linearized_paths,
+            (&linearized_paths, &handles),
             seq,
             chunk_size as usize,
             args.base_rec_cost as usize,
@@ -39,6 +39,7 @@ pub fn a_star_demo_chain() {
             &path_graph,
             args.alignment_mode,
             args.base_rec_cost as u32,
+            chunk_size as u32,
         );
 
         outs.push((
