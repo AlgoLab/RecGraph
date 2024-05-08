@@ -1,6 +1,6 @@
 use std::cmp::max;
 
-use ahash::{HashSet, HashSetExt};
+use ahash::AHashMap as HashMap;
 use bio::pattern_matching::myers::Myers;
 use rayon::prelude::*;
 
@@ -18,7 +18,7 @@ pub fn get_linearized_paths(graph: &HashGraph) -> (Vec<Vec<u8>>, Vec<Vec<u32>>) 
                 .map(|node| {
                     (
                         graph.sequence(node.clone()).to_owned(),
-                        vec![(u64::from(node.id())) as u32; graph.sequence(node.clone()).len()],
+                        vec![node.0 as u32; graph.sequence(node.clone()).len()],
                     )
                 })
                 .unzip();
@@ -44,7 +44,7 @@ pub fn build_heuristic(
     chunk_size: usize,
     rec_cost: usize,
     max_err: u8,
-) -> (Vec<Vec<u32>>, Vec<HashSet<Handlepos>>) {
+) -> (Vec<Vec<u32>>, Vec<HashMap<Handlepos, Handlepos>>) {
     let matches = get_matches(linearized_paths.0, query, chunk_size, max_err);
     let (chains, handles): (Vec<_>, Vec<_>) = matches
         .par_iter()
@@ -81,10 +81,10 @@ fn get_matches(
                 .par_iter()
                 .enumerate()
                 .flat_map(|(seed_id, seed)| {
-                    let mut myers = Myers::<u64>::new(*seed);
-                    let occ_iter = myers.find_all(path, max_err);
+                    let myers = Myers::<u64>::new(*seed);
+                    let occ_iter = myers.find_all_end(path, max_err);
                     occ_iter
-                        .map(|(start, end, dist)| Match::new((start, end), dist, seed_id))
+                        .map(|(end, dist)| Match::new((end - (chunk_size - 1), end), dist, seed_id))
                         .collect::<Vec<_>>()
                 })
                 .collect();
@@ -100,7 +100,7 @@ fn get_path_max_chain(
     match_len: usize,
     seeds_number: usize,
     max_err: u8,
-) -> (Vec<u8>, HashSet<Handlepos>) {
+) -> (Vec<u8>, HashMap<Handlepos, Handlepos>) {
     let mut chains = vec![Link::new(); matches.len()];
     for i in 0..matches.len() {
         chains[i] = Link::init(
@@ -132,7 +132,7 @@ fn get_path_max_chain(
         .unwrap_or((0, &Link::new()))
         .0;
     if max_chain_ending_pos == 0 {
-        (vec![max_err + 1; seeds_number], HashSet::new())
+        (vec![max_err + 1; seeds_number], HashMap::new())
     } else {
         let mut max_chain = Vec::new();
         let mut current = max_chain_ending_pos;
@@ -143,10 +143,14 @@ fn get_path_max_chain(
         max_chain.push((chains[current].len, matches[current].clone()));
         max_chain.reverse();
         let mut max_chain_seed = vec![max_err + 1; seeds_number];
-        let mut match_handles = HashSet::new();
+        let mut match_handles = HashMap::new();
         max_chain.iter().for_each(|(score, m)| {
             max_chain_seed[m.seed_id] = *score as u8;
-            match_handles.insert(Handlepos::init(m.pos.0, handles));
+            match_handles.insert(
+                Handlepos::init(m.pos.0, handles, (m.seed_id * match_len + 1) as u32),
+                Handlepos::init(m.pos.1, handles, ((m.seed_id + 1) * match_len) as u32),
+            );
+            //println!("{:?} {:?}", Handlepos::init(m.pos.0, handles, (m.seed_id*match_len+1) as u32), Handlepos::init(m.pos.1 - 1, handles, ((m.seed_id +1) * match_len) as u32));
         });
         (max_chain_seed, match_handles)
     }
@@ -206,14 +210,19 @@ fn rec_chain_update(
 pub struct Handlepos {
     pub handle: u32,
     pub off: u32,
+    pub read_pos: u32,
 }
 
 impl Handlepos {
-    pub fn new(handle: u32, off: u32) -> Self {
-        Self { handle, off }
+    pub fn new(handle: u32, off: u32, read_pos: u32) -> Self {
+        Self {
+            handle,
+            off,
+            read_pos,
+        }
     }
 
-    pub fn init(pos: usize, handles: &Vec<u32>) -> Self {
+    pub fn init(pos: usize, handles: &Vec<u32>, read_pos: u32) -> Self {
         let handle = handles[pos];
         let mut off = 0;
         let mut idx = pos;
@@ -221,7 +230,11 @@ impl Handlepos {
             off += 1;
             idx -= 1;
         }
-        Self { handle, off }
+        Self {
+            handle,
+            off,
+            read_pos,
+        }
     }
 }
 

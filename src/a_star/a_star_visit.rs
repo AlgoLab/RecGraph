@@ -1,19 +1,16 @@
 use crate::new_path_graph::path_graph::PathGraph;
-use ahash::{AHashMap as HashMap, HashSet};
+use ahash::AHashMap as HashMap;
 use bstr::BString;
 use pheap::PairingHeap as FibHeap;
 use std::hash::Hash;
 use std::{fmt::Debug, hash::Hasher};
 
-use super::approx_matching::Handlepos;
-
 pub fn exec(
     query: &BString,
-    heuristic: &(Vec<Vec<u32>>, Vec<HashSet<Handlepos>>),
+    heuristic: &(Vec<Vec<u32>>, Vec<HashMap<(usize, usize), (usize, usize)>>),
     path_graph: &PathGraph,
     is_local: bool,
     rec_cost: u32,
-    match_len: u32,
 ) -> (Coord, HashMap<Coord, AStarNode>) {
     // init A* data structure, each path possible starting point
     let mut alignment_graph = HashMap::new();
@@ -29,40 +26,8 @@ pub fn exec(
     // use PathGraph to navigate graph
     let mut end_pos = None;
     while !open_set.is_empty() {
-        let (mut current_node_coord, _) = open_set.delete_min().unwrap();
-        let mut current_node = alignment_graph.get(&current_node_coord).unwrap().clone();
-
-        if match_handles[current_node_coord.path as usize].contains(&Handlepos::init(
-            current_node_coord.node as usize,
-            &path_graph.handles_ids,
-        )) {
-            let mut skip_ahead_coord = current_node_coord.clone();
-            let mut skip_ahed_node = current_node.clone();
-            // Chain match found, skip ahead
-            // FIXME: not working as expected
-            for _ in 0..match_len - 1 {
-                if path_graph.nws[skip_ahead_coord.node as usize]
-                    || skip_ahead_coord.pos >= query.len() as u32 - 1
-                {
-                    break;
-                }
-                let new_node_coord = Coord::init(
-                    skip_ahead_coord.node + 1,
-                    skip_ahead_coord.pos + 1,
-                    skip_ahead_coord.path,
-                );
-                let new_node = AStarNode::init(
-                    skip_ahed_node.g,
-                    crumbs[skip_ahead_coord.path as usize][skip_ahead_coord.pos as usize],
-                    &skip_ahead_coord,
-                );
-                skip_ahead_coord = new_node_coord.clone();
-                skip_ahed_node = new_node.clone();
-                alignment_graph.insert(new_node_coord, new_node);
-            }
-            current_node_coord = skip_ahead_coord;
-            current_node = skip_ahed_node;
-        }
+        let (current_node_coord, _) = open_set.delete_min().unwrap();
+        let current_node = alignment_graph.get(&current_node_coord).unwrap().clone();
         if current_node_coord.pos == query.len() as u32 - 1
             && (current_node_coord.node
                 == path_graph.ending_positions[current_node_coord.path as usize] as u32
@@ -71,66 +36,94 @@ pub fn exec(
             end_pos = Some(current_node_coord);
             break;
         }
+
         if current_node_coord.node + 1 < path_graph.lnz.len() as u32
             && current_node_coord.pos + 1 < query.len() as u32
         {
-            if !path_graph.nws[current_node_coord.node as usize] {
-                let match_mis = if path_graph.lnz[current_node_coord.node as usize + 1]
-                    == query[current_node_coord.pos as usize + 1]
-                {
-                    0
-                } else {
-                    1
-                };
+            if false {
+                let mut skip_ahead = current_node.clone();
+                skip_ahead.parent = current_node_coord.clone();
 
-                push_neigh(
-                    match_mis,
-                    &current_node,
-                    &current_node_coord,
+                let (skip_ahead_node, skip_ahead_pos) = match_handles
+                    [current_node_coord.path as usize]
+                    .get(&(
+                        current_node_coord.node as usize,
+                        current_node_coord.pos as usize,
+                    ))
+                    .unwrap();
+                let skip_ahead_coord = Coord::init(
+                    *skip_ahead_node as u32,
+                    *skip_ahead_pos as u32,
+                    current_node_coord.path,
+                );
+
+                skip_ahead.h =
+                    crumbs[skip_ahead_coord.path as usize][skip_ahead_coord.pos as usize];
+                update_open_set(
                     &mut open_set,
                     &mut alignment_graph,
-                    &crumbs,
-                    current_node_coord.node + 1,
-                    is_local,
-                );
+                    &skip_ahead,
+                    skip_ahead_coord,
+                )
             } else {
-                path_graph
-                    .succ_hash
-                    .get_node_succs(current_node_coord.node)
-                    .iter()
-                    .for_each(|succ| {
-                        let paths = path_graph.get_node_path(current_node_coord.node);
-                        if paths[current_node_coord.path as usize] {
-                            let match_mis = if path_graph.lnz[*succ as usize]
-                                == query[current_node_coord.pos as usize + 1]
-                            {
-                                0
-                            } else {
-                                1
-                            };
+                if !path_graph.nws[current_node_coord.node as usize] {
+                    let match_mis = if path_graph.lnz[current_node_coord.node as usize + 1]
+                        == query[current_node_coord.pos as usize + 1]
+                    {
+                        0
+                    } else {
+                        1
+                    };
 
-                            push_neigh(
-                                match_mis,
-                                &current_node,
-                                &current_node_coord,
-                                &mut open_set,
-                                &mut alignment_graph,
-                                &crumbs,
-                                *succ,
-                                is_local,
-                            );
-                        }
-                    });
+                    push_neigh(
+                        match_mis,
+                        &current_node,
+                        &current_node_coord,
+                        &mut open_set,
+                        &mut alignment_graph,
+                        &crumbs,
+                        current_node_coord.node + 1,
+                        is_local,
+                    );
+                } else {
+                    path_graph
+                        .succ_hash
+                        .get_node_succs(current_node_coord.node)
+                        .iter()
+                        .for_each(|succ| {
+                            let paths = path_graph.get_node_path(current_node_coord.node);
+                            if paths[current_node_coord.path as usize] {
+                                let match_mis = if path_graph.lnz[*succ as usize]
+                                    == query[current_node_coord.pos as usize + 1]
+                                {
+                                    0
+                                } else {
+                                    1
+                                };
+
+                                push_neigh(
+                                    match_mis,
+                                    &current_node,
+                                    &current_node_coord,
+                                    &mut open_set,
+                                    &mut alignment_graph,
+                                    &crumbs,
+                                    *succ,
+                                    is_local,
+                                );
+                            }
+                        });
+                }
+                new_multi_rec(
+                    &current_node,
+                    &current_node_coord,
+                    &crumbs,
+                    &mut open_set,
+                    &mut alignment_graph,
+                    &path_graph,
+                    rec_cost,
+                );
             }
-            new_multi_rec(
-                &current_node,
-                &current_node_coord,
-                &crumbs,
-                &mut open_set,
-                &mut alignment_graph,
-                &path_graph,
-                rec_cost,
-            );
         }
     }
     if end_pos.is_none() {

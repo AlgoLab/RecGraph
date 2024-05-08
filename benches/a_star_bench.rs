@@ -1,13 +1,10 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use gfa::{gfa::GFA, parser::GFAParser};
 use handlegraph::hashgraph::HashGraph;
-use recgraph::{
-    a_star::{a_star_visit, approx_matching},
-    new_path_graph::path_graph::PathGraph,
-    sequences,
-};
+use recgraph::{a_star::a_star_visit, new_path_graph::path_graph::PathGraph, sequences};
 
 fn bench_global_alignment(c: &mut Criterion) {
+    /*
     let file_path = "example/tests/L-3139.sort.gfa";
     let parser = GFAParser::new();
     let gfa: GFA<usize, ()> = parser.parse_file(file_path).unwrap();
@@ -34,7 +31,7 @@ fn bench_global_alignment(c: &mut Criterion) {
                 12,
             );
         })
-    });
+    }); */
 }
 
 criterion_group!(benches, bench_global_alignment);

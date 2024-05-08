@@ -17,7 +17,8 @@ pub fn build_gaf(
     let mut last_g = -1;
     let ed = align.g;
     let mut cigar = Vec::new();
-    let mut recs = Vec::new();
+    let mut recs: Vec<String> = Vec::new();
+
     while align_coord.pos != 0 {
         if align.parent.path != align_coord.path {
             recs.push(format!(
