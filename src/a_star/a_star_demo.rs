@@ -22,7 +22,6 @@ pub fn a_star_demo_chain() {
     let chunk_size = ClArgs::parse().seed_len;
     let start = Instant::now();
     let indexes = path_graph.get_indexes();
-
     let mut outs = Vec::new();
     let init = peak_mem_usage().unwrap();
     sequences.iter().for_each(|seq| {

@@ -40,17 +40,14 @@ pub fn exec(
         if current_node_coord.node + 1 < path_graph.lnz.len() as u32
             && current_node_coord.pos + 1 < query.len() as u32
         {
-            if false {
+            if let Some((skip_ahead_node, skip_ahead_pos)) =
+                match_handles[current_node_coord.path as usize].get(&(
+                    current_node_coord.node as usize,
+                    current_node_coord.pos as usize,
+                ))
+            {
                 let mut skip_ahead = current_node.clone();
                 skip_ahead.parent = current_node_coord.clone();
-
-                let (skip_ahead_node, skip_ahead_pos) = match_handles
-                    [current_node_coord.path as usize]
-                    .get(&(
-                        current_node_coord.node as usize,
-                        current_node_coord.pos as usize,
-                    ))
-                    .unwrap();
                 let skip_ahead_coord = Coord::init(
                     *skip_ahead_node as u32,
                     *skip_ahead_pos as u32,
