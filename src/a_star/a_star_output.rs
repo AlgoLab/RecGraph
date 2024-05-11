@@ -20,7 +20,16 @@ pub fn build_gaf(
     let mut recs: Vec<String> = Vec::new();
 
     while align_coord.pos != 0 {
-        if align.parent.path != align_coord.path {
+        if align_coord.pos - 1 > align.parent.pos {
+            let mut idx = align_coord.pos - align.parent.pos;
+            while idx > 0 {
+                cigar.push('D');
+                idx -= 1;
+            }
+            align_coord = align.parent.clone();
+            align = alignment_graph.remove(&align_coord).unwrap();
+        }
+        else if align.parent.path != align_coord.path {
             recs.push(format!(
                 "REC paths {} - {}\t pos {:?}",
                 align.parent.path,

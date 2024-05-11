@@ -47,7 +47,9 @@ impl PathGraph {
         let mut handles_ids = vec![0];
         let mut last_path_pos = vec![0; graph.paths.len()];
         let mut paths_composition = vec![Vec::new(); graph.paths.len()];
-        graph.paths.iter().for_each(|(id, path)| {
+        let mut path_iterator = graph.paths.iter().collect::<Vec<_>>();
+        path_iterator.sort_by(|a, b| a.0.cmp(b.0));
+        path_iterator.iter().for_each(|(id, path)| {
             let mut prev_handle_end = 0;
             path.nodes.iter().for_each(|node| {
                 let handle_id: u32 = node.0 as u32;
@@ -64,12 +66,12 @@ impl PathGraph {
                     nws.append(&mut nws_slice);
                 }
                 let (handle_start, handle_end) = handles_id_pos.get(&(node.0 as u32)).unwrap();
-                paths_composition[*id as usize].push((*handle_start, *handle_end));
-                succ_hash.set_node_path(handle_id, *id as u32);
+                paths_composition[**id as usize].push((*handle_start, *handle_end));
+                succ_hash.set_node_path(handle_id, **id as u32);
                 succ_hash.set_node_successor(prev_handle_end, *handle_start);
                 prev_handle_end = handles_id_pos.get(&(node.0 as u32)).unwrap().1;
             });
-            last_path_pos[*id as usize] = prev_handle_end;
+            last_path_pos[**id as usize] = prev_handle_end;
         });
 
         lnz.push(b'$');

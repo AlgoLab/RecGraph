@@ -26,16 +26,15 @@ pub fn a_star_demo_chain() {
     let init = peak_mem_usage().unwrap();
     sequences.iter().for_each(|seq| {
         let istant = Instant::now();
-        let heuristic = build_heuristic::build_heuristic(
+        let mut heuristic = build_heuristic::build_heuristic(
             &indexes,
             seq,
             chunk_size as usize,
             args.base_rec_cost as usize,
         );
-
         let (end_pos, mut alignment_graph) = a_star_visit::exec(
             seq,
-            &heuristic,
+            &mut heuristic,
             &path_graph,
             args.alignment_mode,
             args.base_rec_cost as u32,
