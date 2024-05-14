@@ -20,7 +20,7 @@ pub fn exec(
     for path in 0..crumbs.len() {
         let node = AStarNode::new_path(path, &crumbs);
         let node_coord = Coord::init(0, 0, path as u8);
-        open_set.insert(node_coord.clone(), node.g + 0);
+        open_set.insert(node_coord.clone(), node.g + node.h);
         alignment_graph.insert(node_coord, node);
     }
 
@@ -64,7 +64,14 @@ pub fn exec(
                     &skip_ahead,
                     skip_ahead_coord,
                 );
-                update_heuristic(crumbs, match_handles, (current_node_coord.node as usize, current_node_coord.pos as usize));
+                update_heuristic(
+                    crumbs,
+                    match_handles,
+                    (
+                        current_node_coord.node as usize,
+                        current_node_coord.pos as usize,
+                    ),
+                );
             } else {
                 if !path_graph.nws[current_node_coord.node as usize] {
                     let match_mis = if path_graph.lnz[current_node_coord.node as usize + 1]
@@ -138,16 +145,19 @@ fn get_neighbours(
     crumbs: &Vec<Vec<u32>>,
     match_mis: u32,
 ) -> (AStarNode, AStarNode, AStarNode) {
-    
-        let h = crumbs[current_node_coord.path as usize][current_node_coord.pos as usize + 1];
+    let h = crumbs[current_node_coord.path as usize][current_node_coord.pos as usize + 1];
 
-        let m_x = AStarNode::init(current_node.g + match_mis, h, &current_node_coord);
+    let m_x = AStarNode::init(current_node.g + match_mis, h, &current_node_coord);
 
-        let ins = AStarNode::init(current_node.g + 1,  crumbs[current_node_coord.path as usize][current_node_coord.pos as usize], &current_node_coord);
+    let ins = AStarNode::init(
+        current_node.g + 1,
+        crumbs[current_node_coord.path as usize][current_node_coord.pos as usize],
+        &current_node_coord,
+    );
 
-        let del = AStarNode::init(current_node.g + 1, h, &current_node_coord);
+    let del = AStarNode::init(current_node.g + 1, h, &current_node_coord);
 
-        (m_x, ins, del)
+    (m_x, ins, del)
 }
 
 fn update_open_set(
@@ -233,16 +243,20 @@ fn update_heuristic(
     match_handles: &mut Vec<HashMap<(usize, usize), (usize, usize)>>,
     last_match: (usize, usize),
 ) {
-    crumbs.iter_mut().enumerate().for_each(|(path, path_crumbs)| {
-        if  match_handles[path].contains_key(&last_match) {
-            path_crumbs[..last_match.1-1].iter_mut().for_each(|score| {
-                *score += 1;
-            });
-            
-            match_handles[path].remove(&last_match);
-        } 
+    crumbs
+        .iter_mut()
+        .enumerate()
+        .for_each(|(path, path_crumbs)| {
+            if match_handles[path].contains_key(&last_match) {
+                path_crumbs[..last_match.1 - 1]
+                    .iter_mut()
+                    .for_each(|score| {
+                        *score += 1;
+                    });
 
-    })
+                match_handles[path].remove(&last_match);
+            }
+        })
 }
 
 #[derive(Debug, Clone)]
