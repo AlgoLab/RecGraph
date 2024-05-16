@@ -20,7 +20,14 @@ pub fn build_gaf(
     let mut recs: Vec<String> = Vec::new();
 
     while align_coord.pos != 0 {
-        if align_coord.pos - 1 > align.parent.pos {
+        if align.parent.path != align_coord.path {
+            recs.push(format!(
+                "REC paths {} - {}\t pos {:?}",
+                align.parent.path,
+                align_coord.path,
+                (align_coord.node, align_coord.pos)
+            ));
+        } else if align_coord.pos - 1 > align.parent.pos {
             let mut idx = align_coord.pos - align.parent.pos + 1;
             while idx > 0 {
                 cigar.push('D');
@@ -28,13 +35,6 @@ pub fn build_gaf(
             }
             align_coord = align.parent.clone();
             align = alignment_graph.remove(&align_coord).unwrap();
-        } else if align.parent.path != align_coord.path {
-            recs.push(format!(
-                "REC paths {} - {}\t pos {:?}",
-                align.parent.path,
-                align_coord.path,
-                (align_coord.node, align_coord.pos)
-            ));
         } else if align.parent.node != align_coord.node {
             if align.parent.pos != align_coord.pos {
                 if path_graph.lnz[align_coord.node as usize] == query[align_coord.pos as usize] {

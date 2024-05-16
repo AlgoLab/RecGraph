@@ -67,7 +67,7 @@ fn get_path_max_chain(
     let mut chains = vec![Link::new(); matches.len()];
     for i in 0..matches.len() {
         let (pos_i, seed_i) = matches[i];
-        chains[i] = Link::init(0, i, match_len);
+        chains[i] = Link::init(0, i, match_len, 1);
         for j in 0..i {
             let (pos_j, seed_j) = matches[j];
             if seed_j < seed_i && pos_j + match_len - 1 < pos_i {
@@ -93,8 +93,8 @@ fn get_path_max_chain(
                 let gap_cost = 0; // NOT USING GAP COST!!
                 let new_score = chains[j].score + match_len - gap_cost;
 
-                if new_score > chains[i].score {
-                    chains[i] = Link::init(gap_cost, j, new_score);
+                if new_score > chains[i].score && chains[j].len + 1 > chains[i].len {
+                    chains[i] = Link::init(gap_cost, j, new_score, chains[j].len + 1);
                 }
             }
         }
@@ -118,14 +118,6 @@ fn get_path_max_chain(
         max_chain.push((chains[current].gap, &matches[current]));
         //max_chain.reverse();
         let mut max_chain_seed = vec![1; seeds_number];
-        let last_seed = matches[max_chain_ending_pos].1;
-        if last_seed < seeds_number - 1 {
-            max_chain_seed[last_seed + 1..]
-                .iter_mut()
-                .for_each(|score| {
-                    *score += 1;
-                })
-        }
 
         let mut match_handles = HashMap::new();
         max_chain.iter().for_each(|(score, m)| {
@@ -219,6 +211,7 @@ pub struct Link {
     pub gap: usize,
     pub pred: usize,
     pub score: usize,
+    pub len: usize,
 }
 
 impl Link {
@@ -227,9 +220,15 @@ impl Link {
             gap: 0,
             pred: 0,
             score: 0,
+            len: 0,
         }
     }
-    pub fn init(gap: usize, pred: usize, score: usize) -> Self {
-        Link { gap, pred, score }
+    pub fn init(gap: usize, pred: usize, score: usize, len: usize) -> Self {
+        Link {
+            gap,
+            pred,
+            score,
+            len,
+        }
     }
 }

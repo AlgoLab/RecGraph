@@ -1,25 +1,17 @@
+use super::super::new_path_graph::path_graph::PathGraph;
 use bio::alignment::distance::simd::*;
 use bstr::BString;
-use handlegraph::{handlegraph::HandleGraph, hashgraph::HashGraph};
-pub fn test(graph: &HashGraph, sequences: &Vec<BString>) {
-    let mut paths_iter = graph.paths.iter().collect::<Vec<_>>();
-    paths_iter.sort_by(|a, b| a.0.cmp(b.0));
-    let paths = paths_iter
-        .iter()
-        .map(|(_, path)| {
-            let path_str = path
-                .nodes
-                .iter()
-                .flat_map(|node| graph.sequence(*node))
-                .collect::<Vec<_>>();
-            BString::from(path_str)
-        })
-        .collect::<Vec<BString>>();
+pub fn test(graph: &PathGraph, sequences: &Vec<BString>) {
+    let paths = (0..graph.succ_hash.paths_number)
+        .into_iter()
+        .map(|idx| graph.extract_path(idx as usize))
+        .collect::<Vec<_>>();
+
     sequences.iter().for_each(|seq| {
         let best_ed = paths
             .iter()
             .enumerate()
-            .map(|(idx, path)| {
+            .map(|(idx, (path, _))| {
                 let ed = levenshtein(&seq[1..], path);
                 (ed, idx)
             })

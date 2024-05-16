@@ -1,7 +1,9 @@
 use crate::new_path_graph::path_graph::PathGraph;
 use ahash::AHashMap as HashMap;
 use bstr::BString;
-use pheap::PairingHeap as FibHeap;
+use std::cmp::Reverse;
+//use pheap::PairingHeap as FibHeap;
+use priority_queue::PriorityQueue as FibHeap;
 use std::hash::Hash;
 use std::{fmt::Debug, hash::Hasher};
 
@@ -14,20 +16,20 @@ pub fn exec(
 ) -> (Coord, HashMap<Coord, AStarNode>) {
     // init A* data structure, each path possible starting point
     let mut alignment_graph = HashMap::new();
-    let mut open_set = FibHeap::new();
+    let mut open_set: FibHeap<Coord, Reverse<u32>> = FibHeap::new();
     let crumbs: &mut Vec<Vec<u32>> = &mut heuristic.0;
     let match_handles = &mut heuristic.1;
     for path in 0..crumbs.len() {
         let node = AStarNode::new_path(path, &crumbs);
         let node_coord = Coord::init(0, 0, path as u8);
-        open_set.insert(node_coord.clone(), node.g + node.h);
+        open_set.push(node_coord.clone(), Reverse(node.g + node.h));
         alignment_graph.insert(node_coord, node);
     }
 
     // use PathGraph to navigate graph
     let mut end_pos = None;
     while !open_set.is_empty() {
-        let (current_node_coord, _) = open_set.delete_min().unwrap();
+        let (current_node_coord, _) = open_set.pop().unwrap();
         let current_node = alignment_graph.get(&current_node_coord).unwrap().clone();
         if current_node_coord.pos == query.len() as u32 - 1
             && (current_node_coord.node
@@ -70,6 +72,14 @@ pub fn exec(
                     (
                         current_node_coord.node as usize,
                         current_node_coord.pos as usize,
+                    ),
+                );
+                open_set.push(
+                    current_node_coord,
+                    Reverse(
+                        current_node.g
+                            + crumbs[current_node_coord.path as usize]
+                                [current_node_coord.pos as usize],
                     ),
                 );
             } else {
@@ -161,14 +171,18 @@ fn get_neighbours(
 }
 
 fn update_open_set(
-    open_set: &mut FibHeap<Coord, u32>,
+    open_set: &mut FibHeap<Coord, Reverse<u32>>,
     alignment_graph: &mut HashMap<Coord, AStarNode>,
     new_node: &AStarNode,
     new_node_coord: Coord,
 ) {
-    let old_node = alignment_graph.get(&new_node_coord);
-    if old_node.is_none() || old_node.unwrap().g > new_node.g {
-        open_set.insert(new_node_coord, new_node.g + new_node.h);
+    if let Some(old_node) = alignment_graph.get_mut(&new_node_coord) {
+        if old_node.g > new_node.g {
+            open_set.push(new_node_coord, Reverse(new_node.g + new_node.h));
+            *old_node = new_node.clone();
+        }
+    } else {
+        open_set.push(new_node_coord, Reverse(new_node.g + new_node.h));
         alignment_graph.insert(new_node_coord, new_node.clone());
     }
 }
@@ -177,7 +191,7 @@ fn new_multi_rec(
     current_node: &AStarNode,
     current_node_coord: &Coord,
     crumbs: &Vec<Vec<u32>>,
-    open_set: &mut FibHeap<Coord, u32>,
+    open_set: &mut FibHeap<Coord, Reverse<u32>>,
     alignment_graph: &mut HashMap<Coord, AStarNode>,
     path_graph: &PathGraph,
     rec_cost: u32,
@@ -201,7 +215,7 @@ fn push_neigh(
     match_mis: u32,
     current_node: &AStarNode,
     current_node_coord: &Coord,
-    open_set: &mut FibHeap<Coord, u32>,
+    open_set: &mut FibHeap<Coord, Reverse<u32>>,
     alignment_graph: &mut HashMap<Coord, AStarNode>,
     crumbs: &Vec<Vec<u32>>,
     succ: u32,

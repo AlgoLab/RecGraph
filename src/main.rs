@@ -1,5 +1,7 @@
 use recgraph::a_star::a_star_demo;
+use recgraph::a_star::a_star_visit::Coord;
 use recgraph::args_parser::ClArgs;
+use recgraph::fib_heap::fibonacci_heap::FibonacciHeap;
 use recgraph::node_displacement::DisplacementMatrix;
 use recgraph::pathwise_alignment_recombination;
 use recgraph::pathwise_graph;
@@ -17,8 +19,8 @@ static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
 fn main() {
     let now = SystemTime::now();
-
     a_star_demo::a_star_demo_chain();
+
     /*
     let args = ClArgs::parse();
 

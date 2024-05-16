@@ -58,7 +58,7 @@ pub fn a_star_demo_chain() {
     let mem = peak_mem_usage().unwrap();
     println!("Init memory usage: {} B", init);
     println!("Peak memory usage: {} B", mem);
-    check_ed::test(&graph, &sequences);
+    check_ed::test(&path_graph, &sequences);
 }
 
 #[cfg(target_os = "linux")]

@@ -96,7 +96,7 @@ impl PathGraph {
             .get_paths_node(self.handles_ids[node as usize])
     }
 
-    fn extract_path(&self, path_id: usize) -> (BString, Vec<u32>) {
+    pub fn extract_path(&self, path_id: usize) -> (BString, Vec<u32>) {
         let tmp: (Vec<_>, Vec<_>) = self.paths_composition[path_id]
             .iter()
             .map(|(start, end)| {
