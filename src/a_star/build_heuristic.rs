@@ -35,7 +35,7 @@ fn get_matches(
     query_w_prefix: &BString,
     chunk_size: usize,
 ) -> Vec<Vec<(usize, usize)>> {
-    let query = &BString::from(&query_w_prefix[1..]);
+    let query = &BString::from(&query_w_prefix[1..&query_w_prefix.len() - 1]);
 
     let seeds: Vec<_> = query.chunks_exact(chunk_size).collect::<Vec<_>>();
     let matches: Vec<_> = indexes

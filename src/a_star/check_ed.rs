@@ -12,7 +12,7 @@ pub fn test(graph: &PathGraph, sequences: &Vec<BString>) {
             .iter()
             .enumerate()
             .map(|(idx, (path, _))| {
-                let ed = levenshtein(&seq[1..], path);
+                let ed = levenshtein(&seq[1..&seq.len() - 1], path);
                 (ed, idx)
             })
             .min()

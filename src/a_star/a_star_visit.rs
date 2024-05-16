@@ -28,10 +28,12 @@ pub fn exec(
 
     // use PathGraph to navigate graph
     let mut end_pos = None;
+    let mut first = true;
     while !open_set.is_empty() {
         let (current_node_coord, _) = open_set.pop().unwrap();
         let current_node = alignment_graph.get(&current_node_coord).unwrap().clone();
-        if current_node_coord.pos == query.len() as u32 - 1
+
+        if current_node_coord.pos == query.len() as u32 - 2
             && (current_node_coord.node
                 == path_graph.ending_positions[current_node_coord.path as usize] as u32
                 || is_local)
@@ -40,7 +42,10 @@ pub fn exec(
 
             break;
         }
-
+        if first {
+            println!("{:?}", current_node_coord);
+            first = false;
+        }
         if current_node_coord.node + 1 < path_graph.lnz.len() as u32
             && current_node_coord.pos + 1 < query.len() as u32
         {
@@ -66,9 +71,19 @@ pub fn exec(
                     &skip_ahead,
                     skip_ahead_coord,
                 );
+                /*
                 update_heuristic(
                     crumbs,
                     match_handles,
+                    (
+                        current_node_coord.node as usize,
+                        current_node_coord.pos as usize,
+                    ),
+                );
+                */
+                update_path_heuristic(
+                    &mut crumbs[skip_ahead_coord.path as usize],
+                    &mut match_handles[skip_ahead_coord.path as usize],
                     (
                         current_node_coord.node as usize,
                         current_node_coord.pos as usize,
@@ -227,7 +242,6 @@ fn push_neigh(
     if current_node_coord.pos == 0 && is_local {
         ins.g = 0;
     }
-
     update_open_set(
         open_set,
         alignment_graph,
@@ -271,6 +285,20 @@ fn update_heuristic(
                 match_handles[path].remove(&last_match);
             }
         })
+}
+
+fn update_path_heuristic(
+    crumbs: &mut Vec<u32>,
+    match_handles: &mut HashMap<(usize, usize), (usize, usize)>,
+    last_match: (usize, usize),
+) {
+    if match_handles.contains_key(&last_match) {
+        crumbs[..last_match.1 - 1].iter_mut().for_each(|score| {
+            *score += 1;
+        });
+
+        match_handles.remove(&last_match);
+    }
 }
 
 #[derive(Debug, Clone)]

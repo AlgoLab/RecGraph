@@ -17,6 +17,7 @@ pub fn get_sequences(file_path: String) -> (Vec<BString>, Vec<BString>) {
 
         let mut sequence = BString::from(seqrec_norm.sequence());
         sequence.insert(0, b'$');
+        sequence.push(b'$');
         sequences.push(sequence);
         ids.push(BString::from(seqrec.id()));
     }
