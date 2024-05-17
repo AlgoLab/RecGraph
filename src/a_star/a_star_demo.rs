@@ -3,7 +3,7 @@ use gfa::parser::GFAParser;
 use handlegraph::hashgraph::HashGraph;
 use std::time::Instant;
 
-use crate::a_star::{a_star_visit, build_heuristic, check_ed};
+use crate::a_star::{a_star_visit, check_ed, new_heuristic};
 use crate::args_parser::ClArgs;
 use crate::new_path_graph::path_graph::PathGraph;
 use crate::sequences;
@@ -26,7 +26,7 @@ pub fn a_star_demo_chain() {
     let init = peak_mem_usage().unwrap();
     sequences.iter().for_each(|seq| {
         let istant = Instant::now();
-        let mut heuristic = build_heuristic::build_heuristic(
+        let mut heuristic = new_heuristic::build_heuristic(
             &indexes,
             seq,
             chunk_size as usize,
@@ -58,7 +58,7 @@ pub fn a_star_demo_chain() {
     let mem = peak_mem_usage().unwrap();
     println!("Init memory usage: {} B", init);
     println!("Peak memory usage: {} B", mem);
-    //check_ed::test(&path_graph, &sequences);
+    check_ed::test(&path_graph, &sequences);
 }
 
 #[cfg(target_os = "linux")]

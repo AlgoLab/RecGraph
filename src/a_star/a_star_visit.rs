@@ -28,7 +28,6 @@ pub fn exec(
 
     // use PathGraph to navigate graph
     let mut end_pos = None;
-    let mut first = true;
     while !open_set.is_empty() {
         let (current_node_coord, _) = open_set.pop().unwrap();
         let current_node = alignment_graph.get(&current_node_coord).unwrap().clone();
@@ -42,10 +41,7 @@ pub fn exec(
 
             break;
         }
-        if first {
-            println!("{:?}", current_node_coord);
-            first = false;
-        }
+
         if current_node_coord.node + 1 < path_graph.lnz.len() as u32
             && current_node_coord.pos + 1 < query.len() as u32
         {
