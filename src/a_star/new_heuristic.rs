@@ -1,11 +1,10 @@
 use std::cmp;
 
 use ahash::AHashMap as HashMap;
-use bit_vec::BitVec;
 use lt_fm_index::LtFmIndex;
 use rayon::prelude::*;
 
-use bstr::{BString, ByteSlice};
+use bstr::BString;
 
 pub fn build_heuristic(
     indexes: &Vec<(LtFmIndex, Vec<u32>)>,
@@ -68,7 +67,7 @@ fn get_path_max_chain(
     let mut chains = vec![Link::new(); matches.len()];
     for i in 0..matches.len() {
         let (pos_i, seed_i) = matches[i];
-        chains[i] = Link::init(0, i, match_len, 1);
+        chains[i] = Link::init(0, i, match_len as i32, 1);
         for j in 0..i {
             let (pos_j, seed_j) = matches[j];
             if seed_j < seed_i && pos_j + match_len - 1 < pos_i {
@@ -76,10 +75,8 @@ fn get_path_max_chain(
                     (pos_i - pos_j).abs_diff((seed_i - seed_j) * match_len),
                     seed_i - seed_j - 1,
                 );
-                if gap_cost > match_len {
-                    continue;
-                }
-                let new_score = chains[j].score + match_len - gap_cost;
+
+                let new_score: i32 = chains[j].score + (match_len - gap_cost) as i32;
 
                 if new_score > chains[i].score {
                     chains[i] = Link::init(gap_cost, j, new_score, chains[j].len + 1);
@@ -97,10 +94,10 @@ fn get_path_max_chain(
     let mut match_handles = HashMap::new();
     if max_chain_ending_pos != 0 {
         let mut current = max_chain_ending_pos;
-        let mut succ = -1;
+        let mut succ = seeds_number as i32;
         while chains[current].pred != current {
             let (gap, m) = (chains[current].gap, &matches[current]);
-            max_chain_seed[m.1] = Some(Match::init(gap, m.1, succ, chains[current].score));
+            max_chain_seed[m.1] = Some(Match::init(gap, m.1, succ, chains[current].score, false));
             match_handles.insert(
                 (m.0, m.1 * match_len + 1),
                 (m.0 + match_len - 1, (m.1 + 1) * match_len),
@@ -110,11 +107,28 @@ fn get_path_max_chain(
         }
         // push last match
         let (gap, m) = (chains[current].gap, &matches[current]);
-        max_chain_seed[m.1] = Some(Match::init(gap, m.1, succ, chains[current].score));
+        max_chain_seed[m.1] = Some(Match::init(gap, m.1, succ, chains[current].score, true));
         match_handles.insert(
             (m.0, m.1 * match_len + 1),
             (m.0 + match_len - 1, (m.1 + 1) * match_len),
         );
+    }
+
+    // fill the gaps start and end
+    for i in 0..seeds_number {
+        if max_chain_seed[i].is_none() {
+            max_chain_seed[i] = Some(Match::init(1, i, i as i32 + 1, 0, false));
+        } else {
+            break;
+        }
+    }
+    for i in (0..seeds_number).rev() {
+        if max_chain_seed[i].is_none() {
+            max_chain_seed[i] = Some(Match::init(1, i, i as i32 + 1, 0, false));
+        } else {
+            max_chain_seed[i].as_mut().unwrap().succ = i as i32 + 1;
+            break;
+        }
     }
 
     (max_chain_seed, merge_matches(&match_handles, lnz_pos))
@@ -156,34 +170,12 @@ fn rec_chain_update(
 ) -> Vec<Vec<u32>> {
     let mut rec_chains = vec![vec![0; chains[0].len()]; chains.len()];
     let mut best_paths = vec![0; chains[0].len()];
-    let mut first_match_found = BitVec::from_elem(chains.len(), false);
     // iterate
     for j in (0..rec_chains[0].len() - 1).rev() {
         let mut curr_best = None;
         let best_path = best_paths[j + 1];
         for i in 0..rec_chains.len() {
-            if !first_match_found[i] {
-                if let Some(m) = chains[i][j].as_mut() {
-                    let score = rec_chains[i][j + 1];
-                    let score_rec = rec_chains[best_path][j + 1] + rec_cost as u32;
-                    if score < score_rec {
-                        rec_chains[i][j] = score;
-                    } else {
-                        rec_chains[i][j] = score_rec;
-                    }
-
-                    first_match_found.set(i, true);
-                    m.gap = 0;
-                } else {
-                    let score = rec_chains[i][j + 1] + 1;
-                    let score_rec = rec_chains[best_path][j + 1] + rec_cost as u32;
-                    if score < score_rec {
-                        rec_chains[i][j] = score;
-                    } else {
-                        rec_chains[i][j] = score_rec;
-                    }
-                }
-            } else if let Some(m) = &chains[i][j] {
+            if let Some(m) = &chains[i][j] {
                 let score =
                     rec_chains[i][j + 1] + chains[i][m.succ as usize].as_ref().unwrap().gap as u32;
                 let score_rec = rec_chains[best_path][j + 1] + rec_cost as u32;
@@ -196,6 +188,7 @@ fn rec_chain_update(
                 let score = rec_chains[i][j + 1];
                 let score_rec = rec_chains[best_path][j + 1] + rec_cost as u32;
                 if score < score_rec {
+                    //if true {
                     rec_chains[i][j] = score;
                 } else {
                     rec_chains[i][j] = score_rec;
@@ -208,7 +201,7 @@ fn rec_chain_update(
         }
         best_paths[j] = curr_best.unwrap();
     }
-    rec_chains.iter().for_each(|c| println!("{:?}", c));
+
     let mut chains_score: Vec<Vec<_>> = rec_chains
         .par_iter()
         .map(|chain| {
@@ -233,7 +226,8 @@ pub struct Match {
     pub gap: usize,
     pub seed: usize,
     pub succ: i32,
-    pub cost: usize,
+    pub cost: i32,
+    pub first: bool,
 }
 
 impl Match {
@@ -243,14 +237,16 @@ impl Match {
             seed: 0,
             succ: 0,
             cost: 0,
+            first: false,
         }
     }
-    pub fn init(gap: usize, seed: usize, succ: i32, cost: usize) -> Self {
+    pub fn init(gap: usize, seed: usize, succ: i32, cost: i32, first: bool) -> Self {
         Match {
             gap,
             seed,
             succ,
             cost,
+            first,
         }
     }
 }
@@ -259,7 +255,7 @@ impl Match {
 pub struct Link {
     pub gap: usize,
     pub pred: usize,
-    pub score: usize,
+    pub score: i32,
     pub len: usize,
 }
 
@@ -272,7 +268,7 @@ impl Link {
             len: 0,
         }
     }
-    pub fn init(gap: usize, pred: usize, score: usize, len: usize) -> Self {
+    pub fn init(gap: usize, pred: usize, score: i32, len: usize) -> Self {
         Link {
             gap,
             pred,

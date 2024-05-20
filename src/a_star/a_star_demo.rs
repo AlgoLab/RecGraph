@@ -3,7 +3,7 @@ use gfa::parser::GFAParser;
 use handlegraph::hashgraph::HashGraph;
 use std::time::Instant;
 
-use crate::a_star::{a_star_visit, check_ed, new_heuristic};
+use crate::a_star::{a_star_visit, build_heuristic as new_heuristic, check_ed};
 use crate::args_parser::ClArgs;
 use crate::new_path_graph::path_graph::PathGraph;
 use crate::sequences;

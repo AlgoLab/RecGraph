@@ -1,4 +1,4 @@
-use std::cmp;
+use std::{borrow::BorrowMut, cmp};
 
 use ahash::AHashMap as HashMap;
 use lt_fm_index::LtFmIndex;
@@ -111,10 +111,12 @@ fn get_path_max_chain(
     } else {
         let mut max_chain = Vec::new();
         let mut current = max_chain_ending_pos;
+        let last = chains[current].borrow_mut();
         while chains[current].pred != current {
             max_chain.push((chains[current].gap, &matches[current]));
             current = chains[current].pred;
         }
+
         max_chain.push((chains[current].gap, &matches[current]));
         //max_chain.reverse();
         let mut max_chain_seed = vec![1; seeds_number];
@@ -168,18 +170,22 @@ fn rec_chain_update(
 
     // iterate
     for j in (0..rec_chains[0].len() - 1).rev() {
-        let mut curr_best = None;
+        let mut curr_best: Option<usize> = None;
         for i in 0..rec_chains.len() {
             let best_path = best_paths[j + 1];
             let score = rec_chains[i][j + 1] + chains[i][j + 1] as usize;
-            let score_rec = rec_chains[best_path][j + 1] + chains[i][j + 1] as usize + rec_cost;
+            let score_rec =
+                rec_chains[best_path][j + 1] + chains[best_path][j + 1] as usize + rec_cost;
             if score < score_rec {
                 rec_chains[i][j] = score;
             } else {
                 rec_chains[i][j] = score_rec;
             }
 
-            if curr_best.is_none() || rec_chains[i][j] <= rec_chains[curr_best.unwrap() as usize][j]
+            if curr_best.is_none()
+                || rec_chains[i][j] + chains[i][j] as usize
+                    <= rec_chains[curr_best.unwrap() as usize][j]
+                        + chains[curr_best.unwrap()][j] as usize
             {
                 curr_best = Some(i);
             }
