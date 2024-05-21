@@ -67,16 +67,7 @@ pub fn exec(
                     &skip_ahead,
                     skip_ahead_coord,
                 );
-                /*
-                update_heuristic(
-                    crumbs,
-                    match_handles,
-                    (
-                        current_node_coord.node as usize,
-                        current_node_coord.pos as usize,
-                    ),
-                );
-                */
+
                 update_path_heuristic(
                     &mut crumbs[skip_ahead_coord.path as usize],
                     &mut match_handles[skip_ahead_coord.path as usize],
@@ -260,27 +251,6 @@ fn push_neigh(
             current_node_coord.path,
         ),
     );
-}
-
-fn update_heuristic(
-    crumbs: &mut Vec<Vec<u32>>,
-    match_handles: &mut Vec<HashMap<(usize, usize), (usize, usize)>>,
-    last_match: (usize, usize),
-) {
-    crumbs
-        .iter_mut()
-        .enumerate()
-        .for_each(|(path, path_crumbs)| {
-            if match_handles[path].contains_key(&last_match) {
-                path_crumbs[..last_match.1 - 1]
-                    .iter_mut()
-                    .for_each(|score| {
-                        *score += 1;
-                    });
-
-                match_handles[path].remove(&last_match);
-            }
-        })
 }
 
 fn update_path_heuristic(

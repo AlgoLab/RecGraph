@@ -130,7 +130,6 @@ fn get_path_max_chain(
             break;
         }
     }
-
     (max_chain_seed, merge_matches(&match_handles, lnz_pos))
 }
 
@@ -185,14 +184,16 @@ fn rec_chain_update(
                     rec_chains[i][j] = score_rec;
                 }
             } else {
+                rec_chains[i][j] = rec_chains[i][j + 1];
+                /*
                 let score = rec_chains[i][j + 1];
                 let score_rec = rec_chains[best_path][j + 1] + rec_cost as u32;
                 if score < score_rec {
-                    //if true {
                     rec_chains[i][j] = score;
                 } else {
                     rec_chains[i][j] = score_rec;
                 }
+                */
             }
             if curr_best.is_none() || rec_chains[i][j] <= rec_chains[curr_best.unwrap() as usize][j]
             {
@@ -201,7 +202,6 @@ fn rec_chain_update(
         }
         best_paths[j] = curr_best.unwrap();
     }
-
     let mut chains_score: Vec<Vec<_>> = rec_chains
         .par_iter()
         .map(|chain| {

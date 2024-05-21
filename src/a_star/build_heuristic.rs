@@ -4,7 +4,7 @@ use ahash::AHashMap as HashMap;
 use lt_fm_index::LtFmIndex;
 use rayon::prelude::*;
 
-use bstr::{BString, ByteSlice};
+use bstr::BString;
 
 pub fn build_heuristic(
     indexes: &Vec<(LtFmIndex, Vec<u32>)>,
@@ -84,17 +84,25 @@ fn get_path_max_chain(
                 if gap_cost > match_len {
                     continue;
                 }
-                */
-                //let gap_cost = 0; // NOT USING GAP COST!!
+
                 let gap_cost = cmp::max(
                     (pos_i - pos_j).abs_diff((seed_i - seed_j) * match_len),
                     seed_i - seed_j - 1,
                 );
-                let gap_cost = 0; // NOT USING GAP COST!!
+                */
+                let gap_cost = if seed_i - seed_j == 1 {
+                    (pos_i - pos_j).abs_diff((seed_i - seed_j) * match_len)
+                } else {
+                    seed_i - seed_j - 1
+                };
+                
+                if gap_cost > match_len {
+                    continue;
+                }
                 let new_score = chains[j].score + match_len - gap_cost;
 
                 if new_score > chains[i].score && chains[j].len + 1 > chains[i].len {
-                    chains[i] = Link::init(gap_cost, j, new_score, chains[j].len + 1);
+                    chains[i] = Link::init(0, j, new_score, chains[j].len + 1);
                 }
             }
         }
@@ -111,7 +119,6 @@ fn get_path_max_chain(
     } else {
         let mut max_chain = Vec::new();
         let mut current = max_chain_ending_pos;
-        let last = chains[current].borrow_mut();
         while chains[current].pred != current {
             max_chain.push((chains[current].gap, &matches[current]));
             current = chains[current].pred;
@@ -156,7 +163,6 @@ fn merge_matches(
         (lnz_pos[current.0 .0] as usize, current.0 .1),
         (lnz_pos[current.1 .0] as usize, current.1 .1),
     );
-
     merged_matches
 }
 fn rec_chain_update(
@@ -171,8 +177,8 @@ fn rec_chain_update(
     // iterate
     for j in (0..rec_chains[0].len() - 1).rev() {
         let mut curr_best: Option<usize> = None;
+        let best_path = best_paths[j + 1];
         for i in 0..rec_chains.len() {
-            let best_path = best_paths[j + 1];
             let score = rec_chains[i][j + 1] + chains[i][j + 1] as usize;
             let score_rec =
                 rec_chains[best_path][j + 1] + chains[best_path][j + 1] as usize + rec_cost;

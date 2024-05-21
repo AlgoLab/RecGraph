@@ -21,9 +21,6 @@ static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 fn main() {
     let now = SystemTime::now();
     a_star_demo::a_star_demo_chain();
-    let v = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
-    let squared = v.par_iter().map(|x| x * x).collect::<Vec<_>>();
-    println!("{:?}", squared);
     /*
     let args = ClArgs::parse();
 

@@ -33,8 +33,6 @@ pub fn build_gaf(
                 cigar.push('D');
                 idx -= 1;
             }
-            align_coord = align.parent.clone();
-            align = alignment_graph.remove(&align_coord).unwrap();
         } else if align.parent.node != align_coord.node {
             if align.parent.pos != align_coord.pos {
                 if path_graph.lnz[align_coord.node as usize] == query[align_coord.pos as usize] {
