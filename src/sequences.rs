@@ -13,7 +13,7 @@ pub fn get_sequences(file_path: String) -> (Vec<BString>, Vec<BString>) {
     ));
     while let Some(record) = reader.next() {
         let seqrec = record.expect("Invalid sequence");
-        let seqrec_norm = seqrec.normalize(false);
+        let seqrec_norm = seqrec.normalize(true);
 
         let mut sequence = BString::from(seqrec_norm.sequence());
         sequence.insert(0, b'$');

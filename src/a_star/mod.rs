@@ -9,3 +9,5 @@ pub mod build_heuristic;
 pub mod check_ed;
 
 pub mod new_heuristic;
+
+pub mod minimizer;

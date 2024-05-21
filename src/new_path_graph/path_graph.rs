@@ -115,7 +115,7 @@ impl PathGraph {
             .map(|path_id| {
                 let (path, positions) = self.extract_path(path_id);
                 let builder = lt_fm_index::LtFmIndexBuilder::new()
-                    .text_type_is_amino_acid_only()
+                    .text_type_is_nucleotide_with_noise()
                     .set_suffix_array_sampling_ratio_to_default()
                     .set_lookup_table_kmer_size_to_default();
                 (builder.build(path.to_vec()).unwrap(), positions)

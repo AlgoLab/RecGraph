@@ -1,5 +1,3 @@
-use std::{borrow::BorrowMut, cmp};
-
 use ahash::AHashMap as HashMap;
 use lt_fm_index::LtFmIndex;
 use rayon::prelude::*;
@@ -13,6 +11,7 @@ pub fn build_heuristic(
     rec_cost: usize,
 ) -> (Vec<Vec<u32>>, Vec<HashMap<(usize, usize), (usize, usize)>>) {
     let matches = get_matches(indexes, query, chunk_size);
+
     let (chains, matches_pos): (Vec<_>, Vec<_>) = matches
         .par_iter()
         .enumerate()
@@ -25,6 +24,7 @@ pub fn build_heuristic(
             )
         })
         .unzip();
+
     let heus = rec_chain_update(&chains, rec_cost, query.len(), chunk_size);
 
     (heus, matches_pos)
@@ -95,7 +95,7 @@ fn get_path_max_chain(
                 } else {
                     seed_i - seed_j - 1
                 };
-                
+
                 if gap_cost > match_len {
                     continue;
                 }
@@ -182,6 +182,7 @@ fn rec_chain_update(
             let score = rec_chains[i][j + 1] + chains[i][j + 1] as usize;
             let score_rec =
                 rec_chains[best_path][j + 1] + chains[best_path][j + 1] as usize + rec_cost;
+
             if score < score_rec {
                 rec_chains[i][j] = score;
             } else {
