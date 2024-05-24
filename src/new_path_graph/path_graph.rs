@@ -122,8 +122,45 @@ impl PathGraph {
             })
             .collect::<Vec<_>>()
     }
+
+    pub fn get_graph_size(&self) -> usize {
+        (0..self.succ_hash.paths_number as usize)
+            .map(|path_id| {
+                let (path, _) = self.extract_path(path_id);
+                path.len()
+            })
+            .sum()
+    }
 }
 
 fn cast_handle_id(handle_id: u64, min: u64) -> usize {
     (handle_id - min) as usize
+}
+
+pub fn remove_duplicate_paths(graph: &mut HashGraph) {
+    let mut paths_to_remove = Vec::new();
+    graph
+        .paths
+        .iter()
+        .enumerate()
+        .for_each(|(idx, (path_id, path))| {
+            graph.paths.iter().skip(idx).for_each(|(path_id2, path2)| {
+                if path_id != path_id2 && path.nodes == path2.nodes {
+                    paths_to_remove.push(*path_id2);
+                }
+            });
+        });
+
+    graph
+        .paths
+        .retain(|path_id, _| !paths_to_remove.contains(path_id));
+
+    // change id back to 0..n
+    let mut old_graph = graph.paths.drain().collect::<Vec<_>>();
+    old_graph
+        .drain(0..)
+        .enumerate()
+        .for_each(|(idx, (_, path))| {
+            graph.paths.insert(idx as i64, path);
+        });
 }

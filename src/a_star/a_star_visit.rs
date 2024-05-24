@@ -38,7 +38,8 @@ pub fn exec(
                 || is_local)
         {
             end_pos = Some(current_node_coord);
-
+            //let perc_explored = (alignment_graph.len() as f32 / (query.len() as f32 *path_graph.get_graph_size() as f32)) * 100.0;
+            //println!("Explored {:.2}%", perc_explored);
             break;
         }
 

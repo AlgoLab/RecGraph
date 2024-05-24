@@ -11,7 +11,6 @@ pub fn build_heuristic(
     rec_cost: usize,
 ) -> (Vec<Vec<u32>>, Vec<HashMap<(usize, usize), (usize, usize)>>) {
     let matches = get_matches(indexes, query, chunk_size);
-
     let (chains, matches_pos): (Vec<_>, Vec<_>) = matches
         .par_iter()
         .enumerate()
@@ -24,7 +23,7 @@ pub fn build_heuristic(
             )
         })
         .unzip();
-
+    //println!("______________________");
     let heus = rec_chain_update(&chains, rec_cost, query.len(), chunk_size);
 
     (heus, matches_pos)
@@ -90,16 +89,8 @@ fn get_path_max_chain(
                     seed_i - seed_j - 1,
                 );
                 */
-                let gap_cost = if seed_i - seed_j == 1 {
-                    (pos_i - pos_j).abs_diff((seed_i - seed_j) * match_len)
-                } else {
-                    seed_i - seed_j - 1
-                };
 
-                if gap_cost > match_len {
-                    continue;
-                }
-                let new_score = chains[j].score + match_len - gap_cost;
+                let new_score = chains[j].score + match_len;
 
                 if new_score > chains[i].score && chains[j].len + 1 > chains[i].len {
                     chains[i] = Link::init(0, j, new_score, chains[j].len + 1);
@@ -136,6 +127,8 @@ fn get_path_max_chain(
                 (m.0 + match_len - 1, (m.1 + 1) * match_len),
             );
         });
+        //println!("{:?}", match_handles.len());
+
         (max_chain_seed, merge_matches(&match_handles, lnz_pos))
     }
 }
