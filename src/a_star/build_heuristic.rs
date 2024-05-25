@@ -1,3 +1,5 @@
+use std::{cmp, ops::Neg};
+
 use ahash::AHashMap as HashMap;
 use lt_fm_index::LtFmIndex;
 use rayon::prelude::*;
@@ -66,7 +68,7 @@ fn get_path_max_chain(
     let mut chains = vec![Link::new(); matches.len()];
     for i in 0..matches.len() {
         let (pos_i, seed_i) = matches[i];
-        chains[i] = Link::init(0, i, match_len, 1);
+        chains[i] = Link::init(0, i, (seeds_number - 1) as i32 * match_len as i32, 1);
         for j in 0..i {
             let (pos_j, seed_j) = matches[j];
             if seed_j < seed_i && pos_j + match_len - 1 < pos_i {
@@ -83,17 +85,17 @@ fn get_path_max_chain(
                 if gap_cost > match_len {
                     continue;
                 }
+                */
 
                 let gap_cost = cmp::max(
                     (pos_i - pos_j).abs_diff((seed_i - seed_j) * match_len),
                     seed_i - seed_j - 1,
                 );
-                */
+                let gap_cost = 0;
+                let new_score = chains[j].score - match_len as i32 + gap_cost as i32;
 
-                let new_score = chains[j].score + match_len;
-
-                if new_score > chains[i].score && chains[j].len + 1 > chains[i].len {
-                    chains[i] = Link::init(0, j, new_score, chains[j].len + 1);
+                if new_score < chains[i].score {
+                    chains[i] = Link::init(gap_cost, j, new_score, chains[j].len + 1);
                 }
             }
         }
@@ -102,7 +104,7 @@ fn get_path_max_chain(
     let max_chain_ending_pos = chains
         .iter()
         .enumerate()
-        .max_by_key(|x| x.1.score)
+        .min_by_key(|x| x.1.score)
         .unwrap_or((0, &Link::new()))
         .0;
     if max_chain_ending_pos == 0 {
@@ -216,7 +218,7 @@ fn rec_chain_update(
 pub struct Link {
     pub gap: usize,
     pub pred: usize,
-    pub score: usize,
+    pub score: i32,
     pub len: usize,
 }
 
@@ -229,12 +231,36 @@ impl Link {
             len: 0,
         }
     }
-    pub fn init(gap: usize, pred: usize, score: usize, len: usize) -> Self {
+    pub fn init(gap: usize, pred: usize, score: i32, len: usize) -> Self {
         Link {
             gap,
             pred,
             score,
             len,
+        }
+    }
+}
+
+impl cmp::PartialEq for Link {
+    fn eq(&self, other: &Self) -> bool {
+        self == other
+    }
+}
+
+impl cmp::Eq for Link {}
+
+impl cmp::PartialOrd for Link {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl cmp::Ord for Link {
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        if self.len == other.len {
+            self.score.neg().cmp(&other.score.neg())
+        } else {
+            self.len.cmp(&other.len)
         }
     }
 }
