@@ -1,3 +1,4 @@
+use bit_vec::BitVec;
 use gfa::gfa::GFA;
 use gfa::parser::GFAParser;
 use handlegraph::hashgraph::HashGraph;
@@ -16,9 +17,26 @@ pub fn a_star_demo_chain() {
     let parser = GFAParser::new();
     let gfa: GFA<usize, ()> = parser.parse_file(file_path).unwrap();
     let mut graph: HashGraph = HashGraph::from_gfa(&gfa);
-    remove_duplicate_paths(&mut graph);
-
+    //remove_duplicate_paths(&mut graph);
     let path_graph = PathGraph::from_hash_graph(&graph);
+    /*
+    println!("LNZ: {:?}", path_graph.lnz.len());
+    println!("Paths: {:?}", path_graph.get_node_path(36066));
+    path_graph.succ_hash.get_all_paths().iter().for_each(|(handle, paths)| {
+        if paths[9] {
+            println!("{:?}", handle);
+        }
+    });
+    let mut i = 29897;
+    let mut paths = BitVec::from_elem(path_graph.succ_hash.paths_number as usize, false);
+    paths.set(path_graph.succ_hash.paths_number as usize - 1, true);
+    while i < path_graph.lnz.len() {
+        if &paths !=  path_graph.get_node_path(i as u32) {
+            println!("{i}\t{:?}", path_graph.get_node_path(i as u32));
+        }
+        i += 1;
+    }
+    */
 
     let (sequences, _) = sequences::get_sequences(args.sequence_path);
     let chunk_size = ClArgs::parse().seed_len;

@@ -61,4 +61,8 @@ impl SuccHash {
             .unwrap()
             .set(path as usize, true);
     }
+
+    pub fn get_all_paths(&self) -> &HashMap<u32, bit_vec::BitVec> {
+        &self.paths_in_nodes
+    }
 }

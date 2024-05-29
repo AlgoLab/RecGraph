@@ -26,7 +26,6 @@ pub fn build_heuristic(
         })
         .unzip();
     let heus = rec_chain_update(&mut chains, rec_cost, query.len(), chunk_size);
-
     (heus, matches_pos)
 }
 
@@ -92,9 +91,10 @@ fn get_path_max_chain(
         .0;
     let mut max_chain_seed = vec![None; seeds_number];
     let mut match_handles = HashMap::new();
+    let mut current = max_chain_ending_pos;
+
     if max_chain_ending_pos != 0 {
-        let mut current = max_chain_ending_pos;
-        let mut succ = seeds_number as i32;
+        let mut succ = seeds_number as i32 - 1;
         while chains[current].pred != current {
             let (gap, m) = (chains[current].gap, &matches[current]);
             max_chain_seed[m.1] = Some(Match::init(gap, m.1, succ, chains[current].score, false));
@@ -114,22 +114,16 @@ fn get_path_max_chain(
         );
     }
 
-    // fill the gaps start and end
-    for i in 0..seeds_number {
-        if max_chain_seed[i].is_none() {
-            max_chain_seed[i] = Some(Match::init(1, i, i as i32 + 1, 0, false));
-        } else {
-            break;
-        }
+    if max_chain_seed[max_chain_seed.len() - 1].is_none() {
+        max_chain_seed[seeds_number - 1] = Some(Match::init(
+            cmp::max(1, (seeds_number - 1) - (max_chain_ending_pos + 1)),
+            seeds_number - 1,
+            -1,
+            0,
+            false,
+        ));
     }
-    for i in (0..seeds_number).rev() {
-        if max_chain_seed[i].is_none() {
-            max_chain_seed[i] = Some(Match::init(1, i, i as i32 + 1, 0, false));
-        } else {
-            max_chain_seed[i].as_mut().unwrap().succ = i as i32 + 1;
-            break;
-        }
-    }
+
     (max_chain_seed, merge_matches(&match_handles, lnz_pos))
 }
 
@@ -141,24 +135,10 @@ fn merge_matches(
     let mut merged_matches = HashMap::new();
     if matches.len() > 0 {
         matches.sort_by(|a, b| a.0 .0.cmp(&b.0 .0));
-        let mut current = matches[0];
-        for next in matches.iter_mut().skip(1) {
-            if &(current.1 .0 + 1, current.1 .1 + 1) == next.0 {
-                current.1 = next.1;
-            } else {
-                merged_matches.insert(
-                    (lnz_pos[current.0 .0] as usize, current.0 .1),
-                    (lnz_pos[current.1 .0] as usize, current.1 .1),
-                );
-                current = *next;
-            }
-        }
-        merged_matches.insert(
-            (lnz_pos[current.0 .0] as usize, current.0 .1),
-            (lnz_pos[current.1 .0] as usize, current.1 .1),
-        );
+        matches.iter().for_each(|(k, v)| {
+            merged_matches.insert((lnz_pos[k.0] as usize, k.1), (lnz_pos[v.0] as usize, v.1));
+        });
     }
-
     merged_matches
 }
 fn rec_chain_update(
@@ -175,25 +155,30 @@ fn rec_chain_update(
         let best_path = best_paths[j + 1];
         for i in 0..rec_chains.len() {
             if let Some(m) = &chains[i][j] {
-                let score =
-                    rec_chains[i][j + 1] + chains[i][m.succ as usize].as_ref().unwrap().gap as u32;
+                let score = rec_chains[i][m.succ as usize]
+                    + chains[i][m.succ as usize].as_ref().unwrap().gap as u32;
+
                 let score_rec = rec_chains[best_path][j + 1] + rec_cost as u32;
+
                 if score < score_rec {
                     rec_chains[i][j] = score;
                 } else {
                     rec_chains[i][j] = score_rec;
                 }
             } else {
-                rec_chains[i][j] = rec_chains[i][j + 1];
-                /*
-                let score = rec_chains[i][j + 1];
+                let score = if chains[i][j + 1].is_some() {
+                    rec_chains[i][j + 1]
+                } else {
+                    rec_chains[i][j + 1] + 1
+                };
+
                 let score_rec = rec_chains[best_path][j + 1] + rec_cost as u32;
+
                 if score < score_rec {
                     rec_chains[i][j] = score;
                 } else {
                     rec_chains[i][j] = score_rec;
                 }
-                */
             }
             if curr_best.is_none() || rec_chains[i][j] <= rec_chains[curr_best.unwrap() as usize][j]
             {

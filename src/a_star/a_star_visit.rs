@@ -4,8 +4,8 @@ use bstr::BString;
 use std::cmp::Reverse;
 //use pheap::PairingHeap as FibHeap;
 use priority_queue::PriorityQueue as FibHeap;
+use std::fmt::Debug;
 use std::hash::Hash;
-use std::{fmt::Debug, hash::Hasher};
 
 pub fn exec(
     query: &BString,
@@ -30,8 +30,10 @@ pub fn exec(
     let mut end_pos = None;
     while !open_set.is_empty() {
         let (current_node_coord, _) = open_set.pop().unwrap();
+        if !path_graph.get_node_path(current_node_coord.node)[current_node_coord.path as usize] {
+            println!("{:?}", current_node_coord);
+        };
         let current_node = alignment_graph.get(&current_node_coord).unwrap().clone();
-
         if current_node_coord.pos == query.len() as u32 - 2
             && (current_node_coord.node
                 == path_graph.ending_positions[current_node_coord.path as usize] as u32
@@ -68,7 +70,6 @@ pub fn exec(
                     &skip_ahead,
                     skip_ahead_coord,
                 );
-
                 update_path_heuristic(
                     &mut crumbs[skip_ahead_coord.path as usize],
                     &mut match_handles[skip_ahead_coord.path as usize],
@@ -111,7 +112,7 @@ pub fn exec(
                         .get_node_succs(current_node_coord.node)
                         .iter()
                         .for_each(|succ| {
-                            let paths = path_graph.get_node_path(current_node_coord.node);
+                            let paths = path_graph.get_node_path(*succ);
                             if paths[current_node_coord.path as usize] {
                                 let match_mis = if path_graph.lnz[*succ as usize]
                                     == query[current_node_coord.pos as usize + 1]
@@ -268,7 +269,7 @@ fn update_path_heuristic(
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct Coord {
     pub node: u32,
     pub pos: u32,
@@ -286,14 +287,6 @@ impl Coord {
 
     pub fn init(node: u32, pos: u32, path: u8) -> Self {
         Coord { node, pos, path }
-    }
-}
-
-impl Hash for Coord {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.node.hash(state);
-        self.pos.hash(state);
-        self.path.hash(state);
     }
 }
 

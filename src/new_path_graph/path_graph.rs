@@ -60,8 +60,7 @@ impl PathGraph {
                     let handle_end = lnz.len() as u32 - 1;
                     visited_handles.set(cast_handle_id(node.0, min_node_id), true);
                     handles_id_pos.insert(handle_id, (handle_start, handle_end));
-                    let mut nws_slice =
-                        BitVec::from_elem((handle_end + 1 - handle_start) as usize, false);
+                    let mut nws_slice = BitVec::from_elem(graph.sequence(*node).len(), false);
                     nws_slice.set(nws_slice.len() - 1, true);
                     nws.append(&mut nws_slice);
                 }
@@ -110,17 +109,23 @@ impl PathGraph {
     }
 
     pub fn get_indexes(&self) -> Vec<(LtFmIndex, Vec<u32>)> {
-        (0..self.succ_hash.paths_number as usize)
+        let mut indexes = (0..self.succ_hash.paths_number as usize)
             .into_par_iter()
-            .map(|path_id| {
+            .enumerate()
+            .map(|(idx, path_id)| {
                 let (path, positions) = self.extract_path(path_id);
                 let builder = lt_fm_index::LtFmIndexBuilder::new()
                     .text_type_is_nucleotide_with_noise()
                     .set_suffix_array_sampling_ratio_to_default()
                     .set_lookup_table_kmer_size_to_default();
-                (builder.build(path.to_vec()).unwrap(), positions)
+                (idx, builder.build(path.to_vec()).unwrap(), positions)
             })
-            .collect::<Vec<_>>()
+            .collect::<Vec<_>>();
+        indexes.sort_by(|a, b| a.0.cmp(&b.0));
+        indexes
+            .into_iter()
+            .map(|(_, index, positions)| (index, positions))
+            .collect()
     }
 
     pub fn get_graph_size(&self) -> usize {
