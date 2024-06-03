@@ -26,6 +26,7 @@ pub fn build_heuristic(
         })
         .unzip();
     //println!("______________________");
+
     let heus = rec_chain_update(&chains, rec_cost, query.len(), chunk_size);
 
     (heus, matches_pos)
@@ -100,16 +101,16 @@ fn get_path_max_chain(
             }
         }
     }
-
-    let max_chain_ending_pos = chains
-        .iter()
-        .enumerate()
-        .min_by_key(|x| x.1.score)
-        .unwrap_or((0, &Link::new()))
-        .0;
-    if max_chain_ending_pos == 0 {
-        (vec![1; seeds_number], HashMap::new())
+    if chains.is_empty() {
+        return (vec![1; seeds_number], HashMap::new());
     } else {
+        let max_chain_ending_pos = chains
+            .iter()
+            .enumerate()
+            .min_by_key(|x| x.1.score)
+            .unwrap_or((0, &Link::new()))
+            .0;
+
         let mut max_chain = Vec::new();
         let mut current = max_chain_ending_pos;
         while chains[current].pred != current {
@@ -129,8 +130,6 @@ fn get_path_max_chain(
                 (m.0 + match_len - 1, (m.1 + 1) * match_len),
             );
         });
-        //println!("{:?}", match_handles.len());
-
         (max_chain_seed, merge_matches(&match_handles, lnz_pos))
     }
 }

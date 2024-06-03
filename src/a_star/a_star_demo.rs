@@ -4,7 +4,7 @@ use gfa::parser::GFAParser;
 use handlegraph::hashgraph::HashGraph;
 use std::time::Instant;
 
-use crate::a_star::{a_star_visit, build_heuristic as new_heuristic, check_ed};
+use crate::a_star::{a_star_visit, new_heuristic, check_ed};
 use crate::args_parser::ClArgs;
 use crate::new_path_graph::path_graph::{remove_duplicate_paths, PathGraph};
 use crate::sequences;
@@ -17,9 +17,8 @@ pub fn a_star_demo_chain() {
     let parser = GFAParser::new();
     let gfa: GFA<usize, ()> = parser.parse_file(file_path).unwrap();
     let mut graph: HashGraph = HashGraph::from_gfa(&gfa);
-    //remove_duplicate_paths(&mut graph);
+    remove_duplicate_paths(&mut graph);
     let path_graph = PathGraph::from_hash_graph(&graph);
-    println!("{:?}", path_graph);
     /*
     println!("LNZ: {:?}", path_graph.lnz.len());
     println!("Paths: {:?}", path_graph.get_node_path(36066));
