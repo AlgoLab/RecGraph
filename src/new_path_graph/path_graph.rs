@@ -36,6 +36,7 @@ impl PathGraph {
         let max_node_id: u64 = graph.max_node_id().into();
         let mut visited_handles =
             BitVec::from_elem((max_node_id - min_node_id + 1) as usize * 2 + 1, false);
+        let mut last_idx = max_node_id * 2 + 1;
         let mut handles_id_pos: HashMap<u32, (u32, u32)> = HashMap::new();
 
         let mut succ_hash = SuccHash::new();
@@ -49,33 +50,52 @@ impl PathGraph {
         let mut paths_composition = vec![Vec::new(); graph.paths.len()];
         let mut path_iterator = graph.paths.iter().collect::<Vec<_>>();
         path_iterator.sort_by(|a, b| a.0.cmp(b.0));
+        let mut dup_handles: HashMap<(u64, i32), u32> = HashMap::new();
         path_iterator.iter().for_each(|(id, path)| {
+            let mut path_handles: HashMap<u64, i32> = HashMap::new();
             let mut prev_handle_end = 0;
             path.nodes.iter().for_each(|node| {
-                let handle_id: u32 = node.0 as u32;
-                if !visited_handles[cast_handle_id(node.0, min_node_id)] {
+                let handle_id = if let Some(iter) = path_handles.get(&node.0) {
+                    if let Some(handle_id) = dup_handles.get(&(node.0, *iter)) {
+                        *handle_id
+                    } else {
+                        last_idx += 1;
+                        dup_handles.insert((node.0, *iter), last_idx as u32);
+                        visited_handles.push(false);
+                        last_idx as u32
+                    }
+                } else {
+                    node.0 as u32
+                };
+                if !visited_handles[cast_handle_id(handle_id, min_node_id)] {
                     let handle_start = lnz.len() as u32;
                     lnz.append(&mut graph.sequence(*node));
                     handles_ids.append(&mut vec![handle_id; graph.sequence(*node).len()]);
                     let handle_end = lnz.len() as u32 - 1;
-                    visited_handles.set(cast_handle_id(node.0, min_node_id), true);
+                    visited_handles.set(cast_handle_id(handle_id, min_node_id), true);
                     handles_id_pos.insert(handle_id, (handle_start, handle_end));
                     let mut nws_slice = BitVec::from_elem(graph.sequence(*node).len(), false);
                     nws_slice.set(nws_slice.len() - 1, true);
                     nws.append(&mut nws_slice);
                 }
-                let (handle_start, handle_end) = handles_id_pos.get(&(node.0 as u32)).unwrap();
+                if let Some(iter) = path_handles.get_mut(&node.0) {
+                    *iter += 1;
+                } else {
+                    path_handles.insert(node.0, 1);
+                }
+                let (handle_start, handle_end) = handles_id_pos.get(&(handle_id)).unwrap();
                 paths_composition[**id as usize].push((*handle_start, *handle_end));
                 succ_hash.set_node_path(handle_id, **id as u32);
                 succ_hash.set_node_successor(prev_handle_end, *handle_start);
-                prev_handle_end = handles_id_pos.get(&(node.0 as u32)).unwrap().1;
+                prev_handle_end = handles_id_pos.get(&(handle_id)).unwrap().1;
             });
             last_path_pos[**id as usize] = prev_handle_end;
         });
 
         lnz.push(b'$');
-        let max_handle_id = graph.handles_iter().max().unwrap().0 as u32 + 1;
+        let max_handle_id = last_idx as u32 + 1;
         handles_ids.push(max_handle_id);
+        nws.push(false);
         succ_hash.set_node_paths(max_handle_id, BitVec::from_elem(graph.paths.len(), true));
         for final_pos in last_path_pos.iter() {
             succ_hash.set_node_successor(*final_pos, lnz.len() as u32 - 1);
@@ -138,8 +158,8 @@ impl PathGraph {
     }
 }
 
-fn cast_handle_id(handle_id: u64, min: u64) -> usize {
-    (handle_id - min) as usize
+fn cast_handle_id(handle_id: u32, min: u64) -> usize {
+    (handle_id as u64 - min) as usize
 }
 
 pub fn remove_duplicate_paths(graph: &mut HashGraph) {

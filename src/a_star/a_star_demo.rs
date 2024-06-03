@@ -19,6 +19,7 @@ pub fn a_star_demo_chain() {
     let mut graph: HashGraph = HashGraph::from_gfa(&gfa);
     //remove_duplicate_paths(&mut graph);
     let path_graph = PathGraph::from_hash_graph(&graph);
+    println!("{:?}", path_graph);
     /*
     println!("LNZ: {:?}", path_graph.lnz.len());
     println!("Paths: {:?}", path_graph.get_node_path(36066));
