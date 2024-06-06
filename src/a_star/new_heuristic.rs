@@ -29,6 +29,29 @@ pub fn build_heuristic(
     (heus, matches_pos)
 }
 
+pub fn update_heuristic(
+    indexes: &Vec<(LtFmIndex, Vec<u32>)>,
+    query: &BString,
+    chunk_size: usize,
+    rec_cost: usize,
+    matches: Vec<Vec<(usize, usize)>>,
+) -> (Vec<Vec<u32>>, Vec<HashMap<(usize, usize), (usize, usize)>>) {
+    let (mut chains, matches_pos): (Vec<_>, Vec<_>) = matches
+        .par_iter()
+        .enumerate()
+        .map(|(path, m)| {
+            get_path_max_chain(
+                m,
+                &indexes[path].1,
+                chunk_size,
+                (query.len() - 2) / chunk_size,
+            )
+        })
+        .unzip();
+    let heus = rec_chain_update(&mut chains, rec_cost, query.len(), chunk_size);
+    (heus, matches_pos)
+}
+
 fn get_matches(
     indexes: &Vec<(LtFmIndex, Vec<u32>)>,
     query_w_prefix: &BString,
@@ -66,7 +89,7 @@ fn get_path_max_chain(
     let mut chains = vec![Link::new(); matches.len()];
     for i in 0..matches.len() {
         let (pos_i, seed_i) = matches[i];
-        chains[i] = Link::init(0, i, match_len as i32, 1);
+        chains[i] = Link::init(0, i, (seeds_number - 1) as i32 * match_len as i32, 1);
         for j in 0..i {
             let (pos_j, seed_j) = matches[j];
             if seed_j < seed_i && pos_j + match_len - 1 < pos_i {
@@ -75,25 +98,28 @@ fn get_path_max_chain(
                     seed_i - seed_j - 1,
                 );
 
-                let new_score: i32 = chains[j].score + match_len as i32 - gap_cost as i32;
+                let new_score: i32 = chains[j].score - match_len as i32 + gap_cost as i32;
 
-                if new_score > chains[i].score {
+                if new_score < chains[i].score {
                     chains[i] = Link::init(gap_cost, j, new_score, chains[j].len + 1);
                 }
             }
         }
     }
-    let max_chain_ending_pos = chains
-        .iter()
-        .enumerate()
-        .max_by_key(|x| x.1.score)
-        .unwrap_or((0, &Link::new()))
-        .0;
-    let mut max_chain_seed = vec![None; seeds_number];
-    let mut match_handles = HashMap::new();
-    let mut current = max_chain_ending_pos;
+    if chains.is_empty() {
+        return (vec![None; seeds_number], HashMap::new());
+    } else {
+        let max_chain_ending_pos = chains
+            .iter()
+            .enumerate()
+            .min_by_key(|x| x.1.score)
+            .unwrap_or((0, &Link::new()))
+            .0;
 
-    if max_chain_ending_pos != 0 {
+        let mut max_chain_seed = vec![None; seeds_number];
+        let mut match_handles = HashMap::new();
+        let mut current = max_chain_ending_pos;
+
         let mut succ = seeds_number as i32 - 1;
         while chains[current].pred != current {
             let (gap, m) = (chains[current].gap, &matches[current]);
@@ -112,19 +138,19 @@ fn get_path_max_chain(
             (m.0, m.1 * match_len + 1),
             (m.0 + match_len - 1, (m.1 + 1) * match_len),
         );
-    }
 
-    if max_chain_seed[max_chain_seed.len() - 1].is_none() {
-        max_chain_seed[seeds_number - 1] = Some(Match::init(
-            cmp::max(1, (seeds_number - 1) - (max_chain_ending_pos + 1)),
-            seeds_number - 1,
-            -1,
-            0,
-            false,
-        ));
-    }
+        if max_chain_seed[max_chain_seed.len() - 1].is_none() {
+            max_chain_seed[seeds_number - 1] = Some(Match::init(
+                cmp::max(1, (seeds_number - 1) - (max_chain_ending_pos + 1)),
+                seeds_number - 1,
+                -1,
+                0,
+                false,
+            ));
+        }
 
-    (max_chain_seed, merge_matches(&match_handles, lnz_pos))
+        (max_chain_seed, merge_matches(&match_handles, lnz_pos))
+    }
 }
 
 fn merge_matches(

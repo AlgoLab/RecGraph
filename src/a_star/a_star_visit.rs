@@ -30,9 +30,6 @@ pub fn exec(
     let mut end_pos = None;
     while !open_set.is_empty() {
         let (current_node_coord, _) = open_set.pop().unwrap();
-        if !path_graph.get_node_path(current_node_coord.node)[current_node_coord.path as usize] {
-            println!("{:?}", current_node_coord);
-        };
         let current_node = alignment_graph.get(&current_node_coord).unwrap().clone();
         if current_node_coord.pos == query.len() as u32 - 2
             && (current_node_coord.node
@@ -107,33 +104,26 @@ pub fn exec(
                         is_local,
                     );
                 } else {
-                    path_graph
+                    let succ = path_graph
                         .succ_hash
-                        .get_node_succs(current_node_coord.node)
-                        .iter()
-                        .for_each(|succ| {
-                            let paths = path_graph.get_node_path(*succ);
-                            if paths[current_node_coord.path as usize] {
-                                let match_mis = if path_graph.lnz[*succ as usize]
-                                    == query[current_node_coord.pos as usize + 1]
-                                {
-                                    0
-                                } else {
-                                    1
-                                };
-
-                                push_neigh(
-                                    match_mis,
-                                    &current_node,
-                                    &current_node_coord,
-                                    &mut open_set,
-                                    &mut alignment_graph,
-                                    &crumbs,
-                                    *succ,
-                                    is_local,
-                                );
-                            }
-                        });
+                        .get_node_succs(current_node_coord.node, current_node_coord.path as u32);
+                    let match_mis = if path_graph.lnz[succ as usize]
+                        == query[current_node_coord.pos as usize + 1]
+                    {
+                        0
+                    } else {
+                        1
+                    };
+                    push_neigh(
+                        match_mis,
+                        &current_node,
+                        &current_node_coord,
+                        &mut open_set,
+                        &mut alignment_graph,
+                        &crumbs,
+                        succ,
+                        is_local,
+                    );
                 }
                 new_multi_rec(
                     &current_node,

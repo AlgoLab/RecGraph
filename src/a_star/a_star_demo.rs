@@ -1,10 +1,9 @@
-use bit_vec::BitVec;
 use gfa::gfa::GFA;
 use gfa::parser::GFAParser;
 use handlegraph::hashgraph::HashGraph;
 use std::time::Instant;
 
-use crate::a_star::{a_star_visit, new_heuristic, check_ed};
+use crate::a_star::{a_star_visit, build_heuristic as new_heuristic, check_ed};
 use crate::args_parser::ClArgs;
 use crate::new_path_graph::path_graph::{remove_duplicate_paths, PathGraph};
 use crate::sequences;
@@ -20,24 +19,14 @@ pub fn a_star_demo_chain() {
     remove_duplicate_paths(&mut graph);
     let path_graph = PathGraph::from_hash_graph(&graph);
     /*
-    println!("LNZ: {:?}", path_graph.lnz.len());
-    println!("Paths: {:?}", path_graph.get_node_path(36066));
-    path_graph.succ_hash.get_all_paths().iter().for_each(|(handle, paths)| {
-        if paths[9] {
-            println!("{:?}", handle);
-        }
-    });
-    let mut i = 29897;
-    let mut paths = BitVec::from_elem(path_graph.succ_hash.paths_number as usize, false);
-    paths.set(path_graph.succ_hash.paths_number as usize - 1, true);
-    while i < path_graph.lnz.len() {
-        if &paths !=  path_graph.get_node_path(i as u32) {
-            println!("{i}\t{:?}", path_graph.get_node_path(i as u32));
-        }
-        i += 1;
-    }
-    */
+    let (_, pos) = path_graph.extract_path(9);
 
+    let mut handles: Vec<_> = pos.iter().map(|node| {
+        path_graph.handles_ids[*node as usize]/2
+    }).collect();
+    handles.retain(|x| *x>=302);
+    println!("{:?}", handles);
+    */
     let (sequences, _) = sequences::get_sequences(args.sequence_path);
     let chunk_size = ClArgs::parse().seed_len;
     let start = Instant::now();

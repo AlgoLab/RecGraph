@@ -86,12 +86,13 @@ fn get_path_max_chain(
                 if gap_cost > match_len {
                     continue;
                 }
-                */
+
 
                 let gap_cost = cmp::max(
                     (pos_i - pos_j).abs_diff((seed_i - seed_j) * match_len),
                     seed_i - seed_j - 1,
                 );
+                */
                 let gap_cost = 0;
                 let new_score = chains[j].score - match_len as i32 + gap_cost as i32;
 

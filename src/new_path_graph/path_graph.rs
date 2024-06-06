@@ -86,7 +86,7 @@ impl PathGraph {
                 let (handle_start, handle_end) = handles_id_pos.get(&(handle_id)).unwrap();
                 paths_composition[**id as usize].push((*handle_start, *handle_end));
                 succ_hash.set_node_path(handle_id, **id as u32);
-                succ_hash.set_node_successor(prev_handle_end, *handle_start);
+                succ_hash.set_node_successor(prev_handle_end, **id as u32, *handle_start);
                 prev_handle_end = handles_id_pos.get(&(handle_id)).unwrap().1;
             });
             last_path_pos[**id as usize] = prev_handle_end;
@@ -97,8 +97,8 @@ impl PathGraph {
         handles_ids.push(max_handle_id);
         nws.push(false);
         succ_hash.set_node_paths(max_handle_id, BitVec::from_elem(graph.paths.len(), true));
-        for final_pos in last_path_pos.iter() {
-            succ_hash.set_node_successor(*final_pos, lnz.len() as u32 - 1);
+        for (path, final_pos) in last_path_pos.iter().enumerate() {
+            succ_hash.set_node_successor(*final_pos, path as u32, lnz.len() as u32 - 1);
         }
         PathGraph {
             lnz,
@@ -182,6 +182,7 @@ pub fn remove_duplicate_paths(graph: &mut HashGraph) {
 
     // change id back to 0..n
     let mut old_graph = graph.paths.drain().collect::<Vec<_>>();
+    old_graph.sort_by(|a, b| a.0.cmp(&b.0));
     old_graph
         .drain(0..)
         .enumerate()
