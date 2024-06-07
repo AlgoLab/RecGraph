@@ -58,7 +58,7 @@ pub fn a_star_demo_chain() {
                 args.alignment_mode,
             ),
             istant.elapsed(),
-            seq.len(),
+            seq.len() - 2,
         ));
     });
     outs.iter()

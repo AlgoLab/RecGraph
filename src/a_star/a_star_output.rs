@@ -14,11 +14,9 @@ pub fn build_gaf(
 ) -> String {
     let mut align_coord = end_pos.clone();
     let mut align = alignment_graph.remove(&align_coord).unwrap();
-    let mut last_g = -1;
     let ed = align.g;
     let mut cigar = Vec::new();
     let mut recs: Vec<String> = Vec::new();
-
     while align_coord.pos != 0 {
         if align.parent.path != align_coord.path {
             recs.push(format!(
@@ -28,7 +26,7 @@ pub fn build_gaf(
                 (align_coord.node, align_coord.pos)
             ));
         } else if align_coord.pos - 1 > align.parent.pos {
-            let mut idx = align_coord.pos - align.parent.pos + 1;
+            let mut idx = align_coord.pos - align.parent.pos;
             while idx > 0 {
                 cigar.push('D');
                 idx -= 1;
@@ -44,14 +42,9 @@ pub fn build_gaf(
                 cigar.push('U');
             }
         } else {
-            if last_g == -1 || last_g != align.g as i32 {
-                cigar.push('L');
-            } else {
-                cigar.push('D');
-            }
+            cigar.push('L');
         }
         align_coord = align.parent.clone();
-        last_g = align.g as i32;
         align = alignment_graph.remove(&align_coord).unwrap();
     }
 
@@ -70,7 +63,7 @@ pub fn build_gaf(
         build_cigar::build_cigar(&cigar),
         align_coord.path,
         ed,
-        recs_out_string
+        recs_out_string,
     );
     output
 }

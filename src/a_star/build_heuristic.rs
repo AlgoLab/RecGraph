@@ -140,24 +140,13 @@ fn merge_matches(
     lnz_pos: &Vec<u32>,
 ) -> HashMap<(usize, usize), (usize, usize)> {
     let mut matches = match_handles.iter().collect::<Vec<_>>();
-    matches.sort_by(|a, b| a.0 .0.cmp(&b.0 .0));
     let mut merged_matches = HashMap::new();
-    let mut current = matches[0];
-    for next in matches.iter_mut().skip(1) {
-        if &(current.1 .0 + 1, current.1 .1 + 1) == next.0 {
-            current.1 = next.1;
-        } else {
-            merged_matches.insert(
-                (lnz_pos[current.0 .0] as usize, current.0 .1),
-                (lnz_pos[current.1 .0] as usize, current.1 .1),
-            );
-            current = *next;
-        }
+    if matches.len() > 0 {
+        matches.sort_by(|a, b| a.0 .0.cmp(&b.0 .0));
+        matches.iter().for_each(|(k, v)| {
+            merged_matches.insert((lnz_pos[k.0] as usize, k.1), (lnz_pos[v.0] as usize, v.1));
+        });
     }
-    merged_matches.insert(
-        (lnz_pos[current.0 .0] as usize, current.0 .1),
-        (lnz_pos[current.1 .0] as usize, current.1 .1),
-    );
     merged_matches
 }
 fn rec_chain_update(
