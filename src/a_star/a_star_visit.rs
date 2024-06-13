@@ -13,12 +13,13 @@ pub fn exec(
     path_graph: &PathGraph,
     is_local: bool,
     rec_cost: u32,
-) -> (Coord, HashMap<Coord, AStarNode>) {
+) -> (Coord, HashMap<Coord, AStarNode>/* , Vec<Coord>*/) {
     // init A* data structure, each path possible starting point
     let mut alignment_graph = HashMap::new();
     let mut open_set: FibHeap<Coord, Reverse<u32>> = FibHeap::new();
     let crumbs: &mut Vec<Vec<u32>> = &mut heuristic.0;
     let match_handles = &mut heuristic.1;
+    //let mut explored_pos = Vec::new();
     for path in 0..crumbs.len() {
         let node = AStarNode::new_path(path, &crumbs);
         let node_coord = Coord::init(0, 0, path as u8);
@@ -31,6 +32,7 @@ pub fn exec(
     while !open_set.is_empty() {
         let (current_node_coord, _) = open_set.pop().unwrap();
         let current_node = alignment_graph.get(&current_node_coord).unwrap().clone();
+        //explored_pos.push(current_node_coord.clone());
         if current_node_coord.pos == query.len() as u32 - 2
             && (current_node_coord.node
                 == path_graph.ending_positions[current_node_coord.path as usize] as u32
@@ -75,14 +77,7 @@ pub fn exec(
                         current_node_coord.pos as usize,
                     ),
                 );
-                open_set.push(
-                    current_node_coord,
-                    Reverse(
-                        current_node.g
-                            + crumbs[current_node_coord.path as usize]
-                                [current_node_coord.pos as usize],
-                    ),
-                );
+                
             } else {
                 if !path_graph.nws[current_node_coord.node as usize] {
                     let match_mis = if path_graph.lnz[current_node_coord.node as usize + 1]
@@ -140,7 +135,7 @@ pub fn exec(
     if end_pos.is_none() {
         panic!("No path found");
     }
-    (end_pos.unwrap().clone(), alignment_graph)
+    (end_pos.unwrap().clone(), alignment_graph, /*explored_pos*/)
 }
 
 fn get_neighbours(

@@ -94,7 +94,8 @@ fn get_path_max_chain(
             let (pos_j, seed_j) = matches[j];
             if seed_j < seed_i && pos_j + match_len - 1 < pos_i {
                 let gap_cost = cmp::max(
-                    (pos_i - pos_j).abs_diff((seed_i - seed_j) * match_len),
+                    //(pos_i - pos_j).abs_diff((seed_i - seed_j) * match_len),
+                    0,
                     seed_i - seed_j - 1,
                 );
 

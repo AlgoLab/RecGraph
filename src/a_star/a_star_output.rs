@@ -4,6 +4,7 @@ use bstr::BString;
 use crate::{build_cigar, new_path_graph::path_graph::PathGraph};
 
 use super::a_star_visit::{AStarNode, Coord};
+use std::io::Write;
 
 pub fn build_gaf(
     alignment_graph: &mut HashMap<Coord, AStarNode>,
@@ -66,4 +67,18 @@ pub fn build_gaf(
         recs_out_string,
     );
     output
+}
+
+pub fn save_coords(
+    outfile: &str,
+    coords: &Vec<Vec<Coord>>
+) {
+    let mut file = std::fs::File::create(outfile).unwrap();
+    let out = coords.iter().map(|coord| {
+        coord.iter().map(|c| {
+            format!("{}\t{}\t{}", c.node, c.pos, c.path)
+        }).collect::<Vec<String>>().join("\n")
+    }).collect::<Vec<String>>();
+
+    file.write_all(out.join("\n\n").as_bytes()).unwrap();
 }

@@ -3,7 +3,7 @@ use gfa::parser::GFAParser;
 use handlegraph::hashgraph::HashGraph;
 use std::time::Instant;
 
-use crate::a_star::{a_star_visit, build_heuristic as new_heuristic, check_ed};
+use crate::a_star::{a_star_output, a_star_visit, build_heuristic as new_heuristic, check_ed};
 use crate::args_parser::ClArgs;
 use crate::new_path_graph::path_graph::{remove_duplicate_paths, PathGraph};
 use crate::sequences;
@@ -33,6 +33,7 @@ pub fn a_star_demo_chain() {
     let indexes = path_graph.get_indexes();
     let mut outs = Vec::new();
     let init = peak_mem_usage().unwrap();
+    //let mut explored_pos_vec = Vec::new();   
     sequences.iter().for_each(|seq| {
         let istant = Instant::now();
         let mut heuristic = new_heuristic::build_heuristic(
@@ -41,14 +42,15 @@ pub fn a_star_demo_chain() {
             chunk_size as usize,
             args.base_rec_cost as usize,
         );
-        let (end_pos, mut alignment_graph) = a_star_visit::exec(
+        
+        let (end_pos, mut alignment_graph/* , explored_pos*/) = a_star_visit::exec(
             seq,
             &mut heuristic,
             &path_graph,
             args.alignment_mode,
             args.base_rec_cost as u32,
         );
-
+        //explored_pos_vec.push(explored_pos);
         outs.push((
             build_gaf(
                 &mut alignment_graph,
@@ -61,6 +63,7 @@ pub fn a_star_demo_chain() {
             seq.len() - 2,
         ));
     });
+    //a_star_output::save_coords(&args.out_file, &explored_pos_vec);
     outs.iter()
         .for_each(|out| println!("{}\t{}\t{}", out.0, out.1.as_millis(), out.2));
     println!("Approx time: {:?}", start.elapsed());
