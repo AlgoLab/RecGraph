@@ -69,16 +69,18 @@ pub fn build_gaf(
     output
 }
 
-pub fn save_coords(
-    outfile: &str,
-    coords: &Vec<Vec<Coord>>
-) {
+pub fn save_coords(outfile: &str, coords: &Vec<Vec<Coord>>) {
     let mut file = std::fs::File::create(outfile).unwrap();
-    let out = coords.iter().map(|coord| {
-        coord.iter().map(|c| {
-            format!("{}\t{}\t{}", c.node, c.pos, c.path)
-        }).collect::<Vec<String>>().join("\n")
-    }).collect::<Vec<String>>();
+    let out = coords
+        .iter()
+        .map(|coord| {
+            coord
+                .iter()
+                .map(|c| format!("{}\t{}\t{}", c.node, c.pos, c.path))
+                .collect::<Vec<String>>()
+                .join("\n")
+        })
+        .collect::<Vec<String>>();
 
     file.write_all(out.join("\n\n").as_bytes()).unwrap();
 }

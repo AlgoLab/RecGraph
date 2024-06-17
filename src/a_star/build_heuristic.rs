@@ -96,7 +96,7 @@ fn get_path_max_chain(
                 let gap_cost = 0;
                 let new_score = chains[j].score - match_len as i32 + gap_cost as i32;
 
-                if new_score < chains[i].score {
+                if new_score <= chains[i].score {
                     chains[i] = Link::init(gap_cost, j, new_score, chains[j].len + 1);
                 }
             }

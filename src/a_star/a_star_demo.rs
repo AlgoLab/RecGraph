@@ -33,7 +33,7 @@ pub fn a_star_demo_chain() {
     let indexes = path_graph.get_indexes();
     let mut outs = Vec::new();
     let init = peak_mem_usage().unwrap();
-    //let mut explored_pos_vec = Vec::new();   
+    //let mut explored_pos_vec = Vec::new();
     sequences.iter().for_each(|seq| {
         let istant = Instant::now();
         let mut heuristic = new_heuristic::build_heuristic(
@@ -42,8 +42,8 @@ pub fn a_star_demo_chain() {
             chunk_size as usize,
             args.base_rec_cost as usize,
         );
-        
-        let (end_pos, mut alignment_graph/* , explored_pos*/) = a_star_visit::exec(
+
+        let (end_pos, mut alignment_graph /* , explored_pos*/) = a_star_visit::exec(
             seq,
             &mut heuristic,
             &path_graph,
