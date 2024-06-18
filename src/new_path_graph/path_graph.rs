@@ -15,6 +15,7 @@ pub struct PathGraph {
     pub handles_ids: Vec<u32>,
     pub ending_positions: Vec<u32>,
     paths_composition: Vec<Vec<(u32, u32)>>,
+    pub original_handles: HashMap<u32, u64>,
 }
 
 impl PathGraph {
@@ -26,6 +27,7 @@ impl PathGraph {
             handles_ids: Vec::new(),
             ending_positions: Vec::new(),
             paths_composition: Vec::new(),
+            original_handles: HashMap::new(),
         }
     }
 
@@ -51,6 +53,7 @@ impl PathGraph {
         let mut path_iterator = graph.paths.iter().collect::<Vec<_>>();
         path_iterator.sort_by(|a, b| a.0.cmp(b.0));
         let mut dup_handles: HashMap<(u64, i32), u32> = HashMap::new();
+        let mut original_handles: HashMap<u32, u64> = HashMap::new();
         path_iterator.iter().for_each(|(id, path)| {
             let mut path_handles: HashMap<u64, i32> = HashMap::new();
             let mut prev_handle_end = 0;
@@ -67,6 +70,7 @@ impl PathGraph {
                 } else {
                     node.0 as u32
                 };
+                original_handles.insert(handle_id, node.id().into());
                 if !visited_handles[cast_handle_id(handle_id, min_node_id)] {
                     let handle_start = lnz.len() as u32;
                     lnz.append(&mut graph.sequence(*node));
@@ -107,6 +111,7 @@ impl PathGraph {
             handles_ids,
             ending_positions: last_path_pos,
             paths_composition,
+            original_handles,
         }
     }
 

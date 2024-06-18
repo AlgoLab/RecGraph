@@ -11,7 +11,10 @@ pub fn build_heuristic(
     query: &BString,
     chunk_size: usize,
     rec_cost: usize,
-) -> (Vec<Vec<u32>>, Vec<HashMap<(usize, usize), (usize, usize)>>) {
+) -> (
+    Vec<Vec<u32>>,
+    Vec<HashMap<(usize, usize), (usize, usize, usize)>>,
+) {
     let matches = get_matches(indexes, query, chunk_size);
     let (chains, matches_pos): (Vec<_>, Vec<_>) = matches
         .par_iter()
@@ -65,7 +68,7 @@ fn get_path_max_chain(
     lnz_pos: &Vec<u32>,
     match_len: usize,
     seeds_number: usize,
-) -> (Vec<u8>, HashMap<(usize, usize), (usize, usize)>) {
+) -> (Vec<u8>, HashMap<(usize, usize), (usize, usize, usize)>) {
     let mut chains = vec![Link::new(); matches.len()];
     for i in 0..matches.len() {
         let (pos_i, seed_i) = matches[i];
@@ -138,13 +141,16 @@ fn get_path_max_chain(
 fn merge_matches(
     match_handles: &HashMap<(usize, usize), (usize, usize)>,
     lnz_pos: &Vec<u32>,
-) -> HashMap<(usize, usize), (usize, usize)> {
+) -> HashMap<(usize, usize), (usize, usize, usize)> {
     let mut matches = match_handles.iter().collect::<Vec<_>>();
     let mut merged_matches = HashMap::new();
     if matches.len() > 0 {
         matches.sort_by(|a, b| a.0 .0.cmp(&b.0 .0));
         matches.iter().for_each(|(k, v)| {
-            merged_matches.insert((lnz_pos[k.0] as usize, k.1), (lnz_pos[v.0] as usize, v.1));
+            merged_matches.insert(
+                (lnz_pos[k.0] as usize, k.1),
+                (lnz_pos[v.0] as usize, v.1, v.0),
+            );
         });
     }
     merged_matches

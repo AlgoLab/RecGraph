@@ -9,7 +9,10 @@ use std::hash::Hash;
 
 pub fn exec(
     query: &BString,
-    heuristic: &mut (Vec<Vec<u32>>, Vec<HashMap<(usize, usize), (usize, usize)>>),
+    heuristic: &mut (
+        Vec<Vec<u32>>,
+        Vec<HashMap<(usize, usize), (usize, usize, usize)>>,
+    ),
     path_graph: &PathGraph,
     is_local: bool,
     rec_cost: u32,
@@ -47,7 +50,7 @@ pub fn exec(
         if current_node_coord.node + 1 < path_graph.lnz.len() as u32
             && current_node_coord.pos + 1 < query.len() as u32
         {
-            if let Some((skip_ahead_node, skip_ahead_pos)) =
+            if let Some((skip_ahead_node, skip_ahead_pos, _)) =
                 match_handles[current_node_coord.path as usize].get(&(
                     current_node_coord.node as usize,
                     current_node_coord.pos as usize,
@@ -262,7 +265,7 @@ fn push_neigh(
 
 fn update_path_heuristic(
     crumbs: &mut Vec<u32>,
-    match_handles: &mut HashMap<(usize, usize), (usize, usize)>,
+    match_handles: &mut HashMap<(usize, usize), (usize, usize, usize)>,
     last_match: (usize, usize),
 ) {
     if match_handles.contains_key(&last_match) {

@@ -1,7 +1,8 @@
 use gfa::gfa::GFA;
 use gfa::parser::GFAParser;
 use handlegraph::hashgraph::HashGraph;
-use std::time::Instant;
+use rayon::prelude::*;
+use std::time::{Duration, Instant};
 
 use crate::a_star::{a_star_output, a_star_visit, build_heuristic as new_heuristic, check_ed};
 use crate::args_parser::ClArgs;
@@ -34,6 +35,8 @@ pub fn a_star_demo_chain() {
     let mut outs = Vec::new();
     let init = peak_mem_usage().unwrap();
     //let mut explored_pos_vec = Vec::new();
+    let mut heur_tot_time = Duration::new(0, 0);
+    let mut explore_tot_time = Duration::new(0, 0);
     sequences.iter().for_each(|seq| {
         let istant = Instant::now();
         let mut heuristic = new_heuristic::build_heuristic(
@@ -42,7 +45,13 @@ pub fn a_star_demo_chain() {
             chunk_size as usize,
             args.base_rec_cost as usize,
         );
-
+        let matches_in_path: Vec<_> = heuristic
+            .1
+            .par_iter()
+            .map(|m| a_star_output::get_matches_end_in_path(m))
+            .collect();
+        heur_tot_time += istant.elapsed();
+        let explore_start = Instant::now();
         let (end_pos, mut alignment_graph /* , explored_pos*/) = a_star_visit::exec(
             seq,
             &mut heuristic,
@@ -50,6 +59,7 @@ pub fn a_star_demo_chain() {
             args.alignment_mode,
             args.base_rec_cost as u32,
         );
+        explore_tot_time += explore_start.elapsed();
         //explored_pos_vec.push(explored_pos);
         outs.push((
             build_gaf(
@@ -58,6 +68,9 @@ pub fn a_star_demo_chain() {
                 &path_graph,
                 seq,
                 args.alignment_mode,
+                &matches_in_path,
+                chunk_size as usize,
+                &indexes,
             ),
             istant.elapsed(),
             seq.len() - 2,
@@ -68,8 +81,11 @@ pub fn a_star_demo_chain() {
         .for_each(|out| println!("{}\t{}\t{}", out.0, out.1.as_millis(), out.2));
     println!("Approx time: {:?}", start.elapsed());
     let mem = peak_mem_usage().unwrap();
-    println!("Init memory usage: {} B", init);
-    println!("Peak memory usage: {} B", mem);
+
+    println!("Heuristic time\t{:?}", heur_tot_time);
+    println!("Explore time\t{:?}", explore_tot_time);
+    println!("Init memory usage (Byte)\t{}", init);
+    println!("Peak memory (Byte)\t{}", mem);
     check_ed::test(&path_graph, &sequences);
 }
 
