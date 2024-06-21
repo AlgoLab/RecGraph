@@ -67,9 +67,9 @@ pub fn build_gaf(
     if !is_local {
         while align_coord.node != 0 {
             cigar.push('U');
+            path_align.push(path_graph.handles_ids[align_coord.node as usize]);
             align_coord = align.parent.clone();
             align = alignment_graph.remove(&align_coord).unwrap();
-            path_align.push(path_graph.handles_ids[align_coord.node as usize]);
         }
     }
     cigar.reverse();
