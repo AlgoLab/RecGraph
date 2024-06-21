@@ -16,6 +16,7 @@ pub struct PathGraph {
     pub ending_positions: Vec<u32>,
     paths_composition: Vec<Vec<(u32, u32)>>,
     pub original_handles: HashMap<u32, u64>,
+    pub common_nodes: Vec<Vec<bool>>,
 }
 
 impl PathGraph {
@@ -28,6 +29,7 @@ impl PathGraph {
             ending_positions: Vec::new(),
             paths_composition: Vec::new(),
             original_handles: HashMap::new(),
+            common_nodes: Vec::new(),
         }
     }
 
@@ -54,6 +56,12 @@ impl PathGraph {
         path_iterator.sort_by(|a, b| a.0.cmp(b.0));
         let mut dup_handles: HashMap<(u64, i32), u32> = HashMap::new();
         let mut original_handles: HashMap<u32, u64> = HashMap::new();
+
+        let mut handles_in_path: Vec<BitVec> =
+            vec![
+                BitVec::from_elem((max_node_id - min_node_id + 1) as usize * 2 + 1, false);
+                graph.paths.len()
+            ];
         path_iterator.iter().for_each(|(id, path)| {
             let mut path_handles: HashMap<u64, i32> = HashMap::new();
             let mut prev_handle_end = 0;
@@ -65,6 +73,9 @@ impl PathGraph {
                         last_idx += 1;
                         dup_handles.insert((node.0, *iter), last_idx as u32);
                         visited_handles.push(false);
+                        handles_in_path.iter_mut().for_each(|bitvec| {
+                            bitvec.push(false);
+                        });
                         last_idx as u32
                     }
                 } else {
@@ -92,6 +103,7 @@ impl PathGraph {
                 succ_hash.set_node_path(handle_id, **id as u32);
                 succ_hash.set_node_successor(prev_handle_end, **id as u32, *handle_start);
                 prev_handle_end = handles_id_pos.get(&(handle_id)).unwrap().1;
+                handles_in_path[**id as usize].set(cast_handle_id(handle_id, min_node_id), true);
             });
             last_path_pos[**id as usize] = prev_handle_end;
         });
@@ -104,6 +116,7 @@ impl PathGraph {
         for (path, final_pos) in last_path_pos.iter().enumerate() {
             succ_hash.set_node_successor(*final_pos, path as u32, lnz.len() as u32 - 1);
         }
+        let common_nodes = find_rightest_common_node(&handles_in_path);
         PathGraph {
             lnz,
             nws,
@@ -112,6 +125,7 @@ impl PathGraph {
             ending_positions: last_path_pos,
             paths_composition,
             original_handles,
+            common_nodes,
         }
     }
 
@@ -194,4 +208,16 @@ pub fn remove_duplicate_paths(graph: &mut HashGraph) {
         .for_each(|(idx, (_, path))| {
             graph.paths.insert(idx as i64, path);
         });
+}
+
+fn find_rightest_common_node(handles_in_path: &Vec<BitVec>) -> Vec<Vec<bool>> {
+    let mut common_nodes: Vec<_> = vec![vec![false; handles_in_path.len()]; handles_in_path.len()];
+    handles_in_path.iter().enumerate().for_each(|(i, bitvec)| {
+        handles_in_path.iter().enumerate().for_each(|(j, bitvec2)| {
+            let mut res = bitvec.clone();
+            res.and(bitvec2);
+            common_nodes[i][j] = res.any();
+        });
+    });
+    common_nodes
 }

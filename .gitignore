@@ -21,3 +21,4 @@ heaptrack*
 /example/modified
 /example/tests
 .vscode/
+*.txt

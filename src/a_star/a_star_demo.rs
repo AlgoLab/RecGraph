@@ -44,6 +44,7 @@ pub fn a_star_demo_chain() {
             seq,
             chunk_size as usize,
             args.base_rec_cost as usize,
+            &path_graph,
         );
         let matches_in_path: Vec<_> = heuristic
             .1
@@ -86,7 +87,11 @@ pub fn a_star_demo_chain() {
     println!("Explore time\t{:?}", explore_tot_time);
     println!("Init memory usage (Byte)\t{}", init);
     println!("Peak memory (Byte)\t{}", mem);
-    check_ed::test(&path_graph, &sequences);
+    if args.alignment_mode {
+        check_ed::semiglobal_test(&path_graph, &sequences);
+    } else {
+        check_ed::test(&path_graph, &sequences);
+    }
 }
 
 #[cfg(target_os = "linux")]

@@ -6,11 +6,14 @@ use rayon::prelude::*;
 
 use bstr::BString;
 
+use crate::new_path_graph::path_graph::PathGraph;
+
 pub fn build_heuristic(
     indexes: &Vec<(LtFmIndex, Vec<u32>)>,
     query: &BString,
     chunk_size: usize,
     rec_cost: usize,
+    path_graph: &PathGraph,
 ) -> (
     Vec<Vec<u32>>,
     Vec<HashMap<(usize, usize), (usize, usize, usize)>>,
@@ -30,7 +33,7 @@ pub fn build_heuristic(
         .unzip();
     //println!("______________________");
 
-    let heus = rec_chain_update(&chains, rec_cost, query.len(), chunk_size);
+    let heus = rec_chain_update(&chains, rec_cost, query.len(), chunk_size, path_graph);
 
     (heus, matches_pos)
 }
@@ -97,10 +100,11 @@ fn get_path_max_chain(
                 );
                 */
                 let gap_cost = 0;
+
                 let new_score = chains[j].score - match_len as i32 + gap_cost as i32;
 
                 if new_score <= chains[i].score {
-                    chains[i] = Link::init(gap_cost, j, new_score, chains[j].len + 1);
+                    chains[i] = Link::init(0, j, new_score, chains[j].len + 1);
                 }
             }
         }
@@ -160,6 +164,7 @@ fn rec_chain_update(
     rec_cost: usize,
     query_len: usize,
     match_len: usize,
+    path_graph: &PathGraph,
 ) -> Vec<Vec<u32>> {
     let mut rec_chains = vec![vec![0; chains[0].len()]; chains.len()];
     let mut best_paths = vec![0; chains[0].len()];
@@ -170,8 +175,21 @@ fn rec_chain_update(
         let best_path = best_paths[j + 1];
         for i in 0..rec_chains.len() {
             let score = rec_chains[i][j + 1] + chains[i][j + 1] as usize;
-            let score_rec =
-                rec_chains[best_path][j + 1] + chains[best_path][j + 1] as usize + rec_cost;
+            let score_rec = if path_graph.common_nodes[i][best_path] {
+                rec_chains[best_path][j + 1] + chains[best_path][j + 1] as usize + rec_cost
+            } else {
+                // find the best path to merge
+                let mut best_rec = usize::MAX;
+                for k in 0..rec_chains.len() {
+                    if path_graph.common_nodes[i][k] {
+                        let rec = rec_chains[k][j + 1] + chains[k][j + 1] as usize + rec_cost;
+                        if rec < best_rec {
+                            best_rec = rec;
+                        }
+                    }
+                }
+                best_rec
+            };
 
             if score < score_rec {
                 rec_chains[i][j] = score;
