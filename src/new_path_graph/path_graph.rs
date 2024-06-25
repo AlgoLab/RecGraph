@@ -123,9 +123,7 @@ impl PathGraph {
         }
         let common_nodes = find_rightest_common_node(&handles_in_path);
         //let common_nodes = find_last_common_node(&handles_in_path, &handles_pos_in_path, min_node_id);
-        common_nodes.iter().for_each(|x| {
-            println!("{:?}", x);
-        });
+
         PathGraph {
             lnz,
             nws,

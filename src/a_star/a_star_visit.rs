@@ -3,6 +3,7 @@ use ahash::AHashMap as HashMap;
 use bstr::BString;
 use std::cmp::Reverse;
 //use pheap::PairingHeap as FibHeap;
+use dary_heap::DaryHeap;
 use priority_queue::PriorityQueue as FibHeap;
 use std::fmt::Debug;
 use std::hash::Hash;
@@ -19,21 +20,21 @@ pub fn exec(
 ) -> (Coord, HashMap<Coord, AStarNode> /* , Vec<Coord>*/) {
     // init A* data structure, each path possible starting point
     let mut alignment_graph = HashMap::new();
-    let mut open_set: FibHeap<Coord, Reverse<u32>> = FibHeap::new();
+    let mut open_set: DaryHeap<Coord, 4> = DaryHeap::new();
     let crumbs: &mut Vec<Vec<u32>> = &mut heuristic.0;
     let match_handles = &mut heuristic.1;
     //let mut explored_pos = Vec::new();
     for path in 0..crumbs.len() {
         let node = AStarNode::new_path(path, &crumbs);
-        let node_coord = Coord::init(0, 0, path as u8);
-        open_set.push(node_coord.clone(), Reverse(node.g + node.h));
+        let node_coord = Coord::init(0, 0, path as u8, node.g + node.h);
+        open_set.push(node_coord.clone());
         alignment_graph.insert(node_coord, node);
     }
 
     // use PathGraph to navigate graph
     let mut end_pos = None;
     while !open_set.is_empty() {
-        let (current_node_coord, _) = open_set.pop().unwrap();
+        let current_node_coord = open_set.pop().unwrap();
         let current_node = alignment_graph.get(&current_node_coord).unwrap().clone();
         //explored_pos.push(current_node_coord.clone());
         if current_node_coord.pos == query.len() as u32 - 2
@@ -62,6 +63,7 @@ pub fn exec(
                     *skip_ahead_node as u32,
                     *skip_ahead_pos as u32,
                     current_node_coord.path,
+                    skip_ahead.g + crumbs[current_node_coord.path as usize][*skip_ahead_pos],
                 );
 
                 skip_ahead.h =
@@ -181,18 +183,18 @@ fn get_neighbours(
 }
 
 fn update_open_set(
-    open_set: &mut FibHeap<Coord, Reverse<u32>>,
+    open_set: &mut DaryHeap<Coord, 4>,
     alignment_graph: &mut HashMap<Coord, AStarNode>,
     new_node: &AStarNode,
     new_node_coord: Coord,
 ) {
     if let Some(old_node) = alignment_graph.get_mut(&new_node_coord) {
         if old_node.g > new_node.g {
-            open_set.push(new_node_coord, Reverse(new_node.g + new_node.h));
+            open_set.push(new_node_coord);
             *old_node = new_node.clone();
         }
     } else {
-        open_set.push(new_node_coord, Reverse(new_node.g + new_node.h));
+        open_set.push(new_node_coord);
         alignment_graph.insert(new_node_coord, new_node.clone());
     }
 }
@@ -201,7 +203,7 @@ fn new_multi_rec(
     current_node: &AStarNode,
     current_node_coord: &Coord,
     crumbs: &Vec<Vec<u32>>,
-    open_set: &mut FibHeap<Coord, Reverse<u32>>,
+    open_set: &mut DaryHeap<Coord, 4>,
     alignment_graph: &mut HashMap<Coord, AStarNode>,
     path_graph: &PathGraph,
     rec_cost: u32,
@@ -215,7 +217,12 @@ fn new_multi_rec(
                 open_set,
                 alignment_graph,
                 &rec_node,
-                Coord::init(current_node_coord.node, current_node_coord.pos, path as u8),
+                Coord::init(
+                    current_node_coord.node,
+                    current_node_coord.pos,
+                    path as u8,
+                    rec_node.g + rec_node.h,
+                ),
             );
         }
     })
@@ -225,7 +232,7 @@ fn push_neigh(
     match_mis: u32,
     current_node: &AStarNode,
     current_node_coord: &Coord,
-    open_set: &mut FibHeap<Coord, Reverse<u32>>,
+    open_set: &mut DaryHeap<Coord, 4>,
     alignment_graph: &mut HashMap<Coord, AStarNode>,
     crumbs: &Vec<Vec<u32>>,
     succ: u32,
@@ -242,7 +249,12 @@ fn push_neigh(
         open_set,
         alignment_graph,
         &ins,
-        Coord::init(succ, current_node_coord.pos, current_node_coord.path),
+        Coord::init(
+            succ,
+            current_node_coord.pos,
+            current_node_coord.path,
+            ins.g + ins.h,
+        ),
     );
     update_open_set(
         open_set,
@@ -252,6 +264,7 @@ fn push_neigh(
             current_node_coord.node,
             current_node_coord.pos + 1,
             current_node_coord.path,
+            del.g + del.h,
         ),
     );
 
@@ -259,7 +272,12 @@ fn push_neigh(
         open_set,
         alignment_graph,
         &m_x,
-        Coord::init(succ, current_node_coord.pos + 1, current_node_coord.path),
+        Coord::init(
+            succ,
+            current_node_coord.pos + 1,
+            current_node_coord.path,
+            m_x.g + m_x.h,
+        ),
     );
 }
 
@@ -277,11 +295,12 @@ fn update_path_heuristic(
     }
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub struct Coord {
     pub node: u32,
     pub pos: u32,
     pub path: u8,
+    pub priority: Reverse<u32>,
 }
 
 impl Coord {
@@ -290,11 +309,17 @@ impl Coord {
             node: 0,
             pos: 0,
             path: 0,
+            priority: Reverse(0),
         }
     }
 
-    pub fn init(node: u32, pos: u32, path: u8) -> Self {
-        Coord { node, pos, path }
+    pub fn init(node: u32, pos: u32, path: u8, priority: u32) -> Self {
+        Coord {
+            node,
+            pos,
+            path,
+            priority: Reverse(priority),
+        }
     }
 }
 
@@ -304,10 +329,28 @@ impl PartialEq for Coord {
     }
 }
 
+impl Hash for Coord {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.node.hash(state);
+        self.pos.hash(state);
+        self.path.hash(state);
+    }
+}
 impl Eq for Coord {}
 
 impl Copy for Coord {}
 
+impl Ord for Coord {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.priority.cmp(&other.priority)
+    }
+}
+
+impl PartialOrd for Coord {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
 #[derive(Debug, Clone)]
 pub struct AStarNode {
     pub g: u32,
