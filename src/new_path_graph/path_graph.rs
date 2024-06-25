@@ -62,7 +62,10 @@ impl PathGraph {
                 BitVec::from_elem((max_node_id - min_node_id + 1) as usize * 2 + 1, false);
                 graph.paths.len()
             ];
+        //let mut handles_pos_in_path: Vec<HashMap<_,_>> = vec![HashMap::new(); graph.paths.len()];
         path_iterator.iter().for_each(|(id, path)| {
+            let mut current_len = 0;
+            //handles_pos_in_path[**id as usize].insert(0, 0);
             let mut path_handles: HashMap<u64, i32> = HashMap::new();
             let mut prev_handle_end = 0;
             path.nodes.iter().for_each(|node| {
@@ -104,6 +107,8 @@ impl PathGraph {
                 succ_hash.set_node_successor(prev_handle_end, **id as u32, *handle_start);
                 prev_handle_end = handles_id_pos.get(&(handle_id)).unwrap().1;
                 handles_in_path[**id as usize].set(cast_handle_id(handle_id, min_node_id), true);
+                //handles_pos_in_path[**id as usize].insert(handle_id, current_len);
+                current_len += graph.sequence(*node).len();
             });
             last_path_pos[**id as usize] = prev_handle_end;
         });
@@ -117,6 +122,10 @@ impl PathGraph {
             succ_hash.set_node_successor(*final_pos, path as u32, lnz.len() as u32 - 1);
         }
         let common_nodes = find_rightest_common_node(&handles_in_path);
+        //let common_nodes = find_last_common_node(&handles_in_path, &handles_pos_in_path, min_node_id);
+        common_nodes.iter().for_each(|x| {
+            println!("{:?}", x);
+        });
         PathGraph {
             lnz,
             nws,
@@ -181,6 +190,10 @@ fn cast_handle_id(handle_id: u32, min: u64) -> usize {
     (handle_id as u64 - min) as usize
 }
 
+fn reverse_cast_handle_id(handle_id: usize, min: u64) -> u32 {
+    (handle_id as u64 + min) as u32
+}
+
 pub fn remove_duplicate_paths(graph: &mut HashGraph) {
     let mut paths_to_remove = Vec::new();
     graph
@@ -217,6 +230,34 @@ fn find_rightest_common_node(handles_in_path: &Vec<BitVec>) -> Vec<Vec<bool>> {
             let mut res = bitvec.clone();
             res.and(bitvec2);
             common_nodes[i][j] = res.any();
+        });
+    });
+    common_nodes
+}
+
+fn find_last_common_node(
+    handles_in_path: &Vec<BitVec>,
+    handles_pos_in_path: &Vec<HashMap<u32, usize>>,
+    min: u64,
+) -> Vec<Vec<u32>> {
+    let mut common_nodes: Vec<_> = vec![vec![0; handles_in_path.len()]; handles_in_path.len()];
+    handles_in_path.iter().enumerate().for_each(|(i, bitvec)| {
+        handles_in_path.iter().enumerate().for_each(|(j, bitvec2)| {
+            let mut res = bitvec.clone();
+            res.and(bitvec2);
+            let handle = res
+                .iter()
+                .enumerate()
+                .rev()
+                .find(|(_, x)| *x)
+                .unwrap_or((0, true))
+                .0;
+            if handle != 0 {
+                let original_handle = reverse_cast_handle_id(handle, min);
+                common_nodes[i][j] = *handles_pos_in_path[j].get(&original_handle).unwrap() as u32;
+            } else {
+                common_nodes[i][j] = 0;
+            }
         });
     });
     common_nodes

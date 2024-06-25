@@ -92,6 +92,16 @@ pub fn a_star_demo_chain() {
     } else {
         check_ed::test(&path_graph, &sequences);
     }
+    let v = vec![1, 2, 3, 4, 9, 6, 7, 8, 9, 10];
+    println!(
+        "{:?}",
+        v.iter()
+            .enumerate()
+            .rev()
+            .find(|(_, x)| **x == 9)
+            .unwrap()
+            .0
+    );
 }
 
 #[cfg(target_os = "linux")]
