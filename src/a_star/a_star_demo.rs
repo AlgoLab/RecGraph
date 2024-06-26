@@ -4,7 +4,7 @@ use handlegraph::hashgraph::HashGraph;
 use rayon::prelude::*;
 use std::time::{Duration, Instant};
 
-use crate::a_star::{a_star_output, a_star_visit, build_heuristic as new_heuristic, check_ed};
+use crate::a_star::{a_star_output, a_star_visit, build_heuristic as new_heuristic};
 use crate::args_parser::ClArgs;
 use crate::new_path_graph::path_graph::{remove_duplicate_paths, PathGraph};
 use crate::sequences;
@@ -30,7 +30,6 @@ pub fn a_star_demo_chain() {
     */
     let (sequences, names) = sequences::get_sequences(args.sequence_path);
     let chunk_size = ClArgs::parse().seed_len;
-    let start = Instant::now();
     let indexes = path_graph.get_indexes();
     let mut outs = Vec::new();
     //let mut explored_pos_vec = Vec::new();
@@ -75,17 +74,11 @@ pub fn a_star_demo_chain() {
     });
     //a_star_output::save_coords(&args.out_file, &explored_pos_vec);
     outs.iter().for_each(|out| println!("{}", out.to_string()));
-    println!("Approx time: {:?}", start.elapsed());
     let mem = peak_mem_usage().unwrap();
 
-    println!("Heuristic time\t{:?}", heur_tot_time);
-    println!("Explore time\t{:?}", explore_tot_time);
-    println!("Peak memory (Byte)\t{}", mem);
-    if args.alignment_mode {
-        check_ed::semiglobal_test(&path_graph, &sequences);
-    } else {
-        check_ed::test(&path_graph, &sequences);
-    }
+    eprintln!("Peak memory (Byte)\t{}", mem);
+    eprintln!("Heuristic time\t{:?}", heur_tot_time);
+    eprintln!("Explore time\t{:?}", explore_tot_time);
 }
 
 #[cfg(target_os = "linux")]

@@ -27,6 +27,7 @@ pub fn build_gaf(
     let mut cigar = Vec::new();
     let mut recs: Vec<String> = Vec::new();
     let mut path_align = Vec::new();
+    let mut residue_matches = 0;
     while align_coord.pos != 0 {
         if align.parent.path != align_coord.path {
             recs.push(format!(
@@ -40,6 +41,7 @@ pub fn build_gaf(
             while idx > 0 {
                 cigar.push('D');
                 idx -= 1;
+                residue_matches += 1;
             }
             let match_end = matches_in_path[align_coord.path as usize]
                 .get(&(align_coord.node, align_coord.pos))
@@ -55,6 +57,7 @@ pub fn build_gaf(
             if align.parent.pos != align_coord.pos {
                 if path_graph.lnz[align_coord.node as usize] == query[align_coord.pos as usize] {
                     cigar.push('D');
+                    residue_matches += 1;
                 } else {
                     cigar.push('d');
                 }
@@ -85,19 +88,20 @@ pub fn build_gaf(
         .iter()
         .map(|x| *path_graph.original_handles.get(x).unwrap() as u32)
         .collect::<Vec<_>>();
-
     Gaf::new(
         name.to_string(),
+        query.len() - 2,
         0,
         query.len() - 2,
         '+',
         alignment,
-        path_graph.handles_ids.len(),
         0,
-        path_graph.handles_ids.len(),
         0,
-        query.len(),
+        0,
+        residue_matches,
+        0,
         255,
+        cigar_str,
     )
 }
 
@@ -131,6 +135,7 @@ pub fn get_matches_end_in_path(
 
 pub struct Gaf {
     pub query_name: String,
+    pub query_len: usize,
     pub query_start: usize,
     pub query_end: usize,
     pub strand: char,
@@ -141,11 +146,13 @@ pub struct Gaf {
     pub residue_matches: usize,
     pub alignment_len: usize,
     pub mapq: u8,
+    pub comments: String,
 }
 
 impl Gaf {
     pub fn new(
         query_name: String,
+        query_len: usize,
         query_start: usize,
         query_end: usize,
         strand: char,
@@ -156,9 +163,11 @@ impl Gaf {
         residue_matches: usize,
         alignment_len: usize,
         mapq: u8,
+        comments: String,
     ) -> Self {
         Gaf {
             query_name,
+            query_len,
             query_start,
             query_end,
             strand,
@@ -169,12 +178,14 @@ impl Gaf {
             residue_matches,
             alignment_len,
             mapq,
+            comments,
         }
     }
     pub fn to_string(&self) -> String {
         format!(
-            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
+            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n@CO\t{}",
             self.query_name,
+            self.query_len,
             self.query_start,
             self.query_end,
             self.strand,
@@ -188,7 +199,8 @@ impl Gaf {
             self.path_end,
             self.residue_matches,
             self.alignment_len,
-            self.mapq
+            self.mapq,
+            self.comments
         )
     }
 }
