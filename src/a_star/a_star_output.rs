@@ -2,7 +2,10 @@ use ahash::AHashMap as HashMap;
 use bstr::BString;
 use lt_fm_index::LtFmIndex;
 
-use crate::{build_cigar, new_path_graph::path_graph::PathGraph};
+use crate::{
+    build_cigar::{self, build_cigar},
+    new_path_graph::path_graph::PathGraph,
+};
 
 use super::a_star_visit::{AStarNode, Coord};
 use std::io::Write;
@@ -16,7 +19,8 @@ pub fn build_gaf(
     matches_in_path: &Vec<HashMap<(u32, u32), u32>>,
     match_len: usize,
     indexes: &Vec<(LtFmIndex, Vec<u32>)>,
-) -> String {
+    name: &BString,
+) -> Gaf {
     let mut align_coord = end_pos.clone();
     let mut align = alignment_graph.remove(&align_coord).unwrap();
     let ed = align.g;
@@ -76,22 +80,25 @@ pub fn build_gaf(
     cigar.reverse();
     path_align.reverse();
     path_align.dedup();
+    let cigar_str = build_cigar(&cigar);
     let alignment = path_align
         .iter()
-        .map(|x| path_graph.original_handles.get(x).unwrap().to_string())
-        .collect::<Vec<_>>()
-        .join(">");
-    let recs_out_string = recs.join("\t");
-    let output = format!(
-        "{}\t{}\tbest path: {}\tED {}\t{}",
-        alignment,
-        build_cigar::build_cigar(&cigar),
-        align_coord.path,
-        ed,
-        recs_out_string,
-    );
+        .map(|x| *path_graph.original_handles.get(x).unwrap() as u32)
+        .collect::<Vec<_>>();
 
-    output
+    Gaf::new(
+        name.to_string(),
+        0,
+        query.len() - 2,
+        '+',
+        alignment,
+        path_graph.handles_ids.len(),
+        0,
+        path_graph.handles_ids.len(),
+        0,
+        query.len(),
+        255,
+    )
 }
 
 pub fn save_coords(outfile: &str, coords: &Vec<Vec<Coord>>) {
@@ -120,4 +127,68 @@ pub fn get_matches_end_in_path(
         });
     }
     matches_in_path
+}
+
+pub struct Gaf {
+    pub query_name: String,
+    pub query_start: usize,
+    pub query_end: usize,
+    pub strand: char,
+    pub path_matching: Vec<u32>,
+    pub path_len: usize,
+    pub path_start: usize,
+    pub path_end: usize,
+    pub residue_matches: usize,
+    pub alignment_len: usize,
+    pub mapq: u8,
+}
+
+impl Gaf {
+    pub fn new(
+        query_name: String,
+        query_start: usize,
+        query_end: usize,
+        strand: char,
+        path_matching: Vec<u32>,
+        path_len: usize,
+        path_start: usize,
+        path_end: usize,
+        residue_matches: usize,
+        alignment_len: usize,
+        mapq: u8,
+    ) -> Self {
+        Gaf {
+            query_name,
+            query_start,
+            query_end,
+            strand,
+            path_matching,
+            path_len,
+            path_start,
+            path_end,
+            residue_matches,
+            alignment_len,
+            mapq,
+        }
+    }
+    pub fn to_string(&self) -> String {
+        format!(
+            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
+            self.query_name,
+            self.query_start,
+            self.query_end,
+            self.strand,
+            self.path_matching
+                .iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<String>>()
+                .join(">"),
+            self.path_len,
+            self.path_start,
+            self.path_end,
+            self.residue_matches,
+            self.alignment_len,
+            self.mapq
+        )
+    }
 }

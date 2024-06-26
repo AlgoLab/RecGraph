@@ -2,7 +2,6 @@ use rayon::prelude::*;
 use recgraph::a_star::a_star_demo;
 use recgraph::a_star::a_star_visit::Coord;
 use recgraph::args_parser::ClArgs;
-use recgraph::fib_heap::fibonacci_heap::FibonacciHeap;
 use recgraph::node_displacement::DisplacementMatrix;
 use recgraph::pathwise_alignment_recombination;
 use recgraph::pathwise_graph;

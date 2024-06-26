@@ -28,7 +28,7 @@ pub fn a_star_demo_chain() {
     handles.retain(|x| *x>=302);
     println!("{:?}", handles);
     */
-    let (sequences, _) = sequences::get_sequences(args.sequence_path);
+    let (sequences, names) = sequences::get_sequences(args.sequence_path);
     let chunk_size = ClArgs::parse().seed_len;
     let start = Instant::now();
     let indexes = path_graph.get_indexes();
@@ -36,7 +36,7 @@ pub fn a_star_demo_chain() {
     //let mut explored_pos_vec = Vec::new();
     let mut heur_tot_time = Duration::new(0, 0);
     let mut explore_tot_time = Duration::new(0, 0);
-    sequences.iter().for_each(|seq| {
+    sequences.iter().zip(names).for_each(|(seq, name)| {
         let istant = Instant::now();
         let mut heuristic = new_heuristic::build_heuristic(
             &indexes,
@@ -61,24 +61,20 @@ pub fn a_star_demo_chain() {
         );
         explore_tot_time += explore_start.elapsed();
         //explored_pos_vec.push(explored_pos);
-        outs.push((
-            build_gaf(
-                &mut alignment_graph,
-                &end_pos,
-                &path_graph,
-                seq,
-                args.alignment_mode,
-                &matches_in_path,
-                chunk_size as usize,
-                &indexes,
-            ),
-            istant.elapsed(),
-            seq.len() - 2,
+        outs.push(build_gaf(
+            &mut alignment_graph,
+            &end_pos,
+            &path_graph,
+            seq,
+            args.alignment_mode,
+            &matches_in_path,
+            chunk_size as usize,
+            &indexes,
+            &name,
         ));
     });
     //a_star_output::save_coords(&args.out_file, &explored_pos_vec);
-    outs.iter()
-        .for_each(|out| println!("{}\t{}\t{}", out.0, out.1.as_millis(), out.2));
+    outs.iter().for_each(|out| println!("{}", out.to_string()));
     println!("Approx time: {:?}", start.elapsed());
     let mem = peak_mem_usage().unwrap();
 

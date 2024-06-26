@@ -28,5 +28,3 @@ pub mod node_displacement;
 pub mod a_star;
 
 pub mod new_path_graph;
-
-pub mod fib_heap;
