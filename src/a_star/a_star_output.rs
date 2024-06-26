@@ -13,7 +13,7 @@ pub fn build_gaf(
     path_graph: &PathGraph,
     query: &BString,
     is_local: bool,
-    matches_in_path: &Vec<HashMap<(usize, usize), usize>>,
+    matches_in_path: &Vec<HashMap<(u32, u32), u32>>,
     match_len: usize,
     indexes: &Vec<(LtFmIndex, Vec<u32>)>,
 ) -> String {
@@ -38,11 +38,12 @@ pub fn build_gaf(
                 idx -= 1;
             }
             let match_end = matches_in_path[align_coord.path as usize]
-                .get(&(align_coord.node as usize, align_coord.pos as usize))
+                .get(&(align_coord.node, align_coord.pos))
                 .unwrap();
             let mut idx = 0;
             while idx < match_len {
-                let lnz_pos = indexes[align_coord.path as usize].1[match_end - idx] as usize;
+                let lnz_pos =
+                    indexes[align_coord.path as usize].1[*match_end as usize - idx] as usize;
                 path_align.push(path_graph.handles_ids[lnz_pos]);
                 idx += 1;
             }
@@ -110,8 +111,8 @@ pub fn save_coords(outfile: &str, coords: &Vec<Vec<Coord>>) {
 }
 
 pub fn get_matches_end_in_path(
-    matches: &HashMap<(usize, usize), (usize, usize, usize)>,
-) -> HashMap<(usize, usize), usize> {
+    matches: &HashMap<(u32, u32), (u32, u32, u32)>,
+) -> HashMap<(u32, u32), u32> {
     let mut matches_in_path = HashMap::new();
     if matches.len() > 0 {
         matches.iter().for_each(|(_, v)| {

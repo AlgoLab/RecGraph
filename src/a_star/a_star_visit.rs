@@ -4,24 +4,20 @@ use bstr::BString;
 use std::cmp::Reverse;
 //use pheap::PairingHeap as FibHeap;
 use dary_heap::DaryHeap;
-use priority_queue::PriorityQueue as FibHeap;
 use std::fmt::Debug;
 use std::hash::Hash;
 
 pub fn exec(
     query: &BString,
-    heuristic: &mut (
-        Vec<Vec<u32>>,
-        Vec<HashMap<(usize, usize), (usize, usize, usize)>>,
-    ),
+    heuristic: &mut (Vec<Vec<u16>>, Vec<HashMap<(u32, u32), (u32, u32, u32)>>),
     path_graph: &PathGraph,
     is_local: bool,
-    rec_cost: u32,
+    rec_cost: u16,
 ) -> (Coord, HashMap<Coord, AStarNode> /* , Vec<Coord>*/) {
     // init A* data structure, each path possible starting point
     let mut alignment_graph = HashMap::new();
     let mut open_set: DaryHeap<Coord, 4> = DaryHeap::new();
-    let crumbs: &mut Vec<Vec<u32>> = &mut heuristic.0;
+    let crumbs: &mut Vec<Vec<u16>> = &mut heuristic.0;
     let match_handles = &mut heuristic.1;
     //let mut explored_pos = Vec::new();
     for path in 0..crumbs.len() {
@@ -51,11 +47,9 @@ pub fn exec(
         if current_node_coord.node + 1 < path_graph.lnz.len() as u32
             && current_node_coord.pos + 1 < query.len() as u32
         {
-            if let Some((skip_ahead_node, skip_ahead_pos, _)) =
-                match_handles[current_node_coord.path as usize].get(&(
-                    current_node_coord.node as usize,
-                    current_node_coord.pos as usize,
-                ))
+            if let Some((skip_ahead_node, skip_ahead_pos, _)) = match_handles
+                [current_node_coord.path as usize]
+                .get(&(current_node_coord.node, current_node_coord.pos))
             {
                 let mut skip_ahead = current_node.clone();
                 skip_ahead.parent = current_node_coord.clone();
@@ -63,7 +57,8 @@ pub fn exec(
                     *skip_ahead_node as u32,
                     *skip_ahead_pos as u32,
                     current_node_coord.path,
-                    skip_ahead.g + crumbs[current_node_coord.path as usize][*skip_ahead_pos],
+                    skip_ahead.g
+                        + crumbs[current_node_coord.path as usize][*skip_ahead_pos as usize],
                 );
 
                 skip_ahead.h =
@@ -93,10 +88,7 @@ pub fn exec(
                 update_path_heuristic(
                     &mut crumbs[skip_ahead_coord.path as usize],
                     &mut match_handles[skip_ahead_coord.path as usize],
-                    (
-                        current_node_coord.node as usize,
-                        current_node_coord.pos as usize,
-                    ),
+                    (current_node_coord.node, current_node_coord.pos),
                 );
             } else {
                 if !path_graph.nws[current_node_coord.node as usize] {
@@ -164,8 +156,8 @@ pub fn exec(
 fn get_neighbours(
     current_node: &AStarNode,
     current_node_coord: &Coord,
-    crumbs: &Vec<Vec<u32>>,
-    match_mis: u32,
+    crumbs: &Vec<Vec<u16>>,
+    match_mis: u16,
 ) -> (AStarNode, AStarNode, AStarNode) {
     let h = crumbs[current_node_coord.path as usize][current_node_coord.pos as usize + 1];
 
@@ -202,11 +194,11 @@ fn update_open_set(
 fn new_multi_rec(
     current_node: &AStarNode,
     current_node_coord: &Coord,
-    crumbs: &Vec<Vec<u32>>,
+    crumbs: &Vec<Vec<u16>>,
     open_set: &mut DaryHeap<Coord, 4>,
     alignment_graph: &mut HashMap<Coord, AStarNode>,
     path_graph: &PathGraph,
-    rec_cost: u32,
+    rec_cost: u16,
 ) {
     let paths = path_graph.get_node_path(current_node_coord.node);
     paths.iter().enumerate().for_each(|(path, is_in)| {
@@ -229,12 +221,12 @@ fn new_multi_rec(
 }
 
 fn push_neigh(
-    match_mis: u32,
+    match_mis: u16,
     current_node: &AStarNode,
     current_node_coord: &Coord,
     open_set: &mut DaryHeap<Coord, 4>,
     alignment_graph: &mut HashMap<Coord, AStarNode>,
-    crumbs: &Vec<Vec<u32>>,
+    crumbs: &Vec<Vec<u16>>,
     succ: u32,
     is_local: bool,
 ) {
@@ -282,14 +274,16 @@ fn push_neigh(
 }
 
 fn update_path_heuristic(
-    crumbs: &mut Vec<u32>,
-    match_handles: &mut HashMap<(usize, usize), (usize, usize, usize)>,
-    last_match: (usize, usize),
+    crumbs: &mut Vec<u16>,
+    match_handles: &mut HashMap<(u32, u32), (u32, u32, u32)>,
+    last_match: (u32, u32),
 ) {
     if match_handles.contains_key(&last_match) {
-        crumbs[..last_match.1].iter_mut().for_each(|score| {
-            *score += 1;
-        });
+        crumbs[..last_match.1 as usize]
+            .iter_mut()
+            .for_each(|score| {
+                *score += 1;
+            });
 
         match_handles.remove(&last_match);
     }
@@ -300,7 +294,7 @@ pub struct Coord {
     pub node: u32,
     pub pos: u32,
     pub path: u8,
-    pub priority: Reverse<u32>,
+    pub priority: Reverse<u16>,
 }
 
 impl Coord {
@@ -313,7 +307,7 @@ impl Coord {
         }
     }
 
-    pub fn init(node: u32, pos: u32, path: u8, priority: u32) -> Self {
+    pub fn init(node: u32, pos: u32, path: u8, priority: u16) -> Self {
         Coord {
             node,
             pos,
@@ -353,8 +347,8 @@ impl PartialOrd for Coord {
 }
 #[derive(Debug, Clone)]
 pub struct AStarNode {
-    pub g: u32,
-    pub h: u32,
+    pub g: u16,
+    pub h: u16,
     pub parent: Coord,
 }
 impl AStarNode {
@@ -366,13 +360,13 @@ impl AStarNode {
         }
     }
 
-    pub fn new_path(path: usize, heu: &Vec<Vec<u32>>) -> Self {
+    pub fn new_path(path: usize, heu: &Vec<Vec<u16>>) -> Self {
         let mut node = AStarNode::new();
         node.h = heu[path][0];
         node
     }
 
-    pub fn init(g: u32, h: u32, parent: &Coord) -> Self {
+    pub fn init(g: u16, h: u16, parent: &Coord) -> Self {
         AStarNode {
             g,
             h,

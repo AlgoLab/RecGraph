@@ -14,10 +14,7 @@ pub fn build_heuristic(
     chunk_size: usize,
     rec_cost: usize,
     path_graph: &PathGraph,
-) -> (
-    Vec<Vec<u32>>,
-    Vec<HashMap<(usize, usize), (usize, usize, usize)>>,
-) {
+) -> (Vec<Vec<u16>>, Vec<HashMap<(u32, u32), (u32, u32, u32)>>) {
     let matches = get_matches(indexes, query, chunk_size);
     let (chains, matches_pos): (Vec<_>, Vec<_>) = matches
         .par_iter()
@@ -71,7 +68,7 @@ fn get_path_max_chain(
     lnz_pos: &Vec<u32>,
     match_len: usize,
     seeds_number: usize,
-) -> (Vec<u8>, HashMap<(usize, usize), (usize, usize, usize)>) {
+) -> (Vec<u8>, HashMap<(u32, u32), (u32, u32, u32)>) {
     let mut chains = vec![Link::new(); matches.len()];
     for i in 0..matches.len() {
         let (pos_i, seed_i) = matches[i];
@@ -145,15 +142,15 @@ fn get_path_max_chain(
 fn merge_matches(
     match_handles: &HashMap<(usize, usize), (usize, usize)>,
     lnz_pos: &Vec<u32>,
-) -> HashMap<(usize, usize), (usize, usize, usize)> {
+) -> HashMap<(u32, u32), (u32, u32, u32)> {
     let mut matches = match_handles.iter().collect::<Vec<_>>();
-    let mut merged_matches = HashMap::new();
+    let mut merged_matches: HashMap<(u32, u32), (u32, u32, u32)> = HashMap::new();
     if matches.len() > 0 {
         matches.sort_by(|a, b| a.0 .0.cmp(&b.0 .0));
         matches.iter().for_each(|(k, v)| {
             merged_matches.insert(
-                (lnz_pos[k.0] as usize, k.1),
-                (lnz_pos[v.0] as usize, v.1, v.0),
+                (lnz_pos[k.0], k.1 as u32),
+                (lnz_pos[v.0], v.1 as u32, v.0 as u32),
             );
         });
     }
@@ -165,7 +162,7 @@ fn rec_chain_update(
     query_len: usize,
     match_len: usize,
     path_graph: &PathGraph,
-) -> Vec<Vec<u32>> {
+) -> Vec<Vec<u16>> {
     let mut rec_chains = vec![vec![0; chains[0].len()]; chains.len()];
     let mut best_paths = vec![0; chains[0].len()];
 
@@ -212,7 +209,7 @@ fn rec_chain_update(
         .map(|chain| {
             chain
                 .iter()
-                .flat_map(|score| std::iter::repeat(*score as u32).take(match_len))
+                .flat_map(|score| std::iter::repeat(*score as u16).take(match_len))
                 .collect::<Vec<_>>()
         })
         .collect();

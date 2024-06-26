@@ -33,7 +33,6 @@ pub fn a_star_demo_chain() {
     let start = Instant::now();
     let indexes = path_graph.get_indexes();
     let mut outs = Vec::new();
-    let init = peak_mem_usage().unwrap();
     //let mut explored_pos_vec = Vec::new();
     let mut heur_tot_time = Duration::new(0, 0);
     let mut explore_tot_time = Duration::new(0, 0);
@@ -58,7 +57,7 @@ pub fn a_star_demo_chain() {
             &mut heuristic,
             &path_graph,
             args.alignment_mode,
-            args.base_rec_cost as u32,
+            args.base_rec_cost as u16,
         );
         explore_tot_time += explore_start.elapsed();
         //explored_pos_vec.push(explored_pos);
@@ -85,23 +84,12 @@ pub fn a_star_demo_chain() {
 
     println!("Heuristic time\t{:?}", heur_tot_time);
     println!("Explore time\t{:?}", explore_tot_time);
-    println!("Init memory usage (Byte)\t{}", init);
     println!("Peak memory (Byte)\t{}", mem);
     if args.alignment_mode {
         check_ed::semiglobal_test(&path_graph, &sequences);
     } else {
         check_ed::test(&path_graph, &sequences);
     }
-    let v = vec![1, 2, 3, 4, 9, 6, 7, 8, 9, 10];
-    println!(
-        "{:?}",
-        v.iter()
-            .enumerate()
-            .rev()
-            .find(|(_, x)| **x == 9)
-            .unwrap()
-            .0
-    );
 }
 
 #[cfg(target_os = "linux")]
