@@ -2,13 +2,10 @@ use ahash::AHashMap as HashMap;
 use bstr::BString;
 use lt_fm_index::LtFmIndex;
 
-use crate::{
-    build_cigar::{self, build_cigar},
-    new_path_graph::path_graph::PathGraph,
-};
+use crate::{build_cigar::build_cigar, new_path_graph::path_graph::PathGraph};
 
 use super::a_star_visit::{AStarNode, Coord};
-use std::io::Write;
+use std::{io::Write, time::Duration};
 
 pub fn build_gaf(
     alignment_graph: &mut HashMap<Coord, AStarNode>,
@@ -20,6 +17,8 @@ pub fn build_gaf(
     match_len: usize,
     indexes: &Vec<(LtFmIndex, Vec<u32>)>,
     name: &BString,
+    align_time: Duration,
+    original_path_ids: &HashMap<u8, u8>,
 ) -> Gaf {
     let mut align_coord = end_pos.clone();
     let mut align = alignment_graph.remove(&align_coord).unwrap();
@@ -31,10 +30,11 @@ pub fn build_gaf(
     )];
     let mut path_align = Vec::new();
     let mut residue_matches = 0;
+    let mut alignment_len = 0;
     while align_coord.pos != 0 {
         if align.parent.path != align_coord.path {
             paths.push((
-                align.parent.path,
+                *original_path_ids.get(&align.parent.path).unwrap(),
                 path_graph.handles_ids[align.parent.node as usize],
             ));
         } else if align_coord.pos - 1 > align.parent.pos {
@@ -43,6 +43,7 @@ pub fn build_gaf(
                 cigar.push('D');
                 idx -= 1;
                 residue_matches += 1;
+                alignment_len += 1;
             }
             let match_end = matches_in_path[align_coord.path as usize]
                 .get(&(align_coord.node, align_coord.pos))
@@ -55,6 +56,8 @@ pub fn build_gaf(
                 idx += 1;
             }
         } else if align.parent.node != align_coord.node {
+            alignment_len += 1;
+
             if align.parent.pos != align_coord.pos {
                 if path_graph.lnz[align_coord.node as usize] == query[align_coord.pos as usize] {
                     cigar.push('D');
@@ -67,6 +70,7 @@ pub fn build_gaf(
             }
             path_align.push(path_graph.handles_ids[align_coord.node as usize]);
         } else {
+            alignment_len += 1;
             cigar.push('L');
         }
         align_coord = align.parent.clone();
@@ -79,6 +83,7 @@ pub fn build_gaf(
             path_align.push(path_graph.handles_ids[align_coord.node as usize]);
             align_coord = align.parent.clone();
             align = alignment_graph.remove(&align_coord).unwrap();
+            alignment_len += 1;
         }
     }
     cigar.reverse();
@@ -87,10 +92,11 @@ pub fn build_gaf(
     paths.reverse();
     let cigar_str = build_cigar(&cigar);
     let comments = format!(
-        "{}\t{}\t{}",
+        "{}\t{}\t{}\t{}",
         ed,
         cigar_str,
-        build_path_composition(&paths, path_graph)
+        build_path_composition(&paths, path_graph),
+        align_time.as_nanos()
     );
     let alignment = path_align
         .iter()
@@ -107,7 +113,7 @@ pub fn build_gaf(
         0,
         0,
         residue_matches,
-        0,
+        alignment_len,
         255,
         comments,
     )

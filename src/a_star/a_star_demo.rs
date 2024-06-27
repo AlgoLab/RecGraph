@@ -17,17 +17,8 @@ pub fn a_star_demo_chain() {
     let parser = GFAParser::new();
     let gfa: GFA<usize, ()> = parser.parse_file(file_path).unwrap();
     let mut graph: HashGraph = HashGraph::from_gfa(&gfa);
-    remove_duplicate_paths(&mut graph);
+    let original_path_ids = remove_duplicate_paths(&mut graph);
     let path_graph = PathGraph::from_hash_graph(&graph);
-    /*
-    let (_, pos) = path_graph.extract_path(9);
-
-    let mut handles: Vec<_> = pos.iter().map(|node| {
-        path_graph.handles_ids[*node as usize]/2
-    }).collect();
-    handles.retain(|x| *x>=302);
-    println!("{:?}", handles);
-    */
     let (sequences, names) = sequences::get_sequences(args.sequence_path);
     let chunk_size = ClArgs::parse().seed_len;
     let indexes = path_graph.get_indexes();
@@ -58,7 +49,8 @@ pub fn a_star_demo_chain() {
             args.alignment_mode,
             args.base_rec_cost as u16,
         );
-        explore_tot_time += explore_start.elapsed();
+        let explore_time = explore_start.elapsed();
+        explore_tot_time += explore_time;
         //explored_pos_vec.push(explored_pos);
         outs.push(build_gaf(
             &mut alignment_graph,
@@ -70,6 +62,8 @@ pub fn a_star_demo_chain() {
             chunk_size as usize,
             &indexes,
             &name,
+            explore_time,
+            &original_path_ids,
         ));
     });
     //a_star_output::save_coords(&args.out_file, &explored_pos_vec);
@@ -77,8 +71,8 @@ pub fn a_star_demo_chain() {
     let mem = peak_mem_usage().unwrap();
 
     eprintln!("Peak memory (Byte)\t{}", mem);
-    eprintln!("Heuristic time\t{:?}", heur_tot_time);
-    eprintln!("Explore time\t{:?}", explore_tot_time);
+    eprintln!("Heuristic tot time\t{:?}", heur_tot_time);
+    eprintln!("Explore tot time\t{:?}", explore_tot_time);
 }
 
 #[cfg(target_os = "linux")]

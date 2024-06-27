@@ -16,6 +16,7 @@ pub struct PathGraph {
     pub ending_positions: Vec<u32>,
     paths_composition: Vec<Vec<(u32, u32)>>,
     pub original_handles: HashMap<u32, u64>,
+
     pub common_nodes: Vec<Vec<bool>>,
 }
 
@@ -192,7 +193,7 @@ fn reverse_cast_handle_id(handle_id: usize, min: u64) -> u32 {
     (handle_id as u64 + min) as u32
 }
 
-pub fn remove_duplicate_paths(graph: &mut HashGraph) {
+pub fn remove_duplicate_paths(graph: &mut HashGraph) -> HashMap<u8, u8> {
     let mut paths_to_remove = Vec::new();
     graph
         .paths
@@ -213,12 +214,15 @@ pub fn remove_duplicate_paths(graph: &mut HashGraph) {
     // change id back to 0..n
     let mut old_graph = graph.paths.drain().collect::<Vec<_>>();
     old_graph.sort_by(|a, b| a.0.cmp(&b.0));
+    let mut original_path_ids = HashMap::new();
     old_graph
         .drain(0..)
         .enumerate()
-        .for_each(|(idx, (_, path))| {
+        .for_each(|(idx, (original_id, path))| {
             graph.paths.insert(idx as i64, path);
+            original_path_ids.insert(idx as u8, original_id as u8);
         });
+    original_path_ids
 }
 
 fn find_rightest_common_node(handles_in_path: &Vec<BitVec>) -> Vec<Vec<bool>> {
