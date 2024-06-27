@@ -25,16 +25,17 @@ pub fn build_gaf(
     let mut align = alignment_graph.remove(&align_coord).unwrap();
     let ed = align.g;
     let mut cigar = Vec::new();
-    let mut recs: Vec<String> = Vec::new();
+    let mut paths: Vec<_> = vec![(
+        align_coord.path,
+        path_graph.handles_ids[align_coord.node as usize],
+    )];
     let mut path_align = Vec::new();
     let mut residue_matches = 0;
     while align_coord.pos != 0 {
         if align.parent.path != align_coord.path {
-            recs.push(format!(
-                "REC paths {} - {}\t pos {:?}",
+            paths.push((
                 align.parent.path,
-                align_coord.path,
-                (align_coord.node, align_coord.pos)
+                path_graph.handles_ids[align.parent.node as usize],
             ));
         } else if align_coord.pos - 1 > align.parent.pos {
             let mut idx = align_coord.pos - align.parent.pos;
@@ -83,7 +84,14 @@ pub fn build_gaf(
     cigar.reverse();
     path_align.reverse();
     path_align.dedup();
+    paths.reverse();
     let cigar_str = build_cigar(&cigar);
+    let comments = format!(
+        "{}\t{}\t{}",
+        ed,
+        cigar_str,
+        build_path_composition(&paths, path_graph)
+    );
     let alignment = path_align
         .iter()
         .map(|x| *path_graph.original_handles.get(x).unwrap() as u32)
@@ -101,7 +109,7 @@ pub fn build_gaf(
         residue_matches,
         0,
         255,
-        cigar_str,
+        comments,
     )
 }
 
@@ -133,6 +141,17 @@ pub fn get_matches_end_in_path(
     matches_in_path
 }
 
+fn build_path_composition(paths: &Vec<(u8, u32)>, path_graph: &PathGraph) -> String {
+    paths
+        .iter()
+        .map(|x| format!("{}:{}", x.0, get_node_offset(x.1, path_graph)))
+        .collect::<Vec<String>>()
+        .join(",")
+}
+
+fn get_node_offset(node: u32, path_graph: &PathGraph) -> u32 {
+    *path_graph.original_handles.get(&node).unwrap() as u32
+}
 pub struct Gaf {
     pub query_name: String,
     pub query_len: usize,
