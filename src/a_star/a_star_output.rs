@@ -5,7 +5,7 @@ use lt_fm_index::LtFmIndex;
 use crate::{build_cigar::build_cigar, new_path_graph::path_graph::PathGraph};
 
 use super::a_star_visit::{AStarNode, Coord};
-use std::{io::Write, time::Duration};
+use std::{io::Write, path, time::Duration};
 
 pub fn build_gaf(
     alignment_graph: &mut HashMap<Coord, AStarNode>,
@@ -109,6 +109,7 @@ pub fn build_gaf(
         .map(|x| *path_graph.original_handles.get(x).unwrap() as u32)
         .collect::<Vec<_>>();
     let start_pos = align_coord.node;
+    let path_start = get_node_offset(start_pos, path_graph) as usize;
     Gaf::new(
         name.to_string(),
         query.len() - 2,
@@ -116,9 +117,9 @@ pub fn build_gaf(
         query.len() - 2,
         '+',
         alignment,
-        path_len,
-        get_node_offset(start_pos, path_graph) as usize,
-        get_node_offset(end_pos, path_graph) as usize + 1,
+        path_len + path_start + get_node_distance_from_end(end_pos, path_graph) as usize,
+        path_start,
+        path_len + path_start + 1,
         residue_matches,
         alignment_len,
         255,
@@ -174,6 +175,18 @@ fn get_node_offset(node: u32, path_graph: &PathGraph) -> u32 {
     {
         offset += 1;
         start -= 1;
+    }
+    offset
+}
+
+fn get_node_distance_from_end(node: u32, path_graph: &PathGraph) -> u32 {
+    let mut offset = 0;
+    let mut start = node;
+    while node > 0
+        && path_graph.handles_ids[start as usize] == path_graph.handles_ids[node as usize]
+    {
+        offset += 1;
+        start += 1;
     }
     offset
 }
