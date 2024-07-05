@@ -41,6 +41,7 @@ pub fn a_star_demo_chain() {
             .map(|m| a_star_output::get_matches_end_in_path(m))
             .collect();
         heur_tot_time += istant.elapsed();
+
         let explore_start = Instant::now();
         let (end_pos, mut alignment_graph /* , explored_pos*/) = a_star_visit::exec(
             seq,
@@ -51,7 +52,11 @@ pub fn a_star_demo_chain() {
         );
         let explore_time = explore_start.elapsed();
         explore_tot_time += explore_time;
+
         //explored_pos_vec.push(explored_pos);
+        let graph_size = (path_graph.lnz.len() * seq.len()) as f32;
+        let explored_cells = (alignment_graph.len() as f32 / graph_size) * 100.0;
+
         outs.push(build_gaf(
             &mut alignment_graph,
             &end_pos,
@@ -64,6 +69,7 @@ pub fn a_star_demo_chain() {
             &name,
             explore_time,
             &original_path_ids,
+            explored_cells,
         ));
     });
     //a_star_output::save_coords(&args.out_file, &explored_pos_vec);

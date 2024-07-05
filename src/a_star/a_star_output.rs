@@ -19,6 +19,7 @@ pub fn build_gaf(
     name: &BString,
     align_time: Duration,
     original_path_ids: &HashMap<u8, u8>,
+    explored_cells: f32,
 ) -> Gaf {
     let mut align_coord = end_pos.clone();
     let mut align = alignment_graph.remove(&align_coord).unwrap();
@@ -98,11 +99,12 @@ pub fn build_gaf(
     paths.reverse();
     let cigar_str = build_cigar(&cigar);
     let comments = format!(
-        "{}\t{}\t{}\t{}",
+        "{}\t{}\t{}\t{}\t{}%",
         ed,
         cigar_str,
         build_path_composition(&paths, path_graph),
-        align_time.as_nanos()
+        align_time.as_nanos(),
+        explored_cells
     );
     let alignment = path_align
         .iter()
