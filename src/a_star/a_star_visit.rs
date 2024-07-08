@@ -13,6 +13,7 @@ pub fn exec(
     path_graph: &PathGraph,
     is_local: bool,
     rec_cost: u16,
+    max_rec: u32,
 ) -> (Coord, HashMap<Coord, AStarNode> /* , Vec<Coord>*/) {
     // init A* data structure, each path possible starting point
     let mut alignment_graph = HashMap::new();
@@ -22,7 +23,7 @@ pub fn exec(
     //let mut explored_pos = Vec::new();
     for path in 0..crumbs.len() {
         let node = AStarNode::new_path(path, &crumbs);
-        let node_coord = Coord::init(0, 0, path as u8, node.g + node.h);
+        let node_coord = Coord::init(0, 0, path as u8, 0, node.g + node.h);
         open_set.push(node_coord.clone());
         alignment_graph.insert(node_coord, node);
     }
@@ -57,6 +58,7 @@ pub fn exec(
                     *skip_ahead_node as u32,
                     *skip_ahead_pos as u32,
                     current_node_coord.path,
+                    current_node_coord.rec,
                     skip_ahead.g
                         + crumbs[current_node_coord.path as usize][*skip_ahead_pos as usize],
                 );
@@ -132,15 +134,17 @@ pub fn exec(
                         is_local,
                     );
                 }
-                new_multi_rec(
-                    &current_node,
-                    &current_node_coord,
-                    &crumbs,
-                    &mut open_set,
-                    &mut alignment_graph,
-                    &path_graph,
-                    rec_cost,
-                );
+                if current_node_coord.rec < max_rec as u8 {
+                    new_multi_rec(
+                        &current_node,
+                        &current_node_coord,
+                        &crumbs,
+                        &mut open_set,
+                        &mut alignment_graph,
+                        &path_graph,
+                        rec_cost,
+                    );
+                }
             }
         }
     }
@@ -213,6 +217,7 @@ fn new_multi_rec(
                     current_node_coord.node,
                     current_node_coord.pos,
                     path as u8,
+                    current_node_coord.rec + 1,
                     rec_node.g + rec_node.h,
                 ),
             );
@@ -245,6 +250,7 @@ fn push_neigh(
             succ,
             current_node_coord.pos,
             current_node_coord.path,
+            current_node_coord.rec,
             ins.g + ins.h,
         ),
     );
@@ -256,6 +262,7 @@ fn push_neigh(
             current_node_coord.node,
             current_node_coord.pos + 1,
             current_node_coord.path,
+            current_node_coord.rec,
             del.g + del.h,
         ),
     );
@@ -268,6 +275,7 @@ fn push_neigh(
             succ,
             current_node_coord.pos + 1,
             current_node_coord.path,
+            current_node_coord.rec,
             m_x.g + m_x.h,
         ),
     );
@@ -294,6 +302,7 @@ pub struct Coord {
     pub node: u32,
     pub pos: u32,
     pub path: u8,
+    pub rec: u8,
     pub priority: Reverse<u16>,
 }
 
@@ -303,15 +312,17 @@ impl Coord {
             node: 0,
             pos: 0,
             path: 0,
+            rec: 0,
             priority: Reverse(0),
         }
     }
 
-    pub fn init(node: u32, pos: u32, path: u8, priority: u16) -> Self {
+    pub fn init(node: u32, pos: u32, path: u8, rec: u8, priority: u16) -> Self {
         Coord {
             node,
             pos,
             path,
+            rec,
             priority: Reverse(priority),
         }
     }
@@ -319,7 +330,10 @@ impl Coord {
 
 impl PartialEq for Coord {
     fn eq(&self, other: &Self) -> bool {
-        self.node == other.node && self.pos == other.pos && self.path == other.path
+        self.node == other.node
+            && self.pos == other.pos
+            && self.path == other.path
+            && self.rec == other.rec
     }
 }
 
@@ -328,6 +342,7 @@ impl Hash for Coord {
         self.node.hash(state);
         self.pos.hash(state);
         self.path.hash(state);
+        self.rec.hash(state);
     }
 }
 impl Eq for Coord {}

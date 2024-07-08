@@ -50,6 +50,7 @@ pub fn a_star_demo_chain() {
             &path_graph,
             args.alignment_mode,
             args.base_rec_cost as u16,
+            args.max_rec as u32,
         );
         let explore_time = explore_start.elapsed();
         explore_tot_time += explore_time;
@@ -83,7 +84,8 @@ pub fn a_star_demo_chain() {
     if args.alignment_mode {
         check_ed::semiglobal_test(&path_graph, &sequences)
     } else {
-        check_ed::test(&path_graph, &sequences)}
+        check_ed::test(&path_graph, &sequences)
+    }
 }
 
 #[cfg(target_os = "linux")]

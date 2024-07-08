@@ -186,11 +186,11 @@ impl PathGraph {
 }
 
 fn cast_handle_id(handle_id: u32, min: u64) -> usize {
-    (handle_id as u64 - min*2) as usize
+    (handle_id as u64 - min * 2) as usize
 }
 
 fn reverse_cast_handle_id(handle_id: usize, min: u64) -> u32 {
-    (handle_id as u64 + min*2) as u32
+    (handle_id as u64 + min * 2) as u32
 }
 
 pub fn remove_duplicate_paths(graph: &mut HashGraph) -> HashMap<u8, u8> {

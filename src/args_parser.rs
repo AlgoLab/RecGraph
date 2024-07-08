@@ -85,11 +85,11 @@ struct Args {
     gap_ext: i32,
 
     #[clap(
-        help_heading = "Recombination",
+        help_heading = "Maximal number of recombinations allowed",
         short = 'k',
         long = "recombinations",
         default_value_t = 0,
-        help = "Number of recombinations to be performed on the graph. 0 means no recombination.[NOT YET IMPLEMENTED, always 1]"
+        help = "Number of recombinations to be performed on the graph. 0 means no recombination."
     )]
     rec_number: i32,
 
@@ -160,6 +160,7 @@ pub struct ClArgs {
     pub out_file: String,
     pub seed_len: i32,
     pub mex_err_seed: u8,
+    pub max_rec: i32,
 }
 
 impl ClArgs {
@@ -180,6 +181,7 @@ impl ClArgs {
             out_file: args.out_file,
             seed_len: args.seed_len,
             mex_err_seed: args.mex_err_seed,
+            max_rec: args.rec_number,
         }
     }
 }
