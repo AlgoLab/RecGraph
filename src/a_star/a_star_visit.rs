@@ -53,7 +53,7 @@ pub fn exec(
                 .get(&(current_node_coord.node, current_node_coord.pos))
             {
                 let mut skip_ahead = current_node.clone();
-                skip_ahead.parent = current_node_coord.clone();
+                skip_ahead.parent = SimpleCoord::init(current_node_coord.node, current_node_coord.pos, current_node_coord.path, current_node_coord.rec);
                 let skip_ahead_coord = Coord::init(
                     *skip_ahead_node as u32,
                     *skip_ahead_pos as u32,
@@ -364,14 +364,14 @@ impl PartialOrd for Coord {
 pub struct AStarNode {
     pub g: u16,
     pub h: u16,
-    pub parent: Coord,
+    pub parent: SimpleCoord,
 }
 impl AStarNode {
     pub fn new() -> Self {
         AStarNode {
             g: 0,
             h: 0,
-            parent: Coord::new(),
+            parent: SimpleCoord::new(),
         }
     }
 
@@ -385,7 +385,32 @@ impl AStarNode {
         AStarNode {
             g,
             h,
-            parent: parent.clone(),
+            parent: SimpleCoord {
+                node: parent.node,
+                pos: parent.pos,
+                path: parent.path,
+            },
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct SimpleCoord {
+    pub node: u32,
+    pub pos: u32,
+    pub path: u8,
+}
+
+impl SimpleCoord {
+    pub fn new() -> Self {
+        SimpleCoord {
+            node: 0,
+            pos: 0,
+            path: 0,
+        }
+    }
+
+    pub fn init(node: u32, pos: u32, path: u8, rec: u8) -> Self {
+        SimpleCoord { node, pos, path }
     }
 }

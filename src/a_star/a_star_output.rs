@@ -5,7 +5,7 @@ use lt_fm_index::LtFmIndex;
 use crate::{build_cigar::build_cigar, new_path_graph::path_graph::PathGraph};
 
 use super::a_star_visit::{AStarNode, Coord};
-use std::{io::Write, time::Duration};
+use std::{cmp::Reverse, io::Write, time::Duration};
 
 pub fn build_gaf(
     alignment_graph: &mut HashMap<Coord, AStarNode>,
@@ -36,11 +36,13 @@ pub fn build_gaf(
     let mut alignment_len = 0;
     let mut path_len = 0;
     while align_coord.pos != 0 {
+        let mut rec = false;
         if align.parent.path != align_coord.path {
             paths.push((
                 *original_path_ids.get(&align.parent.path).unwrap(),
                 path_graph.handles_ids[align.parent.node as usize],
             ));
+            rec = true;
         } else if align_coord.pos - 1 > align.parent.pos {
             let mut idx = align_coord.pos - align.parent.pos;
             while idx > 0 {
@@ -79,7 +81,18 @@ pub fn build_gaf(
             alignment_len += 1;
             cigar.push('L');
         }
-        align_coord = align.parent.clone();
+        let rec_number = if rec {
+            align_coord.rec -1
+        } else {
+            align_coord.rec
+        };
+        align_coord = Coord {
+            node: align.parent.node,
+            pos: align.parent.pos,
+            path: align.parent.path,
+            rec: rec_number,
+            priority: Reverse(0),
+        };
         align = alignment_graph.remove(&align_coord).unwrap();
     }
 
@@ -88,7 +101,13 @@ pub fn build_gaf(
             cigar.push('U');
             path_align.push(path_graph.handles_ids[align_coord.node as usize]);
             path_len += 1;
-            align_coord = align.parent.clone();
+            align_coord = Coord {
+                node: align.parent.node,
+                pos: align.parent.pos,
+                path: align.parent.path,
+                rec: align_coord.rec,
+                priority: Reverse(0),
+            };            
             align = alignment_graph.remove(&align_coord).unwrap();
             alignment_len += 1;
         }
