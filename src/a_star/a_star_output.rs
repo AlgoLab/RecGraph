@@ -5,7 +5,7 @@ use lt_fm_index::LtFmIndex;
 use crate::{build_cigar::build_cigar, new_path_graph::path_graph::PathGraph};
 
 use super::a_star_visit::{AStarNode, Coord};
-use std::{io::Write, path, time::Duration};
+use std::{io::Write, time::Duration};
 
 pub fn build_gaf(
     alignment_graph: &mut HashMap<Coord, AStarNode>,
