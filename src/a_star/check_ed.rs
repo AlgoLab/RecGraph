@@ -20,7 +20,7 @@ pub fn test(graph: &PathGraph, sequences: &Vec<BString>) {
             })
             .min()
             .unwrap();
-        println!("ED\t{}\t{}", best_ed.0, best_ed.1);
+        eprintln!("ED\t{}\t{}", best_ed.0, best_ed.1);
     });
 }
 
@@ -45,6 +45,6 @@ pub fn semiglobal_test(graph: &PathGraph, sequences: &Vec<BString>) {
             })
             .min()
             .unwrap();
-        println!("ED\t{}\t{}", best_ed.0, best_ed.1);
+        eprintln!("ED\t{}\t{}", best_ed.0, best_ed.1);
     });
 }

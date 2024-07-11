@@ -81,11 +81,13 @@ pub fn a_star_demo_chain() {
     eprintln!("Peak memory (Byte)\t{}", mem);
     eprintln!("Heuristic tot time\t{:?}", heur_tot_time);
     eprintln!("Explore tot time\t{:?}", explore_tot_time);
+    /*
     if args.alignment_mode {
         check_ed::semiglobal_test(&path_graph, &sequences)
     } else {
         check_ed::test(&path_graph, &sequences)
     }
+    */
 }
 
 #[cfg(target_os = "linux")]
