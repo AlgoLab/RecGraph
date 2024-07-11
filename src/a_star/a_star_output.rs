@@ -28,6 +28,7 @@ pub fn build_gaf(
     let mut paths: Vec<_> = vec![(
         *original_path_ids.get(&align_coord.path).unwrap(),
         path_graph.handles_ids[align_coord.node as usize],
+        align_coord.pos,
     )];
 
     let end_pos = align_coord.node;
@@ -41,6 +42,7 @@ pub fn build_gaf(
             paths.push((
                 *original_path_ids.get(&align.parent.path).unwrap(),
                 path_graph.handles_ids[align.parent.node as usize],
+                align.parent.pos,
             ));
             rec = true;
         } else if align_coord.pos - 1 > align.parent.pos {
@@ -118,7 +120,7 @@ pub fn build_gaf(
     paths.reverse();
     let cigar_str = build_cigar(&cigar);
     let comments = format!(
-        "{}\t{}\t{}\t{}\t{}%",
+        "{}\t{}\t{}\t{}\t{:.4}%",
         ed,
         cigar_str,
         build_path_composition(&paths, path_graph),
@@ -176,10 +178,10 @@ pub fn get_matches_end_in_path(
     matches_in_path
 }
 
-fn build_path_composition(paths: &Vec<(u8, u32)>, path_graph: &PathGraph) -> String {
+fn build_path_composition(paths: &Vec<(u8, u32,u32)>, path_graph: &PathGraph) -> String {
     paths
         .iter()
-        .map(|x| format!("{}:{}", x.0, get_node_handle(x.1, path_graph)))
+        .map(|x| format!("{}:{}:{}", x.0, get_node_handle(x.1, path_graph), x.2))
         .collect::<Vec<String>>()
         .join(",")
 }

@@ -56,7 +56,7 @@ pub fn a_star_demo_chain() {
         explore_tot_time += explore_time;
 
         //explored_pos_vec.push(explored_pos);
-        let graph_size = (path_graph.lnz.len() * seq.len()) as f32;
+        let graph_size = (path_graph.get_graph_size() * seq.len()) as f32;
         let explored_cells = (alignment_graph.len() as f32 / graph_size) * 100.0;
 
         outs.push(build_gaf(
