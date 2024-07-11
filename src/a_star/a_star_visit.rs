@@ -53,7 +53,11 @@ pub fn exec(
                 .get(&(current_node_coord.node, current_node_coord.pos))
             {
                 let mut skip_ahead = current_node.clone();
-                skip_ahead.parent = SimpleCoord::init(current_node_coord.node, current_node_coord.pos, current_node_coord.path, current_node_coord.rec);
+                skip_ahead.parent = SimpleCoord::init(
+                    current_node_coord.node,
+                    current_node_coord.pos,
+                    current_node_coord.path,
+                );
                 let skip_ahead_coord = Coord::init(
                     *skip_ahead_node as u32,
                     *skip_ahead_pos as u32,
@@ -207,7 +211,7 @@ fn new_multi_rec(
     let paths = path_graph.get_node_path(current_node_coord.node);
     paths.iter().enumerate().for_each(|(path, is_in)| {
         let rec_h = crumbs[path][current_node_coord.pos as usize];
-        if is_in && path != current_node_coord.path as usize && rec_h <= current_node.h {
+        if is_in && path != current_node_coord.path as usize {
             let rec_node = AStarNode::init(current_node.g + rec_cost, rec_h, &current_node_coord);
             update_open_set(
                 open_set,
@@ -410,7 +414,7 @@ impl SimpleCoord {
         }
     }
 
-    pub fn init(node: u32, pos: u32, path: u8, rec: u8) -> Self {
+    pub fn init(node: u32, pos: u32, path: u8) -> Self {
         SimpleCoord { node, pos, path }
     }
 }

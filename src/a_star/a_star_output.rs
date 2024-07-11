@@ -82,7 +82,7 @@ pub fn build_gaf(
             cigar.push('L');
         }
         let rec_number = if rec {
-            align_coord.rec -1
+            align_coord.rec - 1
         } else {
             align_coord.rec
         };
@@ -107,7 +107,7 @@ pub fn build_gaf(
                 path: align.parent.path,
                 rec: align_coord.rec,
                 priority: Reverse(0),
-            };            
+            };
             align = alignment_graph.remove(&align_coord).unwrap();
             alignment_len += 1;
         }
@@ -122,12 +122,12 @@ pub fn build_gaf(
         ed,
         cigar_str,
         build_path_composition(&paths, path_graph),
-        align_time.as_nanos(),
+        align_time.as_micros(),
         explored_cells
     );
-    let alignment = path_align
+    let alignment: Vec<(u64, char)> = path_align
         .iter()
-        .map(|x| *path_graph.original_handles.get(x).unwrap() as u32)
+        .map(|x| *path_graph.original_handles.get(x).unwrap())
         .collect::<Vec<_>>();
     let start_pos = align_coord.node;
     let path_start = get_node_offset(start_pos, path_graph) as usize;
@@ -185,7 +185,7 @@ fn build_path_composition(paths: &Vec<(u8, u32)>, path_graph: &PathGraph) -> Str
 }
 
 fn get_node_handle(node: u32, path_graph: &PathGraph) -> u32 {
-    *path_graph.original_handles.get(&node).unwrap() as u32
+    path_graph.original_handles.get(&node).unwrap().0 as u32
 }
 
 fn get_node_offset(node: u32, path_graph: &PathGraph) -> u32 {
@@ -217,7 +217,7 @@ pub struct Gaf {
     pub query_start: usize,
     pub query_end: usize,
     pub strand: char,
-    pub path_matching: Vec<u32>,
+    pub path_matching: Vec<(u64, char)>,
     pub path_len: usize,
     pub path_start: usize,
     pub path_end: usize,
@@ -234,7 +234,7 @@ impl Gaf {
         query_start: usize,
         query_end: usize,
         strand: char,
-        path_matching: Vec<u32>,
+        path_matching: Vec<(u64, char)>,
         path_len: usize,
         path_start: usize,
         path_end: usize,
@@ -260,6 +260,23 @@ impl Gaf {
         }
     }
     pub fn to_string(&self) -> String {
+        let path = self
+            .path_matching
+            .iter()
+            .map(|x| {
+                format!(
+                    "{}{}",
+                    match x.1 {
+                        '+' => ">",
+                        '-' => "<",
+                        _ => panic!("Invalid orientation"),
+                    },
+                    x.0
+                )
+            })
+            .collect::<Vec<String>>()
+            .join("");
+
         format!(
             "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n@CO\t{}",
             self.query_name,
@@ -267,11 +284,7 @@ impl Gaf {
             self.query_start,
             self.query_end,
             self.strand,
-            self.path_matching
-                .iter()
-                .map(|x| x.to_string())
-                .collect::<Vec<String>>()
-                .join(">"),
+            path,
             self.path_len,
             self.path_start,
             self.path_end,
