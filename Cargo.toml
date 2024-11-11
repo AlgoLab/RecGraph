@@ -1,5 +1,5 @@
 [package]
-name = "recgraph"
+name = "recalign"
 version = "0.1.0"
 edition = "2021"
 
@@ -29,10 +29,6 @@ tikv-jemallocator = "0.5"
 
 [dev-dependencies]
 criterion = "0.5.1"
-
-[[bench]]
-name = "a_star_bench"
-harness = false
 
 [profile.release]
 lto = "fat"

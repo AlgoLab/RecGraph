@@ -4,7 +4,7 @@ use handlegraph::hashgraph::HashGraph;
 use rayon::prelude::*;
 use std::time::{Duration, Instant};
 
-use crate::a_star::{a_star_output, a_star_visit, build_heuristic as new_heuristic, check_ed};
+use crate::a_star::{a_star_output, a_star_visit, build_heuristic as new_heuristic};
 use crate::args_parser::ClArgs;
 use crate::new_path_graph::path_graph::{remove_duplicate_paths, PathGraph};
 use crate::sequences;
@@ -81,7 +81,7 @@ pub fn a_star_demo_chain() {
     eprintln!("Peak memory (Byte)\t{}", mem);
     eprintln!("Heuristic tot time\t{:?}", heur_tot_time);
     eprintln!("Explore tot time\t{:?}", explore_tot_time);
-    /*
+    /* 
     if args.alignment_mode {
         check_ed::semiglobal_test(&path_graph, &sequences)
     } else {

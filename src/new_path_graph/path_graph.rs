@@ -1,4 +1,4 @@
-use ahash::AHashMap as HashMap;
+ use ahash::AHashMap as HashMap;
 use bit_vec::BitVec;
 use bstr::BString;
 use handlegraph::{handlegraph::HandleGraph, hashgraph::HashGraph};
@@ -198,10 +198,11 @@ fn cast_handle_id(handle_id: u32, min: u64) -> usize {
     (handle_id as u64 - min * 2) as usize
 }
 
+/* 
 fn reverse_cast_handle_id(handle_id: usize, min: u64) -> u32 {
     (handle_id as u64 + min * 2) as u32
 }
-
+*/
 pub fn remove_duplicate_paths(graph: &mut HashGraph) -> HashMap<u8, u8> {
     let mut paths_to_remove = Vec::new();
     graph
@@ -245,7 +246,7 @@ fn find_rightest_common_node(handles_in_path: &Vec<BitVec>) -> Vec<Vec<bool>> {
     });
     common_nodes
 }
-
+/* 
 fn find_last_common_node(
     handles_in_path: &Vec<BitVec>,
     handles_pos_in_path: &Vec<HashMap<u32, usize>>,
@@ -273,3 +274,4 @@ fn find_last_common_node(
     });
     common_nodes
 }
+*/
