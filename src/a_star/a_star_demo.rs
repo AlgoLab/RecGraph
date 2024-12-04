@@ -2,6 +2,7 @@ use gfa::gfa::GFA;
 use gfa::parser::GFAParser;
 use handlegraph::hashgraph::HashGraph;
 use rayon::prelude::*;
+use std::io::Error;
 use std::time::{Duration, Instant};
 
 use crate::a_star::{a_star_output, a_star_visit, build_heuristic as new_heuristic};
@@ -11,7 +12,7 @@ use crate::sequences;
 
 use super::a_star_output::build_gaf;
 
-pub fn a_star_demo_chain() {
+pub fn a_star_demo_chain() -> Result<(), Error>{
     let args = ClArgs::parse();
     let file_path = args.graph_path;
     let parser = GFAParser::new();
@@ -88,6 +89,7 @@ pub fn a_star_demo_chain() {
         check_ed::test(&path_graph, &sequences)
     }
     */
+    Ok(())
 }
 
 #[cfg(target_os = "linux")]

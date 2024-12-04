@@ -1,7 +1,7 @@
 use std::{cmp, ops::Neg};
 
 use ahash::AHashMap as HashMap;
-use lt_fm_index::LtFmIndex;
+use lt_fm_index::{blocks::Block3, LtFmIndex};
 use rayon::prelude::*;
 
 use bstr::BString;
@@ -9,7 +9,7 @@ use bstr::BString;
 use crate::new_path_graph::path_graph::PathGraph;
 
 pub fn build_heuristic(
-    indexes: &Vec<(LtFmIndex, Vec<u32>)>,
+    indexes: &Vec<(LtFmIndex<u32, Block3<u128>>, Vec<u32>)>,
     query: &BString,
     chunk_size: usize,
     rec_cost: usize,
@@ -29,14 +29,14 @@ pub fn build_heuristic(
         })
         .unzip();
     //println!("______________________");
-
+    
     let heus = rec_chain_update(&chains, rec_cost, query.len(), chunk_size, path_graph);
 
     (heus, matches_pos)
 }
 
 fn get_matches(
-    indexes: &Vec<(LtFmIndex, Vec<u32>)>,
+    indexes: &Vec<(LtFmIndex<u32, Block3<u128>>, Vec<u32>)>,
     query_w_prefix: &BString,
     chunk_size: usize,
 ) -> Vec<Vec<(usize, usize)>> {

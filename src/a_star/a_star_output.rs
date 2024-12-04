@@ -1,6 +1,6 @@
 use ahash::AHashMap as HashMap;
 use bstr::BString;
-use lt_fm_index::LtFmIndex;
+use lt_fm_index::{blocks::Block3, LtFmIndex};
 
 use crate::{build_cigar::build_cigar, new_path_graph::path_graph::PathGraph};
 
@@ -15,7 +15,7 @@ pub fn build_gaf(
     is_local: bool,
     matches_in_path: &Vec<HashMap<(u32, u32), u32>>,
     match_len: usize,
-    indexes: &Vec<(LtFmIndex, Vec<u32>)>,
+    indexes: &Vec<(LtFmIndex<u32, Block3<u128>>, Vec<u32>)>,
     name: &BString,
     align_time: Duration,
     original_path_ids: &HashMap<u8, u8>,

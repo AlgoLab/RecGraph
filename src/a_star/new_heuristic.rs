@@ -1,13 +1,13 @@
 use std::cmp;
 
 use ahash::AHashMap as HashMap;
-use lt_fm_index::LtFmIndex;
+use lt_fm_index::{blocks::Block2, LtFmIndex};
 use rayon::prelude::*;
 
 use bstr::BString;
 
 pub fn build_heuristic(
-    indexes: &Vec<(LtFmIndex, Vec<u32>)>,
+    indexes: &Vec<(LtFmIndex<u32, Block2<u128>>, Vec<u32>)>,
     query: &BString,
     chunk_size: usize,
     rec_cost: usize,
@@ -30,7 +30,7 @@ pub fn build_heuristic(
 }
 
 pub fn update_heuristic(
-    indexes: &Vec<(LtFmIndex, Vec<u32>)>,
+    indexes: &Vec<(LtFmIndex<u32, Block2<u128>>, Vec<u32>)>,
     query: &BString,
     chunk_size: usize,
     rec_cost: usize,
@@ -53,7 +53,7 @@ pub fn update_heuristic(
 }
 
 fn get_matches(
-    indexes: &Vec<(LtFmIndex, Vec<u32>)>,
+    indexes: &Vec<(LtFmIndex<u32, Block2<u128>>, Vec<u32>)>,
     query_w_prefix: &BString,
     chunk_size: usize,
 ) -> Vec<Vec<(usize, usize)>> {

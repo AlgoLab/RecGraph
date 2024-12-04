@@ -2,7 +2,7 @@
 use bit_vec::BitVec;
 use bstr::BString;
 use handlegraph::{handlegraph::HandleGraph, hashgraph::HashGraph};
-use lt_fm_index::LtFmIndex;
+use lt_fm_index::{blocks::Block3, LtFmIndex};
 use rayon::prelude::*;
 
 use super::successors_hashmap::SuccHash;
@@ -164,17 +164,23 @@ impl PathGraph {
         (BString::from(tmp.0.concat()), tmp.1.concat())
     }
 
-    pub fn get_indexes(&self) -> Vec<(LtFmIndex, Vec<u32>)> {
+    pub fn get_indexes(&self) -> Vec<(LtFmIndex<u32, Block3<u128>>, Vec<u32>)> {
+        let characters_by_index: &[&[u8]] = &[
+            b"Aa", b"Cc", b"Gg", b"Tt"
+        ];
         let mut indexes = (0..self.succ_hash.paths_number as usize)
             .into_par_iter()
             .enumerate()
             .map(|(idx, path_id)| {
                 let (path, positions) = self.extract_path(path_id);
-                let builder = lt_fm_index::LtFmIndexBuilder::new()
-                    .text_type_is_nucleotide_with_noise()
-                    .set_suffix_array_sampling_ratio_to_default()
-                    .set_lookup_table_kmer_size_to_default();
-                (idx, builder.build(path.to_vec()).unwrap(), positions)
+                let index = LtFmIndex::<u32, Block3<u128>>::build(
+                    path.to_vec(),
+                    characters_by_index,
+                    2,
+                    4
+                ).unwrap();
+                
+                (idx, index, positions)
             })
             .collect::<Vec<_>>();
         indexes.sort_by(|a, b| a.0.cmp(&b.0));

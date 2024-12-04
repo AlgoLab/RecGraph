@@ -8,8 +8,15 @@ static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 fn main() {
     let now = SystemTime::now();
 
-    a_star_demo::a_star_demo_chain();
-    
+    let res = a_star_demo::a_star_demo_chain();
+    match res {
+        Ok(_) => {
+            eprintln!("Done.");
+        }
+        Err(e) => {
+            eprintln!("Error: {e:?}");
+        }
+    }
     match now.elapsed() {
         Ok(elapsed) => {
             // it prints '2'
