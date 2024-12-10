@@ -1,9 +1,9 @@
+extern crate bucket_queue;
+
 use crate::new_path_graph::path_graph::PathGraph;
 use ahash::AHashMap as HashMap;
 use bstr::BString;
-use std::cmp::Reverse;
-//use pheap::PairingHeap as FibHeap;
-use dary_heap::DaryHeap;
+use bucket_queue::*;
 use std::fmt::Debug;
 use std::hash::Hash;
 
@@ -17,21 +17,23 @@ pub fn exec(
 ) -> (Coord, HashMap<Coord, AStarNode> /* , Vec<Coord>*/) {
     // init A* data structure, each path possible starting point
     let mut alignment_graph = HashMap::new();
-    let mut open_set: DaryHeap<Coord, 4> = DaryHeap::new();
+    //let mut open_set: DaryHeap<Coord, 4> = DaryHeap::new();
+
+    let mut open_set = BucketQueue::<Vec<Coord>>::new();
     let crumbs: &mut Vec<Vec<u16>> = &mut heuristic.0;
     let match_handles = &mut heuristic.1;
     //let mut explored_pos = Vec::new();
     for path in 0..crumbs.len() {
         let node = AStarNode::new_path(path, &crumbs);
         let node_coord = Coord::init(0, 0, path as u8, 0, node.g + node.h);
-        open_set.push(node_coord.clone());
+        open_set.push(node_coord.clone(), node_coord.priority as usize);
         alignment_graph.insert(node_coord, node);
     }
 
     // use PathGraph to navigate graph
     let mut end_pos = None;
     while !open_set.is_empty() {
-        let current_node_coord = open_set.pop().unwrap();
+        let current_node_coord = open_set.pop_min().unwrap();
         let current_node = alignment_graph.get(&current_node_coord).unwrap().clone();
         //explored_pos.push(current_node_coord.clone());
         if current_node_coord.pos == query.len() as u32 - 2
@@ -183,18 +185,18 @@ fn get_neighbours(
 }
 
 fn update_open_set(
-    open_set: &mut DaryHeap<Coord, 4>,
+    open_set: &mut BucketQueue<Vec<Coord>>,
     alignment_graph: &mut HashMap<Coord, AStarNode>,
     new_node: &AStarNode,
     new_node_coord: Coord,
 ) {
     if let Some(old_node) = alignment_graph.get_mut(&new_node_coord) {
         if old_node.g > new_node.g {
-            open_set.push(new_node_coord);
+            open_set.push(new_node_coord, new_node_coord.priority as usize);
             *old_node = new_node.clone();
         }
     } else {
-        open_set.push(new_node_coord);
+        open_set.push(new_node_coord, new_node_coord.priority as usize);
         alignment_graph.insert(new_node_coord, new_node.clone());
     }
 }
@@ -203,7 +205,7 @@ fn new_multi_rec(
     current_node: &AStarNode,
     current_node_coord: &Coord,
     crumbs: &Vec<Vec<u16>>,
-    open_set: &mut DaryHeap<Coord, 4>,
+    open_set: &mut BucketQueue<Vec<Coord>>,
     alignment_graph: &mut HashMap<Coord, AStarNode>,
     path_graph: &PathGraph,
     rec_cost: u16,
@@ -233,7 +235,7 @@ fn push_neigh(
     match_mis: u16,
     current_node: &AStarNode,
     current_node_coord: &Coord,
-    open_set: &mut DaryHeap<Coord, 4>,
+    open_set: &mut BucketQueue<Vec<Coord>>,
     alignment_graph: &mut HashMap<Coord, AStarNode>,
     crumbs: &Vec<Vec<u16>>,
     succ: u32,
@@ -307,7 +309,7 @@ pub struct Coord {
     pub pos: u32,
     pub path: u8,
     pub rec: u8,
-    pub priority: Reverse<u16>,
+    pub priority: u16,
 }
 
 impl Coord {
@@ -317,7 +319,7 @@ impl Coord {
             pos: 0,
             path: 0,
             rec: 0,
-            priority: Reverse(0),
+            priority: 0,
         }
     }
 
@@ -327,7 +329,7 @@ impl Coord {
             pos,
             path,
             rec,
-            priority: Reverse(priority),
+            priority: priority,
         }
     }
 }

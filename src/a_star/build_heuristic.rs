@@ -29,7 +29,7 @@ pub fn build_heuristic(
         })
         .unzip();
     //println!("______________________");
-    
+
     let heus = rec_chain_update(&chains, rec_cost, query.len(), chunk_size, path_graph);
 
     (heus, matches_pos)

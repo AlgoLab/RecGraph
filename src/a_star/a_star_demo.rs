@@ -1,18 +1,21 @@
+use bstr::BString;
 use gfa::gfa::GFA;
 use gfa::parser::GFAParser;
 use handlegraph::hashgraph::HashGraph;
+use lt_fm_index::blocks::Block3;
+use lt_fm_index::LtFmIndex;
 use rayon::prelude::*;
 use std::io::Error;
 use std::time::{Duration, Instant};
 
-use crate::a_star::{a_star_output, a_star_visit, build_heuristic as new_heuristic};
+use crate::a_star::{a_star_output, a_star_visit, new_heuristic};
 use crate::args_parser::ClArgs;
 use crate::new_path_graph::path_graph::{remove_duplicate_paths, PathGraph};
 use crate::sequences;
 
 use super::a_star_output::build_gaf;
 
-pub fn a_star_demo_chain() -> Result<(), Error>{
+pub fn a_star_demo_chain() -> Result<(), Error> {
     let args = ClArgs::parse();
     let file_path = args.graph_path;
     let parser = GFAParser::new();
@@ -82,7 +85,7 @@ pub fn a_star_demo_chain() -> Result<(), Error>{
     eprintln!("Peak memory (Byte)\t{}", mem);
     eprintln!("Heuristic tot time\t{:?}", heur_tot_time);
     eprintln!("Explore tot time\t{:?}", explore_tot_time);
-    /* 
+    /*
     if args.alignment_mode {
         check_ed::semiglobal_test(&path_graph, &sequences)
     } else {
@@ -102,4 +105,32 @@ fn peak_mem_usage() -> Result<usize, &'static str> {
             _ => Err("Error getting memory usage"),
         }
     }
+}
+
+pub fn alignment_bench(
+    sequences: &Vec<BString>,
+    path_graph: &PathGraph,
+    chunk_size: u32,
+    rec_cost: usize,
+    is_local: bool,
+    max_rec: u32,
+    indexes: &Vec<(LtFmIndex<u32, Block3<u128>>, Vec<u32>)>,
+) {
+    sequences.iter().for_each(|seq| {
+        let mut heuristic = new_heuristic::build_heuristic(
+            &indexes,
+            seq,
+            chunk_size as usize,
+            rec_cost,
+            &path_graph,
+        );
+        a_star_visit::exec(
+            seq,
+            &mut heuristic,
+            &path_graph,
+            is_local,
+            rec_cost as u16,
+            max_rec,
+        );
+    });
 }

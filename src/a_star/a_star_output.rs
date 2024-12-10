@@ -5,7 +5,7 @@ use lt_fm_index::{blocks::Block3, LtFmIndex};
 use crate::{build_cigar::build_cigar, new_path_graph::path_graph::PathGraph};
 
 use super::a_star_visit::{AStarNode, Coord};
-use std::{cmp::Reverse, io::Write, time::Duration};
+use std::{io::Write, time::Duration};
 
 pub fn build_gaf(
     alignment_graph: &mut HashMap<Coord, AStarNode>,
@@ -93,7 +93,7 @@ pub fn build_gaf(
             pos: align.parent.pos,
             path: align.parent.path,
             rec: rec_number,
-            priority: Reverse(0),
+            priority: 0,
         };
         align = alignment_graph.remove(&align_coord).unwrap();
     }
@@ -108,7 +108,7 @@ pub fn build_gaf(
                 pos: align.parent.pos,
                 path: align.parent.path,
                 rec: align_coord.rec,
-                priority: Reverse(0),
+                priority: 0,
             };
             align = alignment_graph.remove(&align_coord).unwrap();
             alignment_len += 1;
@@ -178,7 +178,7 @@ pub fn get_matches_end_in_path(
     matches_in_path
 }
 
-fn build_path_composition(paths: &Vec<(u8, u32,u32)>, path_graph: &PathGraph) -> String {
+fn build_path_composition(paths: &Vec<(u8, u32, u32)>, path_graph: &PathGraph) -> String {
     paths
         .iter()
         .map(|x| format!("{}:{}:{}", x.0, get_node_handle(x.1, path_graph), x.2))

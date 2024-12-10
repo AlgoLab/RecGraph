@@ -1,42 +1,22 @@
-use std::cmp;
+use std::{cmp, ops::Neg};
 
 use ahash::AHashMap as HashMap;
-use lt_fm_index::{blocks::Block2, LtFmIndex};
+use lt_fm_index::{blocks::Block3, LtFmIndex};
 use rayon::prelude::*;
 
 use bstr::BString;
 
-pub fn build_heuristic(
-    indexes: &Vec<(LtFmIndex<u32, Block2<u128>>, Vec<u32>)>,
-    query: &BString,
-    chunk_size: usize,
-    rec_cost: usize,
-) -> (Vec<Vec<u32>>, Vec<HashMap<(usize, usize), (usize, usize)>>) {
-    let matches = get_matches(indexes, query, chunk_size);
-    let (mut chains, matches_pos): (Vec<_>, Vec<_>) = matches
-        .par_iter()
-        .enumerate()
-        .map(|(path, m)| {
-            get_path_max_chain(
-                m,
-                &indexes[path].1,
-                chunk_size,
-                (query.len() - 2) / chunk_size,
-            )
-        })
-        .unzip();
-    let heus = rec_chain_update(&mut chains, rec_cost, query.len(), chunk_size);
-    (heus, matches_pos)
-}
+use crate::new_path_graph::path_graph::PathGraph;
 
-pub fn update_heuristic(
-    indexes: &Vec<(LtFmIndex<u32, Block2<u128>>, Vec<u32>)>,
+pub fn build_heuristic(
+    indexes: &Vec<(LtFmIndex<u32, Block3<u128>>, Vec<u32>)>,
     query: &BString,
     chunk_size: usize,
     rec_cost: usize,
-    matches: Vec<Vec<(usize, usize)>>,
-) -> (Vec<Vec<u32>>, Vec<HashMap<(usize, usize), (usize, usize)>>) {
-    let (mut chains, matches_pos): (Vec<_>, Vec<_>) = matches
+    path_graph: &PathGraph,
+) -> (Vec<Vec<u16>>, Vec<HashMap<(u32, u32), (u32, u32, u32)>>) {
+    let matches = get_matches(indexes, query, chunk_size);
+    let (chains, matches_pos): (Vec<_>, Vec<_>) = matches
         .par_iter()
         .enumerate()
         .map(|(path, m)| {
@@ -48,12 +28,13 @@ pub fn update_heuristic(
             )
         })
         .unzip();
-    let heus = rec_chain_update(&mut chains, rec_cost, query.len(), chunk_size);
+    let heus = rec_chain_update(&chains, rec_cost, query.len(), chunk_size, path_graph);
+
     (heus, matches_pos)
 }
 
 fn get_matches(
-    indexes: &Vec<(LtFmIndex<u32, Block2<u128>>, Vec<u32>)>,
+    indexes: &Vec<(LtFmIndex<u32, Block3<u128>>, Vec<u32>)>,
     query_w_prefix: &BString,
     chunk_size: usize,
 ) -> Vec<Vec<(usize, usize)>> {
@@ -85,30 +66,30 @@ fn get_path_max_chain(
     lnz_pos: &Vec<u32>,
     match_len: usize,
     seeds_number: usize,
-) -> (Vec<Option<Match>>, HashMap<(usize, usize), (usize, usize)>) {
+) -> (Vec<u8>, HashMap<(u32, u32), (u32, u32, u32)>) {
     let mut chains = vec![Link::new(); matches.len()];
+    let mut matched_seeds = vec![1_u8; seeds_number];
     for i in 0..matches.len() {
         let (pos_i, seed_i) = matches[i];
+        matched_seeds[seed_i] = 0;
         chains[i] = Link::init(0, i, (seeds_number - 1) as i32 * match_len as i32, 1);
         for j in 0..i {
             let (pos_j, seed_j) = matches[j];
             if seed_j < seed_i && pos_j + match_len - 1 < pos_i {
                 let gap_cost = cmp::max(
-                    //(pos_i - pos_j).abs_diff((seed_i - seed_j) * match_len),
-                    0,
+                    (pos_i - pos_j).abs_diff((seed_i - seed_j) * match_len),
                     seed_i - seed_j - 1,
                 );
+                let new_score = chains[j].score - match_len as i32 + gap_cost as i32;
 
-                let new_score: i32 = chains[j].score - match_len as i32 + gap_cost as i32;
-
-                if new_score < chains[i].score {
-                    chains[i] = Link::init(gap_cost, j, new_score, chains[j].len + 1);
+                if new_score <= chains[i].score && chains[j].len + 1 >= chains[i].len {
+                    chains[i] = Link::init(0, j, new_score, chains[j].len + 1);
                 }
             }
         }
     }
     if chains.is_empty() {
-        return (vec![None; seeds_number], HashMap::new());
+        return (vec![1; seeds_number], HashMap::new());
     } else {
         let max_chain_ending_pos = chains
             .iter()
@@ -117,97 +98,88 @@ fn get_path_max_chain(
             .unwrap_or((0, &Link::new()))
             .0;
 
-        let mut max_chain_seed = vec![None; seeds_number];
-        let mut match_handles = HashMap::new();
+        let mut max_chain = Vec::new();
         let mut current = max_chain_ending_pos;
-
-        let mut succ = seeds_number as i32 - 1;
         while chains[current].pred != current {
-            let (gap, m) = (chains[current].gap, &matches[current]);
-            max_chain_seed[m.1] = Some(Match::init(gap, m.1, succ, chains[current].score, false));
+            max_chain.push((chains[current].gap, &matches[current]));
+            current = chains[current].pred;
+        }
+
+        max_chain.push((chains[current].gap, &matches[current]));
+        //max_chain.reverse();
+        let mut max_chain_seed = vec![1; seeds_number];
+
+        let mut match_handles = HashMap::new();
+        max_chain.iter().for_each(|(score, m)| {
+            max_chain_seed[m.1] = *score as u8;
             match_handles.insert(
                 (m.0, m.1 * match_len + 1),
                 (m.0 + match_len - 1, (m.1 + 1) * match_len),
             );
-            succ = matches[current].1 as i32;
-            current = chains[current].pred;
-        }
-        // push last match
-        let (gap, m) = (chains[current].gap, &matches[current]);
-        max_chain_seed[m.1] = Some(Match::init(gap, m.1, succ, chains[current].score, true));
-        match_handles.insert(
-            (m.0, m.1 * match_len + 1),
-            (m.0 + match_len - 1, (m.1 + 1) * match_len),
-        );
-
-        if max_chain_seed[max_chain_seed.len() - 1].is_none() {
-            max_chain_seed[seeds_number - 1] = Some(Match::init(
-                cmp::max(1, (seeds_number - 1) - (max_chain_ending_pos + 1)),
-                seeds_number - 1,
-                -1,
-                0,
-                false,
-            ));
-        }
-
-        (max_chain_seed, merge_matches(&match_handles, lnz_pos))
+        });
+        (matched_seeds, merge_matches(&match_handles, lnz_pos))
     }
 }
 
 fn merge_matches(
     match_handles: &HashMap<(usize, usize), (usize, usize)>,
     lnz_pos: &Vec<u32>,
-) -> HashMap<(usize, usize), (usize, usize)> {
+) -> HashMap<(u32, u32), (u32, u32, u32)> {
     let mut matches = match_handles.iter().collect::<Vec<_>>();
-    let mut merged_matches = HashMap::new();
+    let mut merged_matches: HashMap<(u32, u32), (u32, u32, u32)> = HashMap::new();
     if matches.len() > 0 {
         matches.sort_by(|a, b| a.0 .0.cmp(&b.0 .0));
         matches.iter().for_each(|(k, v)| {
-            merged_matches.insert((lnz_pos[k.0] as usize, k.1), (lnz_pos[v.0] as usize, v.1));
+            merged_matches.insert(
+                (lnz_pos[k.0], k.1 as u32),
+                (lnz_pos[v.0], v.1 as u32, v.0 as u32),
+            );
         });
     }
     merged_matches
 }
 fn rec_chain_update(
-    chains: &mut Vec<Vec<Option<Match>>>,
+    chains: &Vec<Vec<u8>>,
     rec_cost: usize,
     query_len: usize,
     match_len: usize,
-) -> Vec<Vec<u32>> {
+    path_graph: &PathGraph,
+) -> Vec<Vec<u16>> {
     let mut rec_chains = vec![vec![0; chains[0].len()]; chains.len()];
     let mut best_paths = vec![0; chains[0].len()];
+
     // iterate
     for j in (0..rec_chains[0].len() - 1).rev() {
-        let mut curr_best = None;
+        let mut curr_best: Option<usize> = None;
         let best_path = best_paths[j + 1];
         for i in 0..rec_chains.len() {
-            if let Some(m) = &chains[i][j] {
-                let score = rec_chains[i][m.succ as usize]
-                    + chains[i][m.succ as usize].as_ref().unwrap().gap as u32;
-
-                let score_rec = rec_chains[best_path][j + 1] + rec_cost as u32;
-
-                if score < score_rec {
-                    rec_chains[i][j] = score;
-                } else {
-                    rec_chains[i][j] = score_rec;
-                }
+            let score = rec_chains[i][j + 1] + chains[i][j + 1] as usize;
+            let score_rec = if path_graph.common_nodes[i][best_path] {
+                rec_chains[best_path][j + 1] + chains[best_path][j + 1] as usize + rec_cost
             } else {
-                let score = if chains[i][j + 1].is_some() {
-                    rec_chains[i][j + 1]
-                } else {
-                    rec_chains[i][j + 1] + 1
-                };
-
-                let score_rec = rec_chains[best_path][j + 1] + rec_cost as u32;
-
-                if score < score_rec {
-                    rec_chains[i][j] = score;
-                } else {
-                    rec_chains[i][j] = score_rec;
+                // find the best path to merge
+                let mut best_rec = usize::MAX;
+                for k in 0..rec_chains.len() {
+                    if path_graph.common_nodes[i][k] {
+                        let rec = rec_chains[k][j + 1] + chains[k][j + 1] as usize + rec_cost;
+                        if rec < best_rec {
+                            best_rec = rec;
+                        }
+                    }
                 }
+                best_rec
+            };
+
+            if score < score_rec {
+                rec_chains[i][j] = score;
+            } else {
+                rec_chains[i][j] = score_rec;
             }
-            if curr_best.is_none() || rec_chains[i][j] <= rec_chains[curr_best.unwrap() as usize][j]
+
+            if curr_best.is_none()
+                || rec_chains[i][j] + chains[i][j] as usize
+                    <= rec_chains[curr_best.unwrap() as usize][j]
+                        + chains[curr_best.unwrap()][j] as usize
             {
                 curr_best = Some(i);
             }
@@ -219,7 +191,7 @@ fn rec_chain_update(
         .map(|chain| {
             chain
                 .iter()
-                .flat_map(|score| std::iter::repeat(*score as u32).take(match_len))
+                .flat_map(|score| std::iter::repeat(*score as u16).take(match_len))
                 .collect::<Vec<_>>()
         })
         .collect();
@@ -230,37 +202,8 @@ fn rec_chain_update(
         }
         chain.insert(0, chain[0]);
     });
+
     chains_score
-}
-
-#[derive(Debug, Clone)]
-pub struct Match {
-    pub gap: usize,
-    pub seed: usize,
-    pub succ: i32,
-    pub cost: i32,
-    pub first: bool,
-}
-
-impl Match {
-    pub fn new() -> Self {
-        Match {
-            gap: 0,
-            seed: 0,
-            succ: 0,
-            cost: 0,
-            first: false,
-        }
-    }
-    pub fn init(gap: usize, seed: usize, succ: i32, cost: i32, first: bool) -> Self {
-        Match {
-            gap,
-            seed,
-            succ,
-            cost,
-            first,
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -286,6 +229,30 @@ impl Link {
             pred,
             score,
             len,
+        }
+    }
+}
+
+impl cmp::PartialEq for Link {
+    fn eq(&self, other: &Self) -> bool {
+        self == other
+    }
+}
+
+impl cmp::Eq for Link {}
+
+impl cmp::PartialOrd for Link {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl cmp::Ord for Link {
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        if self.len == other.len {
+            self.score.neg().cmp(&other.score.neg())
+        } else {
+            self.len.cmp(&other.len)
         }
     }
 }

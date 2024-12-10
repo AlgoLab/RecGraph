@@ -22,3 +22,4 @@ heaptrack*
 /example/tests
 .vscode/
 *.txt
+callgrind*

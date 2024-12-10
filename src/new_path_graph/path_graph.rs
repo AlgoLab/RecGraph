@@ -1,4 +1,5 @@
- use ahash::AHashMap as HashMap;
+
+use ahash::AHashMap as HashMap;
 use bit_vec::BitVec;
 use bstr::BString;
 use handlegraph::{handlegraph::HandleGraph, hashgraph::HashGraph};
@@ -165,21 +166,16 @@ impl PathGraph {
     }
 
     pub fn get_indexes(&self) -> Vec<(LtFmIndex<u32, Block3<u128>>, Vec<u32>)> {
-        let characters_by_index: &[&[u8]] = &[
-            b"Aa", b"Cc", b"Gg", b"Tt"
-        ];
+        let characters_by_index: &[&[u8]] = &[b"Aa", b"Cc", b"Gg", b"Tt"];
         let mut indexes = (0..self.succ_hash.paths_number as usize)
             .into_par_iter()
             .enumerate()
             .map(|(idx, path_id)| {
                 let (path, positions) = self.extract_path(path_id);
-                let index = LtFmIndex::<u32, Block3<u128>>::build(
-                    path.to_vec(),
-                    characters_by_index,
-                    2,
-                    4
-                ).unwrap();
-                
+                let index =
+                    LtFmIndex::<u32, Block3<u128>>::build(path.to_vec(), characters_by_index, 2, 4)
+                        .unwrap();
+
                 (idx, index, positions)
             })
             .collect::<Vec<_>>();
@@ -204,7 +200,7 @@ fn cast_handle_id(handle_id: u32, min: u64) -> usize {
     (handle_id as u64 - min * 2) as usize
 }
 
-/* 
+/*
 fn reverse_cast_handle_id(handle_id: usize, min: u64) -> u32 {
     (handle_id as u64 + min * 2) as u32
 }
@@ -252,7 +248,7 @@ fn find_rightest_common_node(handles_in_path: &Vec<BitVec>) -> Vec<Vec<bool>> {
     });
     common_nodes
 }
-/* 
+/*
 fn find_last_common_node(
     handles_in_path: &Vec<BitVec>,
     handles_pos_in_path: &Vec<HashMap<u32, usize>>,

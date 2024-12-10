@@ -6,29 +6,28 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }
-needletail = "0.5"
-bit-vec = "0.6" # TODO: remove this
+needletail = "0.6.1"
+bit-vec = "0.8"
 gfa = "0.8" # newer versions not working
 handlegraph = "0.5"
 bstr = "1.9.1"
-pbr = "*"
 rayon = "1.5"
 ahash = "0.8.11"
 peak_alloc = "0.2.0"
-lt-fm-index = { version = "0.7.0-alpha.3"}
-pheap = "0.3.0"
-priority-queue = "2.0"
-longest-increasing-subsequence = "0.1.0"
-slotmap = "1.0.7"
-bio = "1.6.0"
+lt-fm-index = { version = "0.7.0-alpha.3", features = ["fastbwt"]}
+bio = "2.0.3"
 libc = "0.2.101"
-dary_heap = "0.3.6"
-tokio = { version = "1", features = ["full"] }
+bucket_queue = "2.0.0"
+
 [target.'cfg(target_os="linux")'.dependencies]
 tikv-jemallocator = "0.5"
 
 [dev-dependencies]
 criterion = "0.5.1"
+
+[[bench]]
+name = "recalign_benches"
+harness = false
 
 [profile.release]
 lto = "fat"

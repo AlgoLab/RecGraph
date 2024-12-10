@@ -146,7 +146,7 @@ pub struct ClArgs {
     pub seed_len: i32,
     pub mex_err_seed: u8,
     pub max_rec: i32,
-    pub amb_strand: bool
+    pub amb_strand: bool,
 }
 
 impl ClArgs {
@@ -166,7 +166,7 @@ impl ClArgs {
             seed_len: args.seed_len,
             mex_err_seed: args.mex_err_seed,
             max_rec: args.rec_number,
-            amb_strand: args.amb_mode
+            amb_strand: args.amb_mode,
         }
     }
 }
