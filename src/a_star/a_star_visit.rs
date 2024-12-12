@@ -25,8 +25,8 @@ pub fn exec(
     //let mut explored_pos = Vec::new();
     for path in 0..crumbs.len() {
         let node = AStarNode::new_path(path, &crumbs);
-        let node_coord = Coord::init(0, 0, path as u8, 0, node.g + node.h);
-        open_set.push(node_coord.clone(), node_coord.priority as usize);
+        let node_coord = Coord::init(0, 0, path as u8, 0);
+        open_set.push(node_coord.clone(), (node.g + node.h) as usize);
         alignment_graph.insert(node_coord, node);
     }
 
@@ -65,10 +65,8 @@ pub fn exec(
                     *skip_ahead_pos as u32,
                     current_node_coord.path,
                     current_node_coord.rec,
-                    skip_ahead.g
-                        + crumbs[current_node_coord.path as usize][*skip_ahead_pos as usize],
                 );
-
+                //
                 skip_ahead.h =
                     crumbs[skip_ahead_coord.path as usize][skip_ahead_coord.pos as usize];
                 update_open_set(
@@ -76,6 +74,9 @@ pub fn exec(
                     &mut alignment_graph,
                     &skip_ahead,
                     skip_ahead_coord,
+                    (skip_ahead.g
+                        + crumbs[current_node_coord.path as usize][*skip_ahead_pos as usize])
+                        as usize,
                 );
                 /*
                 crumbs.iter_mut().zip(match_handles.iter_mut()).enumerate().for_each(|(path,(crumb, match_handle))| {
@@ -92,12 +93,13 @@ pub fn exec(
 
                 });
                 */
-
                 update_path_heuristic(
                     &mut crumbs[skip_ahead_coord.path as usize],
                     &mut match_handles[skip_ahead_coord.path as usize],
                     (current_node_coord.node, current_node_coord.pos),
                 );
+                
+
             } else {
                 if !path_graph.nws[current_node_coord.node as usize] {
                     let match_mis = if path_graph.lnz[current_node_coord.node as usize + 1]
@@ -189,14 +191,15 @@ fn update_open_set(
     alignment_graph: &mut HashMap<Coord, AStarNode>,
     new_node: &AStarNode,
     new_node_coord: Coord,
+    priority: usize,
 ) {
     if let Some(old_node) = alignment_graph.get_mut(&new_node_coord) {
         if old_node.g > new_node.g {
-            open_set.push(new_node_coord, new_node_coord.priority as usize);
+            open_set.push(new_node_coord, priority);
             *old_node = new_node.clone();
         }
     } else {
-        open_set.push(new_node_coord, new_node_coord.priority as usize);
+        open_set.push(new_node_coord, priority);
         alignment_graph.insert(new_node_coord, new_node.clone());
     }
 }
@@ -224,8 +227,8 @@ fn new_multi_rec(
                     current_node_coord.pos,
                     path as u8,
                     current_node_coord.rec + 1,
-                    rec_node.g + rec_node.h,
                 ),
+                (rec_node.g + rec_node.h) as usize,
             );
         }
     })
@@ -257,8 +260,8 @@ fn push_neigh(
             current_node_coord.pos,
             current_node_coord.path,
             current_node_coord.rec,
-            ins.g + ins.h,
         ),
+        (ins.g + ins.h) as usize,
     );
     update_open_set(
         open_set,
@@ -269,8 +272,8 @@ fn push_neigh(
             current_node_coord.pos + 1,
             current_node_coord.path,
             current_node_coord.rec,
-            del.g + del.h,
         ),
+        (del.g + del.h) as usize,
     );
 
     update_open_set(
@@ -282,8 +285,8 @@ fn push_neigh(
             current_node_coord.pos + 1,
             current_node_coord.path,
             current_node_coord.rec,
-            m_x.g + m_x.h,
         ),
+        (m_x.g + m_x.h) as usize,
     );
 }
 
@@ -309,7 +312,6 @@ pub struct Coord {
     pub pos: u32,
     pub path: u8,
     pub rec: u8,
-    pub priority: u16,
 }
 
 impl Coord {
@@ -319,17 +321,15 @@ impl Coord {
             pos: 0,
             path: 0,
             rec: 0,
-            priority: 0,
         }
     }
 
-    pub fn init(node: u32, pos: u32, path: u8, rec: u8, priority: u16) -> Self {
+    pub fn init(node: u32, pos: u32, path: u8, rec: u8) -> Self {
         Coord {
             node,
             pos,
             path,
             rec,
-            priority: priority,
         }
     }
 }
@@ -355,17 +355,6 @@ impl Eq for Coord {}
 
 impl Copy for Coord {}
 
-impl Ord for Coord {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.priority.cmp(&other.priority)
-    }
-}
-
-impl PartialOrd for Coord {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
 #[derive(Debug, Clone)]
 pub struct AStarNode {
     pub g: u16,

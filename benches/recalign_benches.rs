@@ -3,7 +3,11 @@ use std::env;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use gfa::{gfa::GFA, parser::GFAParser};
 use handlegraph::hashgraph::HashGraph;
-use recalign::{a_star::a_star_demo, new_path_graph::path_graph::{remove_duplicate_paths, PathGraph}, sequences};
+use recalign::{
+    a_star::a_star_demo,
+    new_path_graph::path_graph::{remove_duplicate_paths, PathGraph},
+    sequences,
+};
 
 pub fn criterion_benchmark(c: &mut Criterion) {
     let seqs_path = String::from("example/reads.fa");
@@ -15,7 +19,19 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     remove_duplicate_paths(&mut graph);
     let path_graph = PathGraph::from_hash_graph(&graph);
     let indexes = path_graph.get_indexes();
-    c.bench_function("a_star_demo_chain", |b| b.iter(|| a_star_demo::alignment_bench(black_box(&sequences), black_box(&path_graph), 10, 4, true, 2,black_box( &indexes))));
+    c.bench_function("a_star_demo_chain", |b| {
+        b.iter(|| {
+            a_star_demo::alignment_bench(
+                black_box(&sequences),
+                black_box(&path_graph),
+                10,
+                4,
+                true,
+                2,
+                black_box(&indexes),
+            )
+        })
+    });
 }
 
 criterion_group!(benches, criterion_benchmark);

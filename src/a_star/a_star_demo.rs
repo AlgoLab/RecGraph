@@ -8,7 +8,7 @@ use rayon::prelude::*;
 use std::io::Error;
 use std::time::{Duration, Instant};
 
-use crate::a_star::{a_star_output, a_star_visit, new_heuristic};
+use crate::a_star::{a_star_output, a_star_visit, chain_heur as new_heuristic};
 use crate::args_parser::ClArgs;
 use crate::new_path_graph::path_graph::{remove_duplicate_paths, PathGraph};
 use crate::sequences;
@@ -92,6 +92,7 @@ pub fn a_star_demo_chain() -> Result<(), Error> {
         check_ed::test(&path_graph, &sequences)
     }
     */
+
     Ok(())
 }
 

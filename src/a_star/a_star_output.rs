@@ -93,7 +93,6 @@ pub fn build_gaf(
             pos: align.parent.pos,
             path: align.parent.path,
             rec: rec_number,
-            priority: 0,
         };
         align = alignment_graph.remove(&align_coord).unwrap();
     }
@@ -108,7 +107,6 @@ pub fn build_gaf(
                 pos: align.parent.pos,
                 path: align.parent.path,
                 rec: align_coord.rec,
-                priority: 0,
             };
             align = alignment_graph.remove(&align_coord).unwrap();
             alignment_len += 1;
