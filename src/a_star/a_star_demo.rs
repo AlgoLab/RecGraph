@@ -92,7 +92,7 @@ pub fn a_star_demo_chain() -> Result<(), Error> {
         check_ed::test(&path_graph, &sequences)
     }
     */
-
+    
     Ok(())
 }
 

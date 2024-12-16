@@ -32,8 +32,8 @@ pub fn build_heuristic(
         .unzip();
     //println!("______________________");
 
-    let heus = Mutex::new(rec_chain_update(&chains, rec_cost, query.len(), chunk_size, path_graph));
-    (1..seeds_number).into_par_iter().for_each(|i|{
+    let heus = Mutex::new(rec_chain_update(&chains, rec_cost, path_graph));
+    (1..seeds_number-1).into_par_iter().for_each(|i|{
         let (chains_update, _): (Vec<_>, Vec<_>) = matches
         .par_iter()
         .enumerate()
@@ -48,7 +48,7 @@ pub fn build_heuristic(
         })
         .unzip();
 
-        let heus_update = rec_chain_update(&chains_update, rec_cost, query.len(), chunk_size, path_graph);
+        let heus_update = rec_chain_update(&chains_update, rec_cost, path_graph);
         let mut heus = heus.lock().unwrap();
         for path in 0..heus.len() {
             if heus[path][i] > heus_update[path][i] {
@@ -56,7 +56,24 @@ pub fn build_heuristic(
             }
         }
     });
-    (heus.into_inner().unwrap(), matches_pos)
+
+    let mut chains_score: Vec<Vec<_>> = heus.into_inner().unwrap()
+        .par_iter()
+        .map(|chain| {
+            chain
+                .iter()
+                .flat_map(|score| std::iter::repeat(*score as u16).take(chunk_size))
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    
+    chains_score.par_iter_mut().for_each(|chain| {
+        while chain.len() < query.len() - 1 {
+            chain.push(chain[chain.len() - 1]);
+        }
+        chain.insert(0, chain[0]);
+    });
+    (chains_score, matches_pos)
 }
 
 fn get_matches(
@@ -112,30 +129,10 @@ fn get_path_max_chain(
     let mut chains = vec![Link::new(); matches.len()];
     for i in 0..matches.len() {
         let (pos_i, seed_i) = matches[i];
-        chains[i] = Link::init(0, i, (seeds_number - 1) as i32 * match_len as i32, 1);
+        chains[i] = Link::init(0, i, (seeds_number - 1 - starting_seed) as i32 * match_len as i32, 1);
         for j in 0..i {
             let (pos_j, seed_j) = matches[j];
             if seed_j < seed_i && pos_j + match_len - 1 < pos_i {
-                //let gap_cost = (pos_i - pos_j).abs_diff((seed_i - seed_j) * match_len);
-                /*
-                let gap_cost = if seed_i - seed_j == 1 {
-                    (pos_i - pos_j).abs_diff((seed_i - seed_j) * match_len)
-                } else {
-                    let gap_update = (pos_i - pos_j).abs_diff((seed_i - seed_j) * match_len) as i32 - (seed_i as i32 - seed_j as i32 - 1);
-                    cmp::max(0, gap_update) as usize
-                };
-
-
-                if gap_cost > match_len {
-                    continue;
-                }
-
-
-                let gap_cost = cmp::max(
-                    (pos_i - pos_j).abs_diff((seed_i - seed_j) * match_len),
-                    seed_i - seed_j - 1,
-                );
-                */
                 let gap_cost = cmp::max(
                     (pos_i - pos_j).abs_diff((seed_i - seed_j) * match_len),
                     seed_i - seed_j - 1,
@@ -148,9 +145,9 @@ fn get_path_max_chain(
             }
         }
     }
-    if chains.is_empty() {
-        return (vec![1; seeds_number], HashMap::new());
-    } else {
+        if chains.is_empty() {
+            return (vec![1; seeds_number], HashMap::new());
+        }
         let max_chain_ending_pos = chains
             .iter()
             .enumerate()
@@ -166,9 +163,10 @@ fn get_path_max_chain(
         }
 
         max_chain.push((chains[current].gap, &matches[current]));
-        //max_chain.reverse();
+        
+        
         let mut max_chain_seed = vec![1; seeds_number];
-
+        
         let mut match_handles: HashMap<(usize, usize), (usize, usize)> = HashMap::new();
         max_chain.iter().for_each(|(score, m)| {
             max_chain_seed[m.1] = *score as u8;
@@ -178,7 +176,6 @@ fn get_path_max_chain(
             );
         });
         (max_chain_seed, merge_matches(&match_handles, lnz_pos))
-    }
 }
 
 fn merge_matches(
@@ -201,10 +198,9 @@ fn merge_matches(
 fn rec_chain_update(
     chains: &Vec<Vec<u8>>,
     rec_cost: usize,
-    query_len: usize,
-    match_len: usize,
+
     path_graph: &PathGraph,
-) -> Vec<Vec<u16>> {
+) -> Vec<Vec<usize>> {
     let mut rec_chains = vec![vec![0; chains[0].len()]; chains.len()];
     let mut best_paths = vec![0; chains[0].len()];
 
@@ -246,6 +242,7 @@ fn rec_chain_update(
         }
         best_paths[j] = curr_best.unwrap();
     }
+    /* 
     let mut chains_score: Vec<Vec<_>> = rec_chains
         .par_iter()
         .map(|chain| {
@@ -255,15 +252,15 @@ fn rec_chain_update(
                 .collect::<Vec<_>>()
         })
         .collect();
-
+    
     chains_score.par_iter_mut().for_each(|chain| {
         while chain.len() < query_len - 1 {
             chain.push(chain[chain.len() - 1]);
         }
         chain.insert(0, chain[0]);
     });
-
-    chains_score
+    */
+    rec_chains
 }
 
 #[derive(Debug, Clone)]
