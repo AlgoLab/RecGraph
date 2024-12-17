@@ -18,7 +18,7 @@ lt-fm-index = { version = "0.7.0-alpha.3", features = ["fastbwt"]}
 bio = "2.0.3"
 libc = "0.2.101"
 bucket_queue = "2.0.0"
-
+serde = { version = "1.0", features = ["derive"] }
 [target.'cfg(target_os="linux")'.dependencies]
 tikv-jemallocator = "0.5"
 

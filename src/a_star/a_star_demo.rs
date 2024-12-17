@@ -8,8 +8,8 @@ use rayon::prelude::*;
 use std::io::Error;
 use std::time::{Duration, Instant};
 
-use crate::a_star::{a_star_output, a_star_visit, chain_heur as new_heuristic};
-use crate::args_parser::ClArgs;
+use crate::a_star::{a_star_output, a_star_visit, chain_heur, fast_heuristic, seed_heuristic};
+use crate::args_parser::{ClArgs, EstimateFunction};
 use crate::new_path_graph::path_graph::{remove_duplicate_paths, PathGraph};
 use crate::sequences;
 
@@ -32,13 +32,33 @@ pub fn a_star_demo_chain() -> Result<(), Error> {
     let mut explore_tot_time = Duration::new(0, 0);
     sequences.iter().zip(names).for_each(|(seq, name)| {
         let istant = Instant::now();
-        let mut heuristic = new_heuristic::build_heuristic(
-            &indexes,
-            seq,
-            chunk_size as usize,
-            args.base_rec_cost as usize,
-            &path_graph,
-        );
+        let mut heuristic = match args.est_function {
+            EstimateFunction::Chaining => chain_heur::build_heuristic(
+                &indexes,
+                seq,
+                chunk_size as usize,
+                args.base_rec_cost as usize,
+                &path_graph,
+                args.max_rec > 0,
+            ),
+            EstimateFunction::Seeding => seed_heuristic::build_heuristic(
+                &indexes,
+                seq,
+                chunk_size as usize,
+                args.base_rec_cost as usize,
+                &path_graph,
+                args.max_rec > 0,
+            ),
+            EstimateFunction::Fast => fast_heuristic::build_heuristic(
+                &indexes,
+                seq,
+                chunk_size as usize,
+                args.base_rec_cost as usize,
+                &path_graph,
+                args.max_rec > 0,
+            ),
+        };
+
         let matches_in_path: Vec<_> = heuristic
             .1
             .par_iter()
@@ -87,12 +107,11 @@ pub fn a_star_demo_chain() -> Result<(), Error> {
     eprintln!("Explore tot time\t{:?}", explore_tot_time);
     /*
     if args.alignment_mode {
-        check_ed::semiglobal_test(&path_graph, &sequences)
+        crate::a_star::check_ed::semiglobal_test(&path_graph, &sequences)
     } else {
-        check_ed::test(&path_graph, &sequences)
+        crate::a_star::check_ed::test(&path_graph, &sequences)
     }
     */
-    
     Ok(())
 }
 
@@ -116,15 +135,35 @@ pub fn alignment_bench(
     is_local: bool,
     max_rec: u32,
     indexes: &Vec<(LtFmIndex<u32, Block3<u128>>, Vec<u32>)>,
+    est_function: EstimateFunction,
 ) {
     sequences.iter().for_each(|seq| {
-        let mut heuristic = new_heuristic::build_heuristic(
-            &indexes,
-            seq,
-            chunk_size as usize,
-            rec_cost,
-            &path_graph,
-        );
+        let mut heuristic = match est_function {
+            EstimateFunction::Chaining => chain_heur::build_heuristic(
+                indexes,
+                seq,
+                chunk_size as usize,
+                rec_cost,
+                path_graph,
+                max_rec > 0,
+            ),
+            EstimateFunction::Seeding => seed_heuristic::build_heuristic(
+                indexes,
+                seq,
+                chunk_size as usize,
+                rec_cost,
+                path_graph,
+                max_rec > 0,
+            ),
+            EstimateFunction::Fast => fast_heuristic::build_heuristic(
+                indexes,
+                seq,
+                chunk_size as usize,
+                rec_cost,
+                path_graph,
+                max_rec > 0,
+            ),
+        };
         a_star_visit::exec(
             seq,
             &mut heuristic,

@@ -4,10 +4,10 @@ pub mod a_star_visit;
 
 pub mod a_star_output;
 
-pub mod build_heuristic;
+pub mod fast_heuristic;
 
 pub mod check_ed;
 
-pub mod new_heuristic;
+pub mod seed_heuristic;
 
 pub mod chain_heur;

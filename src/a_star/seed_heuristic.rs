@@ -14,6 +14,7 @@ pub fn build_heuristic(
     chunk_size: usize,
     rec_cost: usize,
     path_graph: &PathGraph,
+    rec_allowed: bool,
 ) -> (Vec<Vec<u16>>, Vec<HashMap<(u32, u32), (u32, u32, u32)>>) {
     let matches = get_matches(indexes, query, chunk_size);
     let (chains, matches_pos): (Vec<_>, Vec<_>) = matches
@@ -28,7 +29,14 @@ pub fn build_heuristic(
             )
         })
         .unzip();
-    let heus = rec_chain_update(&chains, rec_cost, query.len(), chunk_size, path_graph);
+    let heus = rec_chain_update(
+        &chains,
+        rec_cost,
+        query.len(),
+        chunk_size,
+        path_graph,
+        rec_allowed,
+    );
 
     (heus, matches_pos)
 }
@@ -144,6 +152,7 @@ fn rec_chain_update(
     query_len: usize,
     match_len: usize,
     path_graph: &PathGraph,
+    rec_allowed: bool,
 ) -> Vec<Vec<u16>> {
     let mut rec_chains = vec![vec![0; chains[0].len()]; chains.len()];
     let mut best_paths = vec![0; chains[0].len()];
@@ -170,10 +179,10 @@ fn rec_chain_update(
                 best_rec
             };
 
-            if score < score_rec {
-                rec_chains[i][j] = score;
-            } else {
+            if score_rec < score && rec_allowed {
                 rec_chains[i][j] = score_rec;
+            } else {
+                rec_chains[i][j] = score;
             }
 
             if curr_best.is_none()

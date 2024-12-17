@@ -1,4 +1,5 @@
-use clap::Parser;
+use clap::{builder::OsStr, Parser};
+use serde::Serialize;
 
 #[derive(Parser, Debug)]
 #[clap(author = "Davide Monti <d.monti11@campus.unimib.it>", version, about = "RecGraph", long_about = None)]
@@ -121,17 +122,33 @@ struct Args {
     )]
     seed_len: i32,
 
-    //Max num error per seed
     #[clap(
         help_heading = "A-Star",
         short = 'e',
-        long = "err-max",
-        default_value_t = 0,
-        help = "Set the maximum number of errors allowed per seed between 0,1 or 2 [NOT IMPLEMENTED]"
+        long = "estimate-function",
+        default_value = EstimateFunction::Chaining,
+        help = "Choose the estimate function to be used"
     )]
-    mex_err_seed: u8,
+    est_function: EstimateFunction,
 }
 
+#[derive(clap::ValueEnum, Clone, Default, Debug, Serialize)]
+pub enum EstimateFunction {
+    #[default]
+    Chaining,
+    Seeding,
+    Fast,
+}
+
+impl Into<OsStr> for EstimateFunction {
+    fn into(self) -> OsStr {
+        match self {
+            EstimateFunction::Chaining => OsStr::from("Chaining"),
+            EstimateFunction::Seeding => OsStr::from("Seeding"),
+            EstimateFunction::Fast => OsStr::from("Fast"),
+        }
+    }
+}
 pub struct ClArgs {
     pub sequence_path: String,
     pub graph_path: String,
@@ -144,9 +161,9 @@ pub struct ClArgs {
     pub base_rec_cost: i32,
     pub out_file: String,
     pub seed_len: i32,
-    pub mex_err_seed: u8,
     pub max_rec: i32,
     pub amb_strand: bool,
+    pub est_function: EstimateFunction,
 }
 
 impl ClArgs {
@@ -164,9 +181,9 @@ impl ClArgs {
             base_rec_cost: args.base_rec_cost,
             out_file: args.out_file,
             seed_len: args.seed_len,
-            mex_err_seed: args.mex_err_seed,
             max_rec: args.rec_number,
             amb_strand: args.amb_mode,
+            est_function: args.est_function,
         }
     }
 }

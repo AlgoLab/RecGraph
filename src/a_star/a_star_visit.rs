@@ -98,8 +98,6 @@ pub fn exec(
                     &mut match_handles[skip_ahead_coord.path as usize],
                     (current_node_coord.node, current_node_coord.pos),
                 );
-                
-
             } else {
                 if !path_graph.nws[current_node_coord.node as usize] {
                     let match_mis = if path_graph.lnz[current_node_coord.node as usize + 1]
