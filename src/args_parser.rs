@@ -126,7 +126,7 @@ struct Args {
         help_heading = "A-Star",
         short = 'e',
         long = "estimate-function",
-        default_value = EstimateFunction::Chaining,
+        default_value = "chaining",
         help = "Choose the estimate function to be used"
     )]
     est_function: EstimateFunction,
