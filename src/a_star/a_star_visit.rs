@@ -1,5 +1,6 @@
 extern crate bucket_queue;
 
+use crate::args_parser::EstimateFunction;
 use crate::new_path_graph::path_graph::PathGraph;
 use ahash::AHashMap as HashMap;
 use bstr::BString;
@@ -14,6 +15,7 @@ pub fn exec(
     is_local: bool,
     rec_cost: u16,
     max_rec: u32,
+    est_type: &EstimateFunction,
 ) -> (Coord, HashMap<Coord, AStarNode> /* , Vec<Coord>*/) {
     // init A* data structure, each path possible starting point
     let mut alignment_graph = HashMap::new();
@@ -93,11 +95,14 @@ pub fn exec(
 
                 });
                 */
-                update_path_heuristic(
-                    &mut crumbs[skip_ahead_coord.path as usize],
-                    &mut match_handles[skip_ahead_coord.path as usize],
-                    (current_node_coord.node, current_node_coord.pos),
-                );
+                if *est_type != EstimateFunction::Seeding {
+                    update_path_heuristic(
+                        &mut crumbs[skip_ahead_coord.path as usize],
+                        &mut match_handles[skip_ahead_coord.path as usize],
+                        (current_node_coord.node, current_node_coord.pos),
+                    );
+                }
+               
             } else {
                 if !path_graph.nws[current_node_coord.node as usize] {
                     let match_mis = if path_graph.lnz[current_node_coord.node as usize + 1]

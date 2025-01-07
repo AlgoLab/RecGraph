@@ -132,7 +132,7 @@ struct Args {
     est_function: EstimateFunction,
 }
 
-#[derive(clap::ValueEnum, Clone, Default, Debug, Serialize)]
+#[derive(clap::ValueEnum, Clone, Default, Debug, Serialize, PartialEq)]
 pub enum EstimateFunction {
     #[default]
     Chaining,
