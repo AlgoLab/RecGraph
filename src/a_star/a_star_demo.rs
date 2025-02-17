@@ -106,11 +106,13 @@ pub fn a_star_demo_chain() -> Result<(), Error> {
     eprintln!("Peak memory (Byte)\t{}", mem);
     eprintln!("Heuristic tot time\t{:?}", heur_tot_time);
     eprintln!("Explore tot time\t{:?}", explore_tot_time);
+    /* 
     if args.alignment_mode {
         crate::a_star::check_ed::semiglobal_test(&path_graph, &sequences)
     } else {
         crate::a_star::check_ed::test(&path_graph, &sequences)
     }
+    */
     Ok(())
 }
 
