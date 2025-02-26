@@ -94,7 +94,7 @@ struct Args {
     gap_ext: i32,
 
     #[clap(
-        help_heading = "Maximal number of recombinations allowed",
+        help_heading = "Recombination",
         short = 'k',
         long = "recombinations",
         default_value_t = 0,
@@ -117,7 +117,7 @@ struct Args {
         help_heading = "A-Star",
         short = 's',
         long = "seed-len",
-        default_value_t = 3,
+        default_value_t = 8,
         help = "Seed length"
     )]
     seed_len: i32,
