@@ -76,7 +76,7 @@ pub fn a_star_demo_chain() -> Result<(), Error> {
             args.base_rec_cost as u16,
             args.max_rec as u32,
             &args.est_function,
-            args.gap_open as u16
+            args.gap_open as u16,
         );
         let explore_time = explore_start.elapsed();
         explore_tot_time += explore_time;
@@ -107,7 +107,7 @@ pub fn a_star_demo_chain() -> Result<(), Error> {
     eprintln!("Peak memory (Byte)\t{}", mem);
     eprintln!("Heuristic tot time\t{:?}", heur_tot_time);
     eprintln!("Explore tot time\t{:?}", explore_tot_time);
-    /* 
+    /*
     if args.alignment_mode {
         crate::a_star::check_ed::semiglobal_test(&path_graph, &sequences)
     } else {
@@ -174,7 +174,7 @@ pub fn alignment_bench(
             rec_cost as u16,
             max_rec,
             &est_function,
-            0
+            0,
         );
     });
 }

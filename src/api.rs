@@ -1,21 +1,31 @@
 use std::time::Duration;
 
+use crate::{
+    a_star::{
+        a_star_output::{build_gaf, Gaf},
+        *,
+    },
+    args_parser::EstimateFunction,
+    new_path_graph::path_graph::PathGraph,
+};
 use ahash::AHashMap;
 use bstr::BString;
 use handlegraph::hashgraph;
-use crate::{a_star::{a_star_output::{build_gaf, Gaf}, *}, args_parser::EstimateFunction, new_path_graph::path_graph::PathGraph};
 
 pub fn astar_align(
     read: &BString,
     graph: &PathGraph,
-    indexes: &Vec<(lt_fm_index::LtFmIndex<u32, lt_fm_index::blocks::Block3<u128>>, Vec<u32>)>,
+    indexes: &Vec<(
+        lt_fm_index::LtFmIndex<u32, lt_fm_index::blocks::Block3<u128>>,
+        Vec<u32>,
+    )>,
     est_function: i32,
     is_local: bool,
-    rec_cost: i32, 
+    rec_cost: i32,
     max_rec: i32,
     seed_length: usize,
     sequence_name: Option<&String>,
-    gap_open: u16
+    gap_open: u16,
 ) -> String {
     let mut heuristic = match est_function {
         0 => chain_heur::build_heuristic(
@@ -43,7 +53,7 @@ pub fn astar_align(
             max_rec > 0,
         ),
     };
-    let (end_pos, mut alignment_graph)  = a_star_visit::exec(
+    let (end_pos, mut alignment_graph) = a_star_visit::exec(
         read,
         &mut heuristic,
         &graph,
@@ -55,7 +65,7 @@ pub fn astar_align(
             1 => &EstimateFunction::Seeding,
             _ => &EstimateFunction::Fast,
         },
-        gap_open as u16
+        gap_open as u16,
     );
     build_gaf(
         &mut alignment_graph,
@@ -66,22 +76,26 @@ pub fn astar_align(
         &Vec::new(),
         0,
         indexes,
-        &sequence_name.map(|s| BString::from(s.as_str())).unwrap_or_else(|| BString::from("")),
+        &sequence_name
+            .map(|s| BString::from(s.as_str()))
+            .unwrap_or_else(|| BString::from("")),
         Duration::new(0, 0),
         &AHashMap::new(),
         0.0,
-    ).to_string()
+    )
+    .to_string()
 }
 
-pub fn convert_hash_graph_to_path_graph(
-    graph: &hashgraph::HashGraph,
-) -> PathGraph {
+pub fn convert_hash_graph_to_path_graph(graph: &hashgraph::HashGraph) -> PathGraph {
     PathGraph::from_hash_graph(graph)
 }
 
 pub fn build_indexes(
     graph: &PathGraph,
-) -> Vec<(lt_fm_index::LtFmIndex<u32, lt_fm_index::blocks::Block3<u128>>, Vec<u32>)> {
+) -> Vec<(
+    lt_fm_index::LtFmIndex<u32, lt_fm_index::blocks::Block3<u128>>,
+    Vec<u32>,
+)> {
     graph.get_indexes()
 }
 
