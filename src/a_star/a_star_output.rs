@@ -228,6 +228,23 @@ pub struct Gaf {
 }
 
 impl Gaf {
+    pub fn empty() -> Self {
+        Gaf {
+            query_name: String::new(),
+            query_len: 0,
+            query_start: 0,
+            query_end: 0,
+            strand: '+',
+            path_matching: Vec::new(),
+            path_len: 0,
+            path_start: 0,
+            path_end: 0,
+            residue_matches: 0,
+            alignment_len: 0,
+            mapq: 255,
+            comments: String::new(),
+        }
+    }
     pub fn new(
         query_name: String,
         query_len: usize,
