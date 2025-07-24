@@ -75,7 +75,8 @@ pub fn a_star_demo_chain() -> Result<(), Error> {
             args.alignment_mode,
             args.base_rec_cost as u16,
             args.max_rec as u32,
-            &args.est_function
+            &args.est_function,
+            args.gap_open as u16
         );
         let explore_time = explore_start.elapsed();
         explore_tot_time += explore_time;
@@ -173,6 +174,7 @@ pub fn alignment_bench(
             rec_cost as u16,
             max_rec,
             &est_function,
+            0
         );
     });
 }

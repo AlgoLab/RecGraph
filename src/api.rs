@@ -15,6 +15,7 @@ pub fn astar_align(
     max_rec: i32,
     seed_length: usize,
     sequence_name: Option<&String>,
+    gap_open: u16
 ) -> String {
     let mut heuristic = match est_function {
         0 => chain_heur::build_heuristic(
@@ -54,7 +55,7 @@ pub fn astar_align(
             1 => &EstimateFunction::Seeding,
             _ => &EstimateFunction::Fast,
         },
-
+        gap_open as u16
     );
     build_gaf(
         &mut alignment_graph,
