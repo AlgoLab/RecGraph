@@ -5,7 +5,7 @@ use crate::{
         a_star_output::{build_gaf, Gaf},
         *,
     },
-    args_parser::EstimateFunction,
+    args_parser::{EstimateFunction, ScoringParams},
     new_path_graph::path_graph::PathGraph,
 };
 use ahash::AHashMap;
@@ -25,7 +25,12 @@ pub fn astar_align(
     max_rec: i32,
     seed_length: usize,
     sequence_name: Option<&String>,
-    gap_open: u16,
+    mismatch_score: i32,
+    gap_open_1: i32,
+    gap_ext_1: i32,
+    gap_open_2: i32,
+    gap_ext_2: i32,
+
 ) -> String {
     let mut heuristic = match est_function {
         0 => chain_heur::build_heuristic(
@@ -53,6 +58,14 @@ pub fn astar_align(
             max_rec > 0,
         ),
     };
+    let scoring_params = ScoringParams {
+        match_score: 0,
+        mismatch_score,
+        gap_open_1,
+        gap_ext_1,
+        gap_open_2,
+        gap_ext_2,
+    };
     let (end_pos, mut alignment_graph) = a_star_visit::exec(
         read,
         &mut heuristic,
@@ -65,7 +78,7 @@ pub fn astar_align(
             1 => &EstimateFunction::Seeding,
             _ => &EstimateFunction::Fast,
         },
-        gap_open as u16,
+        &scoring_params,
     );
     build_gaf(
         &mut alignment_graph,

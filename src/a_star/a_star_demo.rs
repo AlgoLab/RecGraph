@@ -9,7 +9,7 @@ use std::io::Error;
 use std::time::{Duration, Instant};
 
 use crate::a_star::{a_star_output, a_star_visit, chain_heur, fast_heuristic, seed_heuristic};
-use crate::args_parser::{ClArgs, EstimateFunction};
+use crate::args_parser::{ClArgs, EstimateFunction, ScoringParams};
 use crate::new_path_graph::path_graph::{remove_duplicate_paths, PathGraph};
 use crate::sequences;
 
@@ -76,7 +76,7 @@ pub fn a_star_demo_chain() -> Result<(), Error> {
             args.base_rec_cost as u16,
             args.max_rec as u32,
             &args.est_function,
-            args.gap_open as u16,
+            &args.scoring_params
         );
         let explore_time = explore_start.elapsed();
         explore_tot_time += explore_time;
@@ -174,7 +174,7 @@ pub fn alignment_bench(
             rec_cost as u16,
             max_rec,
             &est_function,
-            0,
+            &ScoringParams::base()
         );
     });
 }

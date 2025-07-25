@@ -1,6 +1,6 @@
 extern crate bucket_queue;
 
-use crate::args_parser::EstimateFunction;
+use crate::args_parser::{EstimateFunction, ScoringParams};
 use crate::new_path_graph::path_graph::PathGraph;
 use ahash::AHashMap as HashMap;
 use bstr::BString;
@@ -16,9 +16,8 @@ pub fn exec(
     rec_cost: u16,
     max_rec: u32,
     est_type: &EstimateFunction,
-    gap_open: u16,
+    scoring_params: &ScoringParams
 ) -> (Coord, HashMap<Coord, AStarNode> /* , Vec<Coord>*/) {
-    println!("Gap opening penalty: {}", gap_open);
     // init A* data structure, each path possible starting point
     let mut alignment_graph = HashMap::new();
     //let mut open_set: DaryHeap<Coord, 4> = DaryHeap::new();
@@ -123,7 +122,7 @@ pub fn exec(
                         &crumbs,
                         current_node_coord.node + 1,
                         is_local,
-                        gap_open,
+                        scoring_params.gap_open_1 as u16,
                     );
                 } else {
                     let succ = path_graph
@@ -145,7 +144,7 @@ pub fn exec(
                         &crumbs,
                         succ,
                         is_local,
-                        gap_open,
+                        scoring_params.gap_open_1 as u16,
                     );
                 }
                 if current_node_coord.rec < max_rec as u8 {
