@@ -39,11 +39,14 @@ pub fn build_gaf(
     while align_coord.pos != 0 {
         let mut rec = false;
         if align.parent.path != align_coord.path {
-            paths.push((
-                *original_path_ids.get(&align.parent.path).unwrap(),
-                path_graph.handles_ids[align.parent.node as usize],
-                align.parent.pos,
-            ));
+            let parent_handle_id = path_graph.handles_ids[align.parent.node as usize];
+            if parent_handle_id != 0 {
+                paths.push((
+                    *original_path_ids.get(&align.parent.path).unwrap(),
+                    parent_handle_id,
+                    align.parent.pos,
+                ));
+            }
             rec = true;
         } else if align_coord.pos - 1 > align.parent.pos {
             let mut idx = align_coord.pos - align.parent.pos;
@@ -117,6 +120,7 @@ pub fn build_gaf(
     path_align.dedup();
     paths.reverse();
     let cigar_str = build_cigar(&cigar);
+    eprintln!("DEBUG paths (handle_ids): {:?}", paths.iter().map(|x| x.1).collect::<Vec<_>>());
     let comments = format!(
         "{}\t{}\t{}\t{}\t{:.4}%",
         ed,
@@ -127,7 +131,7 @@ pub fn build_gaf(
     );
     let alignment: Vec<(u64, char)> = path_align
         .iter()
-        .map(|x| *path_graph.original_handles.get(x).unwrap())
+        .filter(|x| path_graph.original_handles.contains_key(x)).map(|x| *path_graph.original_handles.get(x).unwrap())
         .collect::<Vec<_>>();
     let start_pos = align_coord.node;
     let path_start = get_node_offset(start_pos, path_graph) as usize;
@@ -179,23 +183,30 @@ pub fn get_matches_end_in_path(
 fn build_path_composition(paths: &Vec<(u8, u32, u32)>, path_graph: &PathGraph) -> String {
     paths
         .iter()
-        .map(|x| format!("{}:{}:{}", x.0, get_node_handle(x.1, path_graph), x.2))
+        .filter(|x| path_graph.original_handles.contains_key(&x.1)).map(|x| format!("{}:{}:{}", x.0, get_node_handle(x.1, path_graph), x.2))
         .collect::<Vec<String>>()
         .join(",")
 }
 
 fn get_node_handle(node: u32, path_graph: &PathGraph) -> u32 {
-    path_graph.original_handles.get(&node).unwrap().0 as u32
+    path_graph
+        .original_handles
+        .get(&node)
+        .unwrap_or_else(|| panic!("handle_id {} not in original_handles (sentinel?)", node))
+        .0 as u32
 }
 
 fn get_node_offset(node: u32, path_graph: &PathGraph) -> u32 {
     let mut offset = 0;
     let mut start = node;
-    while node > 0
+    while start > 0
         && path_graph.handles_ids[start as usize] == path_graph.handles_ids[node as usize]
     {
         offset += 1;
         start -= 1;
+    }
+    if start == 0 && path_graph.handles_ids[0] == path_graph.handles_ids[node as usize] {
+        offset += 1;
     }
     offset
 }
@@ -203,7 +214,7 @@ fn get_node_offset(node: u32, path_graph: &PathGraph) -> u32 {
 fn get_node_distance_from_end(node: u32, path_graph: &PathGraph) -> u32 {
     let mut offset = 0;
     let mut start = node;
-    while node > 0
+    while (start as usize) < path_graph.handles_ids.len()
         && path_graph.handles_ids[start as usize] == path_graph.handles_ids[node as usize]
     {
         offset += 1;
@@ -228,6 +239,23 @@ pub struct Gaf {
 }
 
 impl Gaf {
+    pub fn empty() -> Self {
+        Gaf {
+            query_name: String::new(),
+            query_len: 0,
+            query_start: 0,
+            query_end: 0,
+            strand: '+',
+            path_matching: Vec::new(),
+            path_len: 0,
+            path_start: 0,
+            path_end: 0,
+            residue_matches: 0,
+            alignment_len: 0,
+            mapq: 255,
+            comments: String::new(),
+        }
+    }
     pub fn new(
         query_name: String,
         query_len: usize,

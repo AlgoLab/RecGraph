@@ -1,16 +1,20 @@
 use bstr::BString;
 use needletail::{parse_fastx_file, Sequence};
 
-pub fn get_sequences(file_path: String) -> (Vec<BString>, Vec<BString>) {
+pub fn get_sequences(file_path: String, from_stdin: bool) -> (Vec<BString>, Vec<BString>) {
     let mut sequences = Vec::new();
     let mut ids = Vec::new();
 
     let current_absolute_position = std::env::current_dir().unwrap();
-    let mut reader = parse_fastx_file(&file_path).expect(&format!(
+    let mut reader = if from_stdin {
+        needletail::parse_fastx_stdin().expect("Invalid sequence path from stdin")
+    } else {
+        parse_fastx_file(&file_path).expect(&format!(
         "Invalid sequence path {} from {}",
         file_path,
         current_absolute_position.display()
-    ));
+    ))
+    };
     while let Some(record) = reader.next() {
         let seqrec = record.expect("Invalid sequence");
         let seqrec_norm = seqrec.normalize(true);

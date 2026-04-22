@@ -1,6 +1,6 @@
 extern crate bucket_queue;
 
-use crate::args_parser::EstimateFunction;
+use crate::args_parser::{EstimateFunction, ScoringParams};
 use crate::new_path_graph::path_graph::PathGraph;
 use ahash::AHashMap as HashMap;
 use bstr::BString;
@@ -16,6 +16,7 @@ pub fn exec(
     rec_cost: u16,
     max_rec: u32,
     est_type: &EstimateFunction,
+    scoring_params: &ScoringParams
 ) -> (Coord, HashMap<Coord, AStarNode> /* , Vec<Coord>*/) {
     // init A* data structure, each path possible starting point
     let mut alignment_graph = HashMap::new();
@@ -102,7 +103,6 @@ pub fn exec(
                         (current_node_coord.node, current_node_coord.pos),
                     );
                 }
-               
             } else {
                 if !path_graph.nws[current_node_coord.node as usize] {
                     let match_mis = if path_graph.lnz[current_node_coord.node as usize + 1]
@@ -122,6 +122,7 @@ pub fn exec(
                         &crumbs,
                         current_node_coord.node + 1,
                         is_local,
+                        scoring_params.gap_open_1 as u16,
                     );
                 } else {
                     let succ = path_graph
@@ -143,6 +144,7 @@ pub fn exec(
                         &crumbs,
                         succ,
                         is_local,
+                        scoring_params.gap_open_1 as u16,
                     );
                 }
                 if current_node_coord.rec < max_rec as u8 {
@@ -173,18 +175,39 @@ fn get_neighbours(
     current_node_coord: &Coord,
     crumbs: &Vec<Vec<u16>>,
     match_mis: u16,
+    gap_open: u16,
 ) -> (AStarNode, AStarNode, AStarNode) {
     let h = crumbs[current_node_coord.path as usize][current_node_coord.pos as usize + 1];
 
-    let m_x = AStarNode::init(current_node.g + match_mis, h, &current_node_coord);
-
-    let ins = AStarNode::init(
-        current_node.g + 1,
-        crumbs[current_node_coord.path as usize][current_node_coord.pos as usize],
+    let m_x = AStarNode::init(
+        current_node.g + match_mis,
+        h,
+        false,
+        false,
         &current_node_coord,
     );
 
-    let del = AStarNode::init(current_node.g + 1, h, &current_node_coord);
+    let ins = AStarNode::init(
+        match current_node.open_ins {
+            true => current_node.g + 1,
+            false => current_node.g + gap_open + 1,
+        },
+        crumbs[current_node_coord.path as usize][current_node_coord.pos as usize],
+        true,
+        false,
+        &current_node_coord,
+    );
+
+    let del = AStarNode::init(
+        match current_node.open_del {
+            true => current_node.g + 1,
+            false => current_node.g + gap_open + 1,
+        },
+        h,
+        false,
+        true,
+        &current_node_coord,
+    );
 
     (m_x, ins, del)
 }
@@ -220,7 +243,13 @@ fn new_multi_rec(
     paths.iter().enumerate().for_each(|(path, is_in)| {
         let rec_h = crumbs[path][current_node_coord.pos as usize];
         if is_in && path != current_node_coord.path as usize {
-            let rec_node = AStarNode::init(current_node.g + rec_cost, rec_h, &current_node_coord);
+            let rec_node = AStarNode::init(
+                current_node.g + rec_cost,
+                rec_h,
+                current_node.open_ins,
+                current_node.open_del,
+                &current_node_coord,
+            );
             update_open_set(
                 open_set,
                 alignment_graph,
@@ -246,9 +275,15 @@ fn push_neigh(
     crumbs: &Vec<Vec<u16>>,
     succ: u32,
     is_local: bool,
+    gap_open: u16,
 ) {
-    let (m_x, mut ins, del) =
-        get_neighbours(&current_node, &current_node_coord, &crumbs, match_mis);
+    let (m_x, mut ins, del) = get_neighbours(
+        &current_node,
+        &current_node_coord,
+        &crumbs,
+        match_mis,
+        gap_open,
+    );
 
     if current_node_coord.pos == 0 && is_local {
         ins.g = 0;
@@ -362,6 +397,8 @@ impl Copy for Coord {}
 pub struct AStarNode {
     pub g: u16,
     pub h: u16,
+    pub open_ins: bool,
+    pub open_del: bool,
     pub parent: SimpleCoord,
 }
 impl AStarNode {
@@ -369,6 +406,8 @@ impl AStarNode {
         AStarNode {
             g: 0,
             h: 0,
+            open_ins: false,
+            open_del: false,
             parent: SimpleCoord::new(),
         }
     }
@@ -379,10 +418,12 @@ impl AStarNode {
         node
     }
 
-    pub fn init(g: u16, h: u16, parent: &Coord) -> Self {
+    pub fn init(g: u16, h: u16, open_ins: bool, open_del: bool, parent: &Coord) -> Self {
         AStarNode {
             g,
             h,
+            open_ins,
+            open_del,
             parent: SimpleCoord {
                 node: parent.node,
                 pos: parent.pos,

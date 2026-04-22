@@ -1,9 +1,11 @@
 //! RecGraph is an exact sequence to variation graph aligner that allows controlled recombinations.
 //! More information at [rsPOA](https://github.com/AlgoLab/recgraph)
 
+/// Library Interface
+pub mod api;
+
 /// Command Line Interface
 pub mod args_parser;
-/// Interface for path managment
 
 /// .gaf file creation
 pub mod gaf_output;

@@ -9,9 +9,8 @@ struct Args {
         help_heading = "I/O",
         short = 'g',
         long = "graph",
-        help = "Input graph (in .gfa format)",
+        help = "Input graph (in .gfa format) (- for stdin)",
         //required = true,
-        default_value = "example/tests/simple.gfa"
     )]
     graph_path: String,
 
@@ -20,9 +19,8 @@ struct Args {
         help_heading = "I/O",
         short = 'q',
         long = "query",
-        help = "Query reads (in .fasta/.fastq format)",
+        help = "Query reads (in .fasta/.fastq format) (- for stdin)",
         //required = true,
-        default_value = "example/tests/simple.fa"
     )]
     sequence_path: String,
 
@@ -69,29 +67,42 @@ struct Args {
         short = 'X',
         long = "mismatch",
         default_value_t = 1,
-        help = "Mismatch penalty [NOT IMPLEMENTED]"
+        help = "Mismatch penalty"
     )]
     mismatch_score: i32,
 
     // Gap open
     #[clap(
         help_heading = "Alignment",
-        short = 'O',
-        long = "open-gap",
+        long = "O1",
         default_value_t = 0,
-        help = "Open gap penalty [NOT IMPLEMENTED]"
+        help = "Open gap penalty 1 (for dual affine gap)"
     )]
-    gap_open: i32,
+    gap_open_1: i32,
 
+    #[clap(
+        help_heading = "Alignment",
+        long = "O2",
+        default_value_t = 0,
+        help = "Open gap penalty 2 (for dual affine gap)"
+    )]
+    gap_open_2: i32,
     // Gap extension
     #[clap(
         help_heading = "Alignment",
-        short = 'E',
-        long = "gap-extension",
+        long = "E1",
         default_value_t = 1,
-        help = "Gap extension penalty [NOT IMPLEMENTED]"
+        help = "Gap extension penalty 1 (for dual affine gap)"
     )]
-    gap_ext: i32,
+    gap_ext_1: i32,
+
+    #[clap(
+        help_heading = "Alignment",
+        long = "E2",
+        default_value_t = 1,
+        help = "Gap extension penalty 2 (for dual affine gap)"
+    )]
+    gap_ext_2: i32,
 
     #[clap(
         help_heading = "Recombination",
@@ -149,14 +160,61 @@ impl Into<OsStr> for EstimateFunction {
         }
     }
 }
+#[derive(Debug)]
+pub struct ScoringParams {
+    pub match_score: i32,
+    pub mismatch_score: i32,
+    pub gap_open_1: i32,
+    pub gap_ext_1: i32,
+    pub gap_open_2: i32,
+    pub gap_ext_2: i32,
+}
+
+impl ScoringParams {
+    pub fn new(
+        match_score: i32,
+        mismatch_score: i32,
+        gap_open_1: i32,
+        gap_ext_1: i32,
+        gap_open_2: i32,
+        gap_ext_2: i32,
+    ) -> Self {
+        ScoringParams {
+            match_score,
+            mismatch_score,
+            gap_open_1,
+            gap_ext_1,
+            gap_open_2,
+            gap_ext_2,
+        }
+    }
+    pub fn base() -> Self {
+        ScoringParams {
+            match_score: 0,
+            mismatch_score: 1,
+            gap_open_1: 0,
+            gap_ext_1: 1,
+            gap_open_2: 1,
+            gap_ext_2: 0,
+        }
+    }
+
+    pub fn to_tuple(&self) -> (i32, i32, i32, i32, i32, i32) {
+        (
+            self.match_score,
+            self.mismatch_score,
+            self.gap_open_1,
+            self.gap_ext_1,
+            self.gap_open_2,
+            self.gap_ext_2,
+        )
+    }
+}
 pub struct ClArgs {
     pub sequence_path: String,
     pub graph_path: String,
     pub alignment_mode: bool,
-    pub match_score: i32,
-    pub mismatch_score: i32,
-    pub gap_open: i32,
-    pub gap_ext: i32,
+    pub scoring_params: ScoringParams,
     pub rec_number: i32,
     pub base_rec_cost: i32,
     pub out_file: String,
@@ -173,10 +231,14 @@ impl ClArgs {
             sequence_path: args.sequence_path,
             graph_path: args.graph_path,
             alignment_mode: args.alignment_mode,
-            match_score: args.match_score,
-            mismatch_score: -args.mismatch_score,
-            gap_open: -args.gap_open,
-            gap_ext: -args.gap_ext,
+            scoring_params: ScoringParams::new(
+                args.match_score,
+                args.mismatch_score,
+                args.gap_open_1,
+                args.gap_ext_1,
+                args.gap_open_2,
+                args.gap_ext_2,
+            ),
             rec_number: args.rec_number,
             base_rec_cost: args.base_rec_cost,
             out_file: args.out_file,
