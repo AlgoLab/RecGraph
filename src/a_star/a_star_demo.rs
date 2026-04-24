@@ -6,6 +6,7 @@ use lt_fm_index::LtFmIndex;
 use lt_fm_index::blocks::Block3;
 use needletail::Sequence;
 use rayon::prelude::*;
+use rayon::ThreadPoolBuilder;
 use std::io::{self, Error, Read};
 use std::time::{Duration, Instant};
 
@@ -18,6 +19,7 @@ use super::a_star_output::build_gaf;
 
 pub fn a_star_demo_chain() -> Result<(), Error> {
     let args = ClArgs::parse();
+    configure_rayon_threads(args.threads)?;
     let file_path = args.graph_path;
     if file_path.is_empty() {
         return Err(Error::new(
@@ -59,7 +61,7 @@ pub fn a_star_demo_chain() -> Result<(), Error> {
     } else {
         sequence_data
     };
-    let chunk_size = ClArgs::parse().seed_len;
+    let chunk_size = args.seed_len;
     let indexes = path_graph.get_indexes();
     let mut outs = Vec::new();
     //let mut explored_pos_vec = Vec::new();
@@ -149,6 +151,28 @@ pub fn a_star_demo_chain() -> Result<(), Error> {
         crate::a_star::check_ed::test(&path_graph, &sequences)
     }
     */
+    Ok(())
+}
+
+fn configure_rayon_threads(threads: Option<usize>) -> Result<(), Error> {
+    if let Some(threads) = threads {
+        if threads == 0 {
+            return Err(Error::new(
+                io::ErrorKind::InvalidInput,
+                "--threads must be greater than 0",
+            ));
+        }
+
+        ThreadPoolBuilder::new()
+            .num_threads(threads)
+            .build_global()
+            .map_err(|e| {
+                Error::new(
+                    io::ErrorKind::Other,
+                    format!("Failed to configure Rayon thread pool: {e}"),
+                )
+            })?;
+    }
     Ok(())
 }
 

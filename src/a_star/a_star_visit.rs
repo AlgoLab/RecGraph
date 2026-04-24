@@ -23,13 +23,17 @@ pub fn exec(
     //let mut open_set: DaryHeap<Coord, 4> = DaryHeap::new();
 
     let mut open_set = BucketQueue::<Vec<Coord>>::new();
+    // Track the best g-value already expanded for each coordinate.
+    // This skips duplicated stale pops from the queue while still allowing
+    // re-expansion if a strictly better path is discovered later.
+    let mut expanded_best_g: HashMap<Coord, u16> = HashMap::new();
     let crumbs: &mut Vec<Vec<u16>> = &mut heuristic.0;
     let match_handles = &mut heuristic.1;
     //let mut explored_pos = Vec::new();
     for path in 0..crumbs.len() {
         let node = AStarNode::new_path(path, &crumbs);
         let node_coord = Coord::init(0, 0, path as u8, 0);
-        open_set.push(node_coord.clone(), (node.g + node.h) as usize);
+        open_set.push(node_coord, (node.g + node.h) as usize);
         alignment_graph.insert(node_coord, node);
     }
 
@@ -38,6 +42,12 @@ pub fn exec(
     while !open_set.is_empty() {
         let current_node_coord = open_set.pop_min().unwrap();
         let current_node = alignment_graph.get(&current_node_coord).unwrap().clone();
+        if let Some(best_expanded) = expanded_best_g.get(&current_node_coord) {
+            if *best_expanded <= current_node.g {
+                continue;
+            }
+        }
+        expanded_best_g.insert(current_node_coord, current_node.g);
         //explored_pos.push(current_node_coord.clone());
         if current_node_coord.pos == query.len() as u32 - 2
             && (current_node_coord.node
@@ -165,7 +175,7 @@ pub fn exec(
         panic!("No path found");
     }
     (
-        end_pos.unwrap().clone(),
+        end_pos.unwrap(),
         alignment_graph, /*explored_pos*/
     )
 }

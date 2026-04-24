@@ -141,6 +141,14 @@ struct Args {
         help = "Choose the estimate function to be used"
     )]
     est_function: EstimateFunction,
+
+    #[clap(
+        help_heading = "Alignment",
+        short = 't',
+        long = "threads",
+        help = "Number of threads to use (if not set, use the number of available CPU cores)"
+    )]
+    threads: Option<usize>,
 }
 
 #[derive(clap::ValueEnum, Clone, Default, Debug, Serialize, PartialEq)]
@@ -222,6 +230,7 @@ pub struct ClArgs {
     pub max_rec: i32,
     pub amb_strand: bool,
     pub est_function: EstimateFunction,
+    pub threads: Option<usize>,
 }
 
 impl ClArgs {
@@ -246,6 +255,7 @@ impl ClArgs {
             max_rec: args.rec_number,
             amb_strand: args.amb_mode,
             est_function: args.est_function,
+            threads: args.threads,
         }
     }
 }
