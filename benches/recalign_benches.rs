@@ -11,7 +11,7 @@ pub fn compare_est_functions(c: &mut Criterion) {
     let mut group = c.benchmark_group("est_functions");
     for gene in ["B-3136", "C-3137"].iter() {
         let seqs_path = format!("example/{}.fa", gene);
-        let (sequences, _) = sequences::get_sequences(seqs_path);
+        let (sequences, _) = sequences::get_sequences(seqs_path, false);
         let graph_path = format!("example/{}.gfa", gene);
         let parser = GFAParser::new();
         let gfa: GFA<usize, ()> = parser.parse_file(graph_path).unwrap();

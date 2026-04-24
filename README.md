@@ -42,6 +42,7 @@ Alignment:
   -X, --mismatch <MISMATCH_SCORE>  Mismatch penalty [NOT IMPLEMENTED] [default: 1]
   -O, --open-gap <GAP_OPEN>        Open gap penalty [NOT IMPLEMENTED] [default: 0]
   -E, --gap-extension <GAP_EXT>    Gap extension penalty [NOT IMPLEMENTED] [default: 1]
+  -t, --threads <THREADS>          Number of threads to use 
 
 Recombination:
   -k, --recombinations <REC_NUMBER>     Number of recombinations to be performed on the graph. 0 means no recombination. [default: 0]
