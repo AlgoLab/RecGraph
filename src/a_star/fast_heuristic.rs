@@ -174,6 +174,9 @@ fn rec_chain_update(
     path_graph: &PathGraph,
     rec_allowed: bool,
 ) -> Vec<Vec<u16>> {
+    if chains.is_empty() || chains[0].is_empty() {
+        return vec![vec![]; chains.len()];
+    }
     let mut rec_chains = vec![vec![0; chains[0].len()]; chains.len()];
     let mut best_paths = vec![0; chains[0].len()];
 
